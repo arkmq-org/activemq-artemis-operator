@@ -69,6 +69,12 @@ const (
 	DefaultOperatorCertSecretName = "activemq-artemis-manager-cert"
 	DefaultOperatorCASecretName   = "activemq-artemis-manager-ca"
 	DefaultOperandCertSecretName  = "broker-cert" // or can be prefixed with `cr.Name-`
+	AppCertSecretSuffix           = "-app-cert"
+	CertUsersKeySuffix            = "cert-users"
+	CertRolesKeySuffix            = "cert-roles"
+	JaasRealm                     = "activemq"
+	HttpAuthenticatorRealm        = "http_server_authenticator"
+	AppServiceAnnotation          = "amq.io/app-service"
 
 	BlockReconcileAnnotation = "arkmq.org/block-reconcile"
 )
@@ -117,6 +123,14 @@ func init() {
 	} else {
 		jaasConfigSyntaxMatchRegEx = JaasConfigSyntaxMatchRegExDefault
 	}
+}
+
+func GetCertUsersKey(realm string) string {
+	return fmt.Sprintf("%s-%s", realm, CertUsersKeySuffix)
+}
+
+func GetCertRolesKey(realm string) string {
+	return fmt.Sprintf("%s-%s", realm, CertRolesKeySuffix)
 }
 
 func GetJaasConfigSyntaxMatchRegEx() string {
