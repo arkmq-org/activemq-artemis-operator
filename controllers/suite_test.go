@@ -59,18 +59,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	brokerv1alpha1 "github.com/artemiscloud/activemq-artemis-operator/api/v1alpha1"
-	brokerv1beta1 "github.com/artemiscloud/activemq-artemis-operator/api/v1beta1"
-	brokerv2alpha1 "github.com/artemiscloud/activemq-artemis-operator/api/v2alpha1"
-	brokerv2alpha2 "github.com/artemiscloud/activemq-artemis-operator/api/v2alpha2"
-	brokerv2alpha3 "github.com/artemiscloud/activemq-artemis-operator/api/v2alpha3"
-	brokerv2alpha4 "github.com/artemiscloud/activemq-artemis-operator/api/v2alpha4"
-	brokerv2alpha5 "github.com/artemiscloud/activemq-artemis-operator/api/v2alpha5"
+	brokerv1alpha1 "github.com/arkmq-org/activemq-artemis-operator/api/v1alpha1"
+	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
+	brokerv2alpha1 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha1"
+	brokerv2alpha2 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha2"
+	brokerv2alpha3 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha3"
+	brokerv2alpha4 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha4"
+	brokerv2alpha5 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha5"
 
 	//+kubebuilder:scaffold:imports
 
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/resources/ingresses"
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/common"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/ingresses"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
 	tm "github.com/cert-manager/trust-manager/pkg/apis/trust/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -100,7 +100,7 @@ const (
 	specShortNameLimit      = 25
 
 	// Default ingress domain for tests
-	defaultTestIngressDomain = "tests.artemiscloud.io"
+	defaultTestIngressDomain = "tests.arkmq-org.io"
 )
 
 var (
@@ -291,7 +291,7 @@ func setUpTestProxy() {
 	testProxyDeploymentReplicas := int32(1)
 	testProxyName := "test-proxy"
 	testProxyNamespace := "default"
-	testProxyHost := testProxyName + ".tests.artemiscloud.io"
+	testProxyHost := testProxyName + ".tests.arkmq-org.io"
 	testProxyLabels := map[string]string{"app": "test-proxy"}
 	testProxyScript := fmt.Sprintf("yum -y install openssh-server openssl stunnel && "+
 		"adduser --system -u 1000 tunnel && echo secret | passwd tunnel --stdin && "+

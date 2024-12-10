@@ -17,7 +17,7 @@ limitations under the License.
 package fake
 
 import (
-	v2alpha2 "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v2alpha2"
+	v2alpha2 "github.com/arkmq-org/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v2alpha2"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )

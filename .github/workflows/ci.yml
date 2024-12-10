@@ -96,17 +96,17 @@ jobs:
         with:
           node-version: 18.x
 
-      - name: Checkout artemiscloud.github.io
+      - name: Checkout arkmq-org.github.io
         uses: actions/checkout@v4
         with:
-          repository: artemiscloud/artemiscloud.github.io
-          path: artemiscloud.github.io
+          repository: arkmq-org/arkmq-org.github.io
+          path: arkmq-org.github.io
 
       - name: Build the docs
         run: >
-          rm -rf artemiscloud.github.io/content/en/docs &&
-          cp -r docs artemiscloud.github.io/content/en &&
-          cd artemiscloud.github.io &&
+          rm -rf arkmq-org.github.io/content/en/docs &&
+          cp -r docs arkmq-org.github.io/content/en &&
+          cd arkmq-org.github.io &&
           npm install && npm run build
 
       - name: Set up QEMU

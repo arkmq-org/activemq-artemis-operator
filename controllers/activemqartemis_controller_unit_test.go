@@ -18,11 +18,11 @@ import (
 	"strings"
 	"testing"
 
-	brokerv1beta1 "github.com/artemiscloud/activemq-artemis-operator/api/v1beta1"
+	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	"github.com/stretchr/testify/assert"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/selectors"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/selectors"
 	"k8s.io/apimachinery/pkg/api/meta"
 )
 

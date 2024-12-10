@@ -19,8 +19,8 @@ package v1beta1
 import (
 	"context"
 
-	v1beta1 "github.com/artemiscloud/activemq-artemis-operator/api/v1beta1"
-	scheme "github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/scheme"
+	v1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
+	scheme "github.com/arkmq-org/activemq-artemis-operator/pkg/client/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"

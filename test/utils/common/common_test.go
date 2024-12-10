@@ -3,7 +3,7 @@ package common_test
 import (
 	"testing"
 
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/common"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 

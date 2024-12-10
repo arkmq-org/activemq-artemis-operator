@@ -131,7 +131,7 @@ For this tutorial we need to:
 #### Create the certs
 
 We'll take some inspiration from the [ssl broker
-setup](https://github.com/artemiscloud/send-receive-project/blob/main/docs/tutorials/ssl_broker_setup.md)
+setup](https://github.com/arkmq-org/send-receive-project/blob/main/docs/tutorials/ssl_broker_setup.md)
 to configure the certificates.
 
 > [!NOTE]
@@ -145,13 +145,13 @@ export CLUSTER_IP=$(minikube ip --profile tutorialtester)
 ```
 
 ```{"stage":"cert-creation", "rootdir":"$tmpdir.1", "runtime":"bash", "label":"generate cert"}
-printf "000000\n000000\n${CLUSTER_IP}.nip.io\nArtemisCloud\nRed Hat\nGrenoble\nAuvergne Rhône Alpes\nFR\nyes\n" | keytool -genkeypair -alias artemis -keyalg RSA -keysize 2048 -storetype PKCS12 -keystore broker.ks -validity 3000
+printf "000000\n000000\n${CLUSTER_IP}.nip.io\narkmq-org\nRed Hat\nGrenoble\nAuvergne Rhône Alpes\nFR\nyes\n" | keytool -genkeypair -alias artemis -keyalg RSA -keysize 2048 -storetype PKCS12 -keystore broker.ks -validity 3000
 printf '000000\n' | keytool -export -alias artemis -file broker.cert -keystore broker.ks
 printf '000000\n000000\nyes\n' | keytool -import -v -trustcacerts -alias artemis -file broker.cert -keystore client.ts
 ```
 ```shell tutorial_tester
-Owner: CN=192.168.49.2.nip.io, OU=ArtemisCloud, O=Red Hat, L=Grenoble, ST=Auvergne Rhône Alpes, C=FR
-Issuer: CN=192.168.49.2.nip.io, OU=ArtemisCloud, O=Red Hat, L=Grenoble, ST=Auvergne Rhône Alpes, C=FR
+Owner: CN=192.168.49.2.nip.io, OU=arkmq-org, O=Red Hat, L=Grenoble, ST=Auvergne Rhône Alpes, C=FR
+Issuer: CN=192.168.49.2.nip.io, OU=arkmq-org, O=Red Hat, L=Grenoble, ST=Auvergne Rhône Alpes, C=FR
 Serial number: 2ff151d6
 Valid from: Wed Sep 04 14:33:24 CEST 2024 until: Sun Nov 21 13:33:24 CET 2032
 Certificate fingerprints:

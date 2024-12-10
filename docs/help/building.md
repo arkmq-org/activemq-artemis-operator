@@ -1,7 +1,7 @@
 ---
 title: "Building"
-description: "Building ArtemisCloud.io"
-lead: "Building ArtemisCloud.io"
+description: "Building arkmq-org.io"
+lead: "Building arkmq-org.io"
 date: 2020-10-06T08:49:31+00:00
 lastmod: 2020-10-06T08:49:31+00:00
 draft: false
@@ -32,7 +32,7 @@ Install Docker following the [installation instructions](https://docs.docker.com
 ## Get the code
 
 ```$xslt
-git clone https://github.com/artemiscloud/activemq-artemis-operator
+git clone https://github.com/arkmq-org/activemq-artemis-operator
 cd activemq-artemis-operator
 git checkout main
 ```

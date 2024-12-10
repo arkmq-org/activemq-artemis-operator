@@ -1,5 +1,5 @@
 ---
-title: "Setting up SSL connections with ArtemisCloud Operator"  
+title: "Setting up SSL connections with Arkmq-org Operator"  
 description: "An example for setting up ssl connections for broker in kubernetes with operator"
 draft: false
 images: []
@@ -10,7 +10,7 @@ weight: 110
 toc: true
 ---
 
-Security is always a concern in a production environment. With ArtemisCloud Operator
+Security is always a concern in a production environment. With arkmq-org Operator
 You can easily configure and set up a broker with ssl-enabled acceptors. The blog explains how to do it.
 
 The [ActiveMQ Artemis](https://activemq.apache.org/components/artemis/) broker supports a variety of network protocols(tcp, http, etc) including [SSL(TLS)](https://en.wikipedia.org/wiki/Transport_Layer_Security) secure connections. Underneath it uses [Netty](https://netty.io/) as the base transport layer.
@@ -18,10 +18,10 @@ The [ActiveMQ Artemis](https://activemq.apache.org/components/artemis/) broker s
 This article guides you through the steps to set up a broker to run in kubernetes (Minikube). The broker will listen on a secure port 61617 (ssl over tcp). It also demonstrates sending and receiving messages over secure connections using one-way authentication.
 
 ### Prerequisite
-Before you start you need have access to a running Kubernetes cluster environment. A [Minikube](https://minikube.sigs.k8s.io/docs/start/) running on your laptop will just do fine. The ArtemisCloud operator also runs in a Openshift cluster environment like [CodeReady Container](https://developers.redhat.com/products/codeready-containers/overview). In this blog we assume you have Kubernetes cluster environment. (If you use CodeReady the client tool is **oc** in place of **kubectl**)
+Before you start you need have access to a running Kubernetes cluster environment. A [Minikube](https://minikube.sigs.k8s.io/docs/start/) running on your laptop will just do fine. The arkmq-org operator also runs in a Openshift cluster environment like [CodeReady Container](https://developers.redhat.com/products/codeready-containers/overview). In this blog we assume you have Kubernetes cluster environment. (If you use CodeReady the client tool is **oc** in place of **kubectl**)
 
-### Deploy ArtemisCloud operator
-First you need to deploy the ArtemisCloud operator.
+### Deploy Arkmq-org operator
+First you need to deploy the arkmq-org operator.
 If you are not sure how to deploy the operator take a look at [this blog]({{< relref "using_operator.md" >}}).
 
 In this blog post we assume you deployed the operator to a namespace called **myproject**.
@@ -122,7 +122,7 @@ metadata:
 spec:
   deploymentPlan:
     size: 1
-    image: quay.io/artemiscloud/activemq-artemis-broker-kubernetes:0.2.1
+    image: quay.io/arkmq-org/activemq-artemis-broker-kubernetes:0.2.1
   acceptors:
   - name: sslacceptor
     protocols: all
@@ -256,5 +256,5 @@ EOF
 
 ### More SSL options
 We have just demonstrated a simplified SSL configuration. In fact the operator supports quite a few more SSL options through the CRD definitions.
-You can checkout those options in broker CRD [down here](https://github.com/artemiscloud/activemq-artemis-operator/blob/5183ddc4c2f66e0d270233a3f37340b14e225d80/deploy/crds/broker_activemqartemis_crd.yaml#L45)
+You can checkout those options in broker CRD [down here](https://github.com/arkmq-org/activemq-artemis-operator/blob/5183ddc4c2f66e0d270233a3f37340b14e225d80/deploy/crds/broker_activemqartemis_crd.yaml#L45)
 and also read the [Artemis Doc on configuring transports](https://activemq.apache.org/components/artemis/documentation/latest/configuring-transports.html) for more information.

@@ -3,7 +3,7 @@ package environments
 import (
 	"strconv"
 
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/random"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/random"
 	corev1 "k8s.io/api/core/v1"
 )
 

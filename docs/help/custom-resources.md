@@ -1,7 +1,7 @@
 ---
 title: "Custom Resources"
-description: "Custom Resource ArtemisCloud.io"
-lead: "Custom Resource ArtemisCloud.io"
+description: "Custom Resource arkmq-org.io"
+lead: "Custom Resource arkmq-org.io"
 date: 2020-10-06T08:49:31+00:00
 lastmod: 2020-10-06T08:49:31+00:00
 draft: false
@@ -21,7 +21,7 @@ The following sub-sections detail the configuration items that you can set in Cu
 broker and addressing CRDs.
 
 ### Broker Custom Resource configuration reference
-A CR instance based on the main broker CRD enables you to configure brokers for deployment in a Kubernetes project, see the [artemiscloud/activemq-artemis-operator CRDs](https://doc.crds.dev/github.com/artemiscloud/activemq-artemis-operator). The following is the full CRD yaml file
+A CR instance based on the main broker CRD enables you to configure brokers for deployment in a Kubernetes project, see the [arkmq-org/activemq-artemis-operator CRDs](https://doc.crds.dev/github.com/arkmq-org/activemq-artemis-operator). The following is the full CRD yaml file
 
 ```yaml
 apiVersion: apiextensions.k8s.io/v1

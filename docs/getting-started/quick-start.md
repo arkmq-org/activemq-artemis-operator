@@ -1,7 +1,7 @@
 ---
 title: "Quick Start"
-description: "One page summary of how to start a new ArtemisCloud project."
-lead: "One page summary of how to start a new ArtemisCloud project."
+description: "One page summary of how to start a new arkmq-org project."
+lead: "One page summary of how to start a new arkmq-org project."
 date: 2020-11-16T13:59:39+01:00
 lastmod: 2020-11-16T13:59:39+01:00
 draft: false
@@ -30,7 +30,7 @@ You can install a [Minikube](https://minikube.sigs.k8s.io/docs/) or a [CodeReady
 
 ## Getting the code and build the image
 
-To launch the operator you will need to clone the [activemq-artemis-operator](https://github.com/artemiscloud/activemq-artemis-operator) and checkout the main branch.
+To launch the operator you will need to clone the [activemq-artemis-operator](https://github.com/arkmq-org/activemq-artemis-operator) and checkout the main branch.
 
 (Optional) Follow the [building]({{< ref "../help/building.md" >}}) instructions, tag, and push it into your project
 namespace.
@@ -348,7 +348,7 @@ configuration information as files to be used in the artemis configuration. One 
 redefine the log4j file used by artemis to log information. [Here](https://activemq.apache.org/components/artemis/documentation/latest/logging.html#logging) you can find details about artemis logging configuration.
 
 To use a custom logging you will need a log4j configuration file. The default log4j configuration file can be used as
-an initial example and can be downloaded from [here](https://raw.githubusercontent.com/artemiscloud/activemq-artemis-broker-kubernetes-image/main/modules/activemq-artemis-launch/added/log4j2.properties)
+an initial example and can be downloaded from [here](https://raw.githubusercontent.com/arkmq-org/activemq-artemis-broker-kubernetes-image/main/modules/activemq-artemis-launch/added/log4j2.properties)
 
 Assuming you already have the operator deployed, in our example we are going to modify the default logging file and enable the audit logging. You will need to modify the log4j2.properties file and change the lines as below:
 
