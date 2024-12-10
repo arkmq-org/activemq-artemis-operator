@@ -4,7 +4,7 @@ FROM registry.access.redhat.com/ubi9/go-toolset:1.21.11 as builder
 ARG TARGETOS
 ARG TARGETARCH
 
-ENV GO_MODULE=github.com/artemiscloud/activemq-artemis-operator
+ENV GO_MODULE=github.com/arkmq-org/activemq-artemis-operator
 
 ### BEGIN REMOTE SOURCE
 # Use the COPY instruction only inside the REMOTE SOURCE block
@@ -69,7 +69,7 @@ RUN microdnf update -y --setopt=install_weak_deps=0 && rm -rf /var/cache/yum
 USER ${USER_UID}
 ENTRYPOINT ["${USER_HOME}/bin/entrypoint"]
 
-LABEL name="artemiscloud/activemq-artemis-operator"
+LABEL name="arkmq-org/activemq-artemis-operator"
 LABEL description="ActiveMQ Artemis Broker Operator"
 LABEL maintainer="Roddie Kieley <rkieley@redhat.com>"
 LABEL version="1.2.8"

@@ -20,11 +20,9 @@ import (
 	"context"
 	"fmt"
 
-	//	"github.com/artemiscloud/activemq-artemis-operator/api/v1beta1"
-	brokerv1beta1 "github.com/artemiscloud/activemq-artemis-operator/api/v1beta1"
+	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	"github.com/go-logr/logr"
 
-	//"github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v1beta1"
 	"os"
 	"time"
 
@@ -50,11 +48,11 @@ import (
 	"strconv"
 	"strings"
 
-	rbacutil "github.com/artemiscloud/activemq-artemis-operator/pkg/rbac"
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/resources"
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/resources/secrets"
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/namer"
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/selectors"
+	rbacutil "github.com/arkmq-org/activemq-artemis-operator/pkg/rbac"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/secrets"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/namer"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/selectors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 

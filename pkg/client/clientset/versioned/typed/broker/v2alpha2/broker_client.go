@@ -17,7 +17,7 @@ limitations under the License.
 package v2alpha2
 
 import (
-	v2alpha2 "github.com/artemiscloud/activemq-artemis-operator/api/v2alpha2"
+	v2alpha2 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha2"
 	rest "k8s.io/client-go/rest"
 )
 

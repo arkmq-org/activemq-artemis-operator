@@ -1,5 +1,5 @@
 annotations:
-  name: "artemiscloud/activemq-artemis-operator-bundle"
+  name: "arkmq-org/activemq-artemis-operator-bundle"
   description: "ActiveMQ Artemis Broker Operator Bundle"
   maintainer: "Roddie Kieley <rkieley@redhat.com>"
   version: "1.0.10"

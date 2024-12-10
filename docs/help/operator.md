@@ -1,7 +1,7 @@
 ---
 title: "Operator"
-description: "Operator ArtemisCloud.io"
-lead: "Operator ArtemisCloud.io"
+description: "Operator arkmq-org.io"
+lead: "Operator arkmq-org.io"
 date: 2020-10-06T08:49:31+00:00
 lastmod: 2020-10-06T08:49:31+00:00
 draft: false
@@ -13,7 +13,7 @@ weight: 630
 toc: true
 ---
 
-## Overview of the ArtemisCloud Operator Custom Resource Definitions
+## Overview of the arkmq-org Operator Custom Resource Definitions
 
 In general, a Custom Resource Definition (CRD) is a schema of configuration items that you can modify for a custom Kubernetes 
 object deployed with an Operator. By creating a corresponding Custom Resource (CR) instance, you can specify values for 
@@ -74,7 +74,7 @@ For more information about provisioning persistent storage in Kubernetes, see [U
 ## Installing the Operator using the CLI
 
 This section shows how to use the Kubernetes command-line interface (CLI) to deploy the latest version of 
-the Operator for ArtemisCloud in your Kubernetes project.
+the Operator for arkmq-org in your Kubernetes project.
 
 If you intend to deploy brokers with persistent storage and do not have container-native storage in your Kubernetes cluster, 
 you need to manually provision Persistent Volumes (PVs) and ensure that they are available to be claimed by the Operator. 
@@ -134,9 +134,9 @@ After editing the Subscription yaml as such, save it and the operator will resta
 
 ### Getting the Operator code
 
-This procedure shows how to access and prepare the code you need to install the latest version of the Operator for ArtemisCloud .
+This procedure shows how to access and prepare the code you need to install the latest version of the Operator for arkmq-org .
 
-Download the latest version of the Operator from https://github.com/artemiscloud/activemq-artemis-operator/tags
+Download the latest version of the Operator from https://github.com/arkmq-org/activemq-artemis-operator/tags
 
 When the download has completed, move the archive to your chosen installation directory.
 ```shell script
@@ -261,7 +261,7 @@ spec:
     template:
         spec:
             containers:
-                image: quay.io/artemiscloud/activemq-artemis-operator:latest
+                image: quay.io/arkmq-org/activemq-artemis-operator:latest
 ```
 
 Deploy the Operator.
@@ -305,7 +305,7 @@ The following procedure shows how to use a Custom Resource (CR) instance to crea
 
 Prerequisites
 
-1. You must have already installed the ArtemisCloud Operator.
+1. You must have already installed the arkmq-org Operator.
 
 2. To use the Kubernetes command-line interface (CLI) to install the ActiveMQ Artemis Operator, see [Installing the Operator](#installing-the-operator-using-the-cli).
 
@@ -337,7 +337,7 @@ spec:
 ```
 
 Observe that the sample CR uses a naming convention of **ex-aao**. This naming convention denotes that the CR is an example 
-resource for the ArtemisCloud (based on the ActiveMQ Artemis project) Operator. When you deploy this sample CR, the resulting 
+resource for the arkmq-org (based on the ActiveMQ Artemis project) Operator. When you deploy this sample CR, the resulting 
 Stateful Set uses the name **ex-aao-ss**. Furthermore, broker Pods in the deployment are directly based on the Stateful Set name, 
 for example, **ex-aao-ss-0**, **ex-aao-ss-1**, and so on. 
 
@@ -477,7 +477,7 @@ via the **kubectl scale** command. For example, suppose you use **kubectl** scal
 but the value of **deploymentPlan.size** in your CR is still 3. In this case, Kubernetes initially scales the deployment down to two brokers. 
 However, when the scaledown operation is complete, the Operator restores the deployment to three brokers, as specified in the CR.
 
-3. As described in [Deploying the Operator using the CLI](#deploying-the-operator-using-the-cli), if you create a broker deployment with persistent storage (that is, by setting persistenceEnabled=true in your CR), you might need to provision Persistent Volumes (PVs) for the ArtemisCloud Operator to claim for your broker Pods. If you scale down the size of your broker deployment, the Operator releases any PVs that it previously claimed for the broker Pods that are now shut down. However, if you remove your broker deployment by deleting your CR, ArtemisCloud Operator does not release Persistent Volume Claims (PVCs) for any broker Pods that are still in the deployment when you remove it. In addition, these unreleased PVs are unavailable to any new deployment. In this case, you need to manually release the volumes. For more information, see Releasing volumes in the Kubernetes documentation.
+3. As described in [Deploying the Operator using the CLI](#deploying-the-operator-using-the-cli), if you create a broker deployment with persistent storage (that is, by setting persistenceEnabled=true in your CR), you might need to provision Persistent Volumes (PVs) for the arkmq-org Operator to claim for your broker Pods. If you scale down the size of your broker deployment, the Operator releases any PVs that it previously claimed for the broker Pods that are now shut down. However, if you remove your broker deployment by deleting your CR, arkmq-org Operator does not release Persistent Volume Claims (PVCs) for any broker Pods that are still in the deployment when you remove it. In addition, these unreleased PVs are unavailable to any new deployment. In this case, you need to manually release the volumes. For more information, see Releasing volumes in the Kubernetes documentation.
 
 4. During an active scaling event, any further changes that you apply are queued by the Operator and executed only when scaling is complete. For example, suppose that you scale the size of your deployment down from four brokers to one. Then, while scaledown is taking place, you also change the values of the broker administrator user name and password. In this case, the Operator queues the user name and password changes until the deployment is running with one active broker.
 
@@ -600,7 +600,7 @@ spec:
 #### The Readiness Probe
 
 As with the Liveness Probe the Readiness probe has a default probe if not configured. Unlike the readiness probe this is 
-a script that is shipped in the Kubernetes Image, this can be found [here](https://github.com/artemiscloud/activemq-artemis-broker-kubernetes-image/blob/main/modules/activemq-artemis-launch/added/readinessProbe.sh)
+a script that is shipped in the Kubernetes Image, this can be found [here](https://github.com/arkmq-org/activemq-artemis-broker-kubernetes-image/blob/main/modules/activemq-artemis-launch/added/readinessProbe.sh)
 
 The script will try to establish a tcp connection to each port configured in the broker.xml.  
 
@@ -756,7 +756,7 @@ spec:
 It is possible to configure  ResourceTemplate(s) for resources that are managed by the operator.
 The TemplateType contains Labels and Annotations with an optional Selector. If the selector is empty
 the template matches all resources. Othewise it can be used to restrict what is matched.
-Note: the relevant variables supported by [`ingressHost`](https://github.com/artemiscloud/activemq-artemis-operator/issues/614) in the CRD can be referenced in keys and values for both labels and annotations.
+Note: the relevant variables supported by [`ingressHost`](https://github.com/arkmq-org/activemq-artemis-operator/issues/614) in the CRD can be referenced in keys and values for both labels and annotations.
 In the following example, the annotation "someKey=someValue" is added to all Services
 
 ```yaml
@@ -973,7 +973,7 @@ The ActiveMQArtemisAddress and ActiveMQArtemisSecurity CRDs are deprecated in fa
 ## Configuring Logging for Brokers
 
 By default the operator deploys a broker with a default logging configuration that comes with the [Artemis container image]
-(https://github.com/artemiscloud/activemq-artemis-broker-kubernetes-image). Broker logs its messages to console only.
+(https://github.com/arkmq-org/activemq-artemis-broker-kubernetes-image). Broker logs its messages to console only.
 
 Users can change the broker logging configuration by providing their own in a configmap or secret. The name of the configmap
 or secret must have the suffix **-logging-config**. There must a key **logging.properties** and the value must of the full content of the logging configuration. (The broker is using slf4j with
@@ -1124,7 +1124,7 @@ spec:
   endpoints:
   - port: console-jolokia
 ```
-For a complete example please refer to this [artemiscloud example](https://github.com/artemiscloud/artemiscloud-examples/tree/main/operator/prometheus).
+For a complete example please refer to this [arkmq-org example](https://github.com/arkmq-org/arkmq-org-examples/tree/main/operator/prometheus).
 
 ## Enabling Operator Metrics
 
@@ -1367,11 +1367,11 @@ metadata:
   namespace: cert-manager
 spec:
   isCA: true
-  commonName: "artemiscloud.io.root"
+  commonName: "arkmq-org.io.root"
   secretName: root-ca-secret
   subject:
     organizations:
-    - "www.artemiscloud.io"
+    - "www.arkmq-org.io"
   issuerRef:
     name: root-issuer
     kind: ClusterIssuer
@@ -1398,14 +1398,14 @@ metadata:
   name: server-cert
 spec:
   isCA: false
-  commonName: "artemiscloud.io"
+  commonName: "arkmq-org.io"
   dnsNames:
     - "artemis-broker-ss-0"
     - "artemis-broker-ss-0.artemis-broker-hdls-svc.default.svc.cluster.local"
   secretName: server-cert-secret
   subject:
     organizations:
-    - "www.artemiscloud.io"
+    - "www.arkmq-org.io"
   issuerRef:
     name: broker-cert-issuer
     kind: ClusterIssuer

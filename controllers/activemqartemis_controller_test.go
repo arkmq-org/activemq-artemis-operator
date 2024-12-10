@@ -33,15 +33,15 @@ import (
 	"strconv"
 	"strings"
 
-	brokerv2alpha4 "github.com/artemiscloud/activemq-artemis-operator/api/v2alpha4"
-	"github.com/artemiscloud/activemq-artemis-operator/api/v2alpha5"
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v1beta1"
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/resources/configmaps"
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/resources/secrets"
-	ss "github.com/artemiscloud/activemq-artemis-operator/pkg/resources/statefulsets"
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/common"
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/jolokia"
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/namer"
+	brokerv2alpha4 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha4"
+	"github.com/arkmq-org/activemq-artemis-operator/api/v2alpha5"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/client/clientset/versioned/typed/broker/v1beta1"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/configmaps"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/secrets"
+	ss "github.com/arkmq-org/activemq-artemis-operator/pkg/resources/statefulsets"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/jolokia"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/namer"
 	"github.com/blang/semver/v4"
 
 	"time"
@@ -50,7 +50,7 @@ import (
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/artemiscloud/activemq-artemis-operator/version"
+	"github.com/arkmq-org/activemq-artemis-operator/version"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
@@ -64,8 +64,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	brokerv1beta1 "github.com/artemiscloud/activemq-artemis-operator/api/v1beta1"
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/cr2jinja2"
+	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/cr2jinja2"
 
 	"github.com/Azure/go-amqp"
 	routev1 "github.com/openshift/api/route/v1"
@@ -861,8 +861,8 @@ var _ = Describe("artemis controller", func() {
 		})
 
 		It("specify only major version", func() {
-			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_"+version.CompactLatestVersion, "quay.io/artemiscloud/fake-broker:latest")
-			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_"+version.CompactLatestVersion, "quay.io/artemiscloud/fake-broker-init:latest")
+			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_"+version.CompactLatestVersion, "quay.io/arkmq-org/fake-broker:latest")
+			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_"+version.CompactLatestVersion, "quay.io/arkmq-org/fake-broker-init:latest")
 			defer func() {
 				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_" + version.CompactLatestVersion)
 				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_" + version.CompactLatestVersion)
@@ -880,9 +880,9 @@ var _ = Describe("artemis controller", func() {
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, ssKey, createdSs)).Should(Succeed())
 				mainContainer := createdSs.Spec.Template.Spec.Containers[0]
-				g.Expect(mainContainer.Image).To(Equal("quay.io/artemiscloud/fake-broker:latest"))
+				g.Expect(mainContainer.Image).To(Equal("quay.io/arkmq-org/fake-broker:latest"))
 				initContainer := createdSs.Spec.Template.Spec.InitContainers[0]
-				g.Expect(initContainer.Image).To(Equal("quay.io/artemiscloud/fake-broker-init:latest"))
+				g.Expect(initContainer.Image).To(Equal("quay.io/arkmq-org/fake-broker-init:latest"))
 
 			}, timeout, interval).Should(Succeed())
 
@@ -909,8 +909,8 @@ var _ = Describe("artemis controller", func() {
 		})
 
 		It("specify only major.minor version", func() {
-			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_"+version.CompactLatestVersion, "quay.io/artemiscloud/fake-broker:latest")
-			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_"+version.CompactLatestVersion, "quay.io/artemiscloud/fake-broker-init:latest")
+			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_"+version.CompactLatestVersion, "quay.io/arkmq-org/fake-broker:latest")
+			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_"+version.CompactLatestVersion, "quay.io/arkmq-org/fake-broker-init:latest")
 			defer func() {
 				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_" + version.CompactLatestVersion)
 				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_" + version.CompactLatestVersion)
@@ -931,9 +931,9 @@ var _ = Describe("artemis controller", func() {
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, ssKey, createdSs)).Should(Succeed())
 				mainContainer := createdSs.Spec.Template.Spec.Containers[0]
-				g.Expect(mainContainer.Image).To(Equal("quay.io/artemiscloud/fake-broker:latest"))
+				g.Expect(mainContainer.Image).To(Equal("quay.io/arkmq-org/fake-broker:latest"))
 				initContainer := createdSs.Spec.Template.Spec.InitContainers[0]
-				g.Expect(initContainer.Image).To(Equal("quay.io/artemiscloud/fake-broker-init:latest"))
+				g.Expect(initContainer.Image).To(Equal("quay.io/arkmq-org/fake-broker-init:latest"))
 
 			}, timeout, interval).Should(Succeed())
 
@@ -958,8 +958,8 @@ var _ = Describe("artemis controller", func() {
 		})
 
 		It("default broker versions", func() {
-			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_"+version.CompactLatestVersion, "quay.io/artemiscloud/fake-broker:latest")
-			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_"+version.CompactLatestVersion, "quay.io/artemiscloud/fake-broker-init:latest")
+			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_"+version.CompactLatestVersion, "quay.io/arkmq-org/fake-broker:latest")
+			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_"+version.CompactLatestVersion, "quay.io/arkmq-org/fake-broker-init:latest")
 			defer func() {
 				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_" + version.CompactLatestVersion)
 				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_" + version.CompactLatestVersion)
@@ -977,9 +977,9 @@ var _ = Describe("artemis controller", func() {
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, ssKey, createdSs)).Should(Succeed())
 				mainContainer := createdSs.Spec.Template.Spec.Containers[0]
-				g.Expect(mainContainer.Image).To(Equal("quay.io/artemiscloud/fake-broker:latest"))
+				g.Expect(mainContainer.Image).To(Equal("quay.io/arkmq-org/fake-broker:latest"))
 				initContainer := createdSs.Spec.Template.Spec.InitContainers[0]
-				g.Expect(initContainer.Image).To(Equal("quay.io/artemiscloud/fake-broker-init:latest"))
+				g.Expect(initContainer.Image).To(Equal("quay.io/arkmq-org/fake-broker-init:latest"))
 
 			}, timeout, interval).Should(Succeed())
 

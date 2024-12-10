@@ -23,9 +23,9 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/resources/volumes"
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/common"
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/namer"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/volumes"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/namer"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -37,7 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 
-	brokerv1beta1 "github.com/artemiscloud/activemq-artemis-operator/api/v1beta1"
+	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	routev1 "github.com/openshift/api/route/v1"
 )
 
@@ -65,7 +65,7 @@ var _ = Describe("artemis controller 2", func() {
 						Expose:    true,
 					},
 				}
-				candidate.Spec.IngressDomain = "artemiscloud.io"
+				candidate.Spec.IngressDomain = "arkmq-org.io"
 			})
 
 			brokerKey := types.NamespacedName{
@@ -427,7 +427,7 @@ var _ = Describe("artemis controller 2", func() {
 					},
 				}
 				// no brokerHost or domain, openshift will annotate the route host.generated
-				//candidate.Spec.IngressDomain = "artemiscloud.io"
+				//candidate.Spec.IngressDomain = "arkmq-org.io"
 			})
 
 			routeKey := types.NamespacedName{

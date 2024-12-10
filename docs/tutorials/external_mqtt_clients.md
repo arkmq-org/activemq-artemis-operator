@@ -13,7 +13,7 @@ toc: true
 When you expose an acceptor to external clients (that is, by setting the value of the expose parameter to true), the Operator automatically creates an ingress on Kubernetes or a route on OpenShift for each broker pod of the deployment. An external client can connect to the broker by specifying the full host name of the ingress/route created for the broker pod.
 
 # Prerequisite
-Before you start you need to have access to a running Kubernetes cluster environment. A [Minikube](https://minikube.sigs.k8s.io/docs/start/) with [Ingress](https://kubernetes.io/docs/tasks/access-application-cluster/ingress-minikube/) running on your laptop will just do fine. The ArtemisCloud operator also runs in Openshift cluster environment like [CodeReady Container](https://developers.redhat.com/products/codeready-containers/overview). In this blog we assume you have Kubernetes cluster environment. Execute the following command to enable Ingress in minikube:
+Before you start you need to have access to a running Kubernetes cluster environment. A [Minikube](https://minikube.sigs.k8s.io/docs/start/) with [Ingress](https://kubernetes.io/docs/tasks/access-application-cluster/ingress-minikube/) running on your laptop will just do fine. The arkmq-org operator also runs in Openshift cluster environment like [CodeReady Container](https://developers.redhat.com/products/codeready-containers/overview). In this blog we assume you have Kubernetes cluster environment. Execute the following command to enable Ingress in minikube:
 
 ```shell script
 $ minikube addons enable ingress
@@ -26,8 +26,8 @@ $ minikube addons enable ingress
 $ minikube kubectl -- patch deployment -n ingress-nginx ingress-nginx-controller --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value":"--enable-ssl-passthrough"}]'
 ```
 
-# Deploy ArtemisCloud operator
-First you need to deploy the ArtemisCloud operator.
+# Deploy Arkmq-org operator
+First you need to deploy the Arkmq-org operator.
 If you are not sure how to deploy the operator take a look at [this blog]({{< relref "using_operator.md" >}}).
 
 # Download the test certficates from Apache ActiveMQ Artemis
@@ -75,10 +75,10 @@ EOF
 
 Use the following command to publish a message with mosquitto_pub from your host:
 ```shell script
-$ mosquitto_pub -d --insecure -t "test" -m "test" -u admin -P admin  -h artemis-mqtt-ssl-my-acceptor-0-svc-ing.apps.artemiscloud.io -p 443 --cafile server-ca.crt
+$ mosquitto_pub -d --insecure -t "test" -m "test" -u admin -P admin  -h artemis-mqtt-ssl-my-acceptor-0-svc-ing.apps.arkmq-org.io -p 443 --cafile server-ca.crt
 ```
 
 Alternatively you can execute mosquitto_pub from the eclipse-mosquitto container running on your host with [podman](https://podman.io/). Use the following command to publish a message with mosquitto_pub from the eclipse-mosquitto container running on your host:
 ```shell script
-$ podman run --name mosquitto_pub -it --rm --add-host artemis-mqtt-ssl-my-acceptor-0-svc-ing.apps.artemiscloud.io:$(minikube ip) --network host --entrypoint /usr/bin/mosquitto_pub -v ${PWD}/server-ca.crt:/mosquitto/config/server-ca.crt:Z eclipse-mosquitto -d --insecure -t "test" -m "test" -u admin -P admin  -h artemis-mqtt-ssl-my-acceptor-0-svc-ing.apps.artemiscloud.io -p 443 --cafile /mosquitto/config/server-ca.crt
+$ podman run --name mosquitto_pub -it --rm --add-host artemis-mqtt-ssl-my-acceptor-0-svc-ing.apps.arkmq-org.io:$(minikube ip) --network host --entrypoint /usr/bin/mosquitto_pub -v ${PWD}/server-ca.crt:/mosquitto/config/server-ca.crt:Z eclipse-mosquitto -d --insecure -t "test" -m "test" -u admin -P admin  -h artemis-mqtt-ssl-my-acceptor-0-svc-ing.apps.arkmq-org.io -p 443 --cafile /mosquitto/config/server-ca.crt
 ```

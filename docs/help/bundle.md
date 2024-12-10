@@ -1,7 +1,7 @@
 ---
 title: "Bundle"
-description: "Bundle ArtemisCloud.io"
-lead: "Bundle ArtemisCloud.io"
+description: "Bundle arkmq-org.io"
+lead: "Bundle arkmq-org.io"
 date: 2020-10-06T08:49:31+00:00
 lastmod: 2020-10-06T08:49:31+00:00
 draft: false
@@ -16,7 +16,7 @@ toc: true
 # Bundle
 
 ## Operator Lifecycle Manager (OLM)
-The [Operator Lifecycle Manager](https://olm.operatorframework.io/) can help users to install and manage operators. The ArtemisCloud operator can be built into a bundle image and installed into OLM.
+The [Operator Lifecycle Manager](https://olm.operatorframework.io/) can help users to install and manage operators. The arkmq-org operator can be built into a bundle image and installed into OLM.
 
 ### Install OLM
 Check out the latest [releases on github](https://github.com/operator-framework/operator-lifecycle-manager/releases) for release-specific install instructions.

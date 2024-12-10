@@ -14,7 +14,7 @@ annotations:
   operators.operatorframework.io.test.mediatype.v1: scorecard+v1
   operators.operatorframework.io.test.config.v1: tests/scorecard/
 
-  name: "artemiscloud/activemq-artemis-operator-bundle"
+  name: "arkmq-org/activemq-artemis-operator-bundle"
   description: "ActiveMQ Artemis Broker Operator Bundle"
   maintainer: "Roddie Kieley <rkieley@redhat.com>"
   version: "1.0.10"

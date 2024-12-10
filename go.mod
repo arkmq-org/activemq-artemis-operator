@@ -1,4 +1,4 @@
-module github.com/artemiscloud/activemq-artemis-operator
+module github.com/arkmq-org/activemq-artemis-operator
 
 go 1.21
 

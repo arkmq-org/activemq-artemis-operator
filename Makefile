@@ -9,11 +9,11 @@ KUBE_CLI=kubectl
 OPERATOR_VERSION := 1.2.8
 OPERATOR_ACCOUNT_NAME := activemq-artemis-operator
 OPERATOR_CLUSTER_ROLE_NAME := operator-role
-OPERATOR_IMAGE_REPO := quay.io/artemiscloud/activemq-artemis-operator
+OPERATOR_IMAGE_REPO := quay.io/arkmq-org/activemq-artemis-operator
 OPERATOR_NAMESPACE := activemq-artemis-operator
 BUNDLE_PACKAGE := $(OPERATOR_NAMESPACE)
 BUNDLE_ANNOTATION_PACKAGE := $(BUNDLE_PACKAGE)
-GO_MODULE := github.com/artemiscloud/activemq-artemis-operator
+GO_MODULE := github.com/arkmq-org/activemq-artemis-operator
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 
@@ -54,8 +54,8 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 # This variable is used to construct full image tags for bundle and catalog images.
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
-# quay.io/artemiscloud/activemq-artemis-operator-bundle:$VERSION and quay.io/artemiscloud/activemq-artemis-operator-catalog:$VERSION.
-IMAGE_TAG_BASE ?= quay.io/artemiscloud/activemq-artemis-operator
+# quay.io/arkmq-org/activemq-artemis-operator-bundle:$VERSION and quay.io/arkmq-org/activemq-artemis-operator-catalog:$VERSION.
+IMAGE_TAG_BASE ?= quay.io/arkmq-org/activemq-artemis-operator
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)

@@ -3,8 +3,8 @@ package config_test
 import (
 	"testing"
 
-	"github.com/artemiscloud/activemq-artemis-operator/api/v2alpha3"
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/config"
+	"github.com/arkmq-org/activemq-artemis-operator/api/v2alpha3"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/config"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

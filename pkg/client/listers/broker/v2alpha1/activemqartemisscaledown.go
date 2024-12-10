@@ -20,7 +20,7 @@ package v2alpha1
 
 import (
 	"fmt"
-	v2alpha1 "github.com/artemiscloud/activemq-artemis-operator/api/v2alpha1"
+	v2alpha1 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )

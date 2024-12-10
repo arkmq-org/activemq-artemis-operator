@@ -18,8 +18,8 @@ const (
 	LatestVersion        = "2.38.0"
 	CompactLatestVersion = "2380"
 
-	LatestKubeImage = "quay.io/artemiscloud/activemq-artemis-broker-kubernetes:artemis." + LatestVersion
-	LatestInitImage = "quay.io/artemiscloud/activemq-artemis-broker-init:artemis." + LatestVersion
+	LatestKubeImage = "quay.io/arkmq-org/activemq-artemis-broker-kubernetes:artemis." + LatestVersion
+	LatestInitImage = "quay.io/arkmq-org/activemq-artemis-broker-init:artemis." + LatestVersion
 )
 
 func DefaultImageName(archSpecificRelatedImageEnvVarName string) string {

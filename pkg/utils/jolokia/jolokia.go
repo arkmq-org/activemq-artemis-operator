@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/common"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
 	rtclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 

@@ -1,5 +1,5 @@
 ---
-title: "Scaling Up and Down Brokers with ArtemisCloud Operator"  
+title: "Scaling Up and Down Brokers with arkmq-org Operator"  
 description: "How to use operator to scale up and down broker pods"
 draft: false
 images: []
@@ -10,17 +10,17 @@ weight: 110
 toc: true
 ---
 
-With ArtemisCloud operator one can easily manage the broker clusters.
+With arkmq-org operator one can easily manage the broker clusters.
 Either scaling up number of nodes(pods) when workload is high, or scaling down when some is not needed -- without messages being lost or stuck.
 
 ### Prerequisite
-Before you start you need have access to a running Kubernetes cluster environment. A [Minikube](https://minikube.sigs.k8s.io/docs/start/) running on your laptop will just do fine. The ArtemisCloud operator also runs in a Openshift cluster environment like [CodeReady Container](https://developers.redhat.com/products/codeready-containers/overview). In this blog we assume you have Kubernetes cluster environment. (If you use CodeReady the client tool is **oc** in place of **kubectl**)
+Before you start you need have access to a running Kubernetes cluster environment. A [Minikube](https://minikube.sigs.k8s.io/docs/start/) running on your laptop will just do fine. The arkmq-org operator also runs in a Openshift cluster environment like [CodeReady Container](https://developers.redhat.com/products/codeready-containers/overview). In this blog we assume you have Kubernetes cluster environment. (If you use CodeReady the client tool is **oc** in place of **kubectl**)
 
-### Step 1 - Deploy ArtemisCloud Operator
-In this article we are using the [artemiscloud operator repo](https://github.com/artemiscloud/activemq-artemis-operator). In case you haven't done so, clone it to your local disk:
+### Step 1 - Deploy arkmq-org Operator
+In this article we are using the [arkmq-org operator repo](https://github.com/arkmq-org/activemq-artemis-operator). In case you haven't done so, clone it to your local disk:
 
 ```shell script
-$ git clone https://github.com/artemiscloud/activemq-artemis-operator.git
+$ git clone https://github.com/arkmq-org/activemq-artemis-operator.git
 $ cd activemq-artemis-operator
 ```
 
@@ -50,7 +50,7 @@ Use your favorite text editor to create a file called **artemis-clustered.yaml**
     spec:
       deploymentPlan:
         size: 1
-        image: quay.io/artemiscloud/activemq-artemis-broker-kubernetes:0.2.1
+        image: quay.io/arkmq-org/activemq-artemis-broker-kubernetes:0.2.1
         persistenceEnabled: true
         messageMigration: true
 ```
@@ -62,7 +62,7 @@ $ kubectl create -f artemis-clustered.yaml -n myproject
 activemqartemis.broker.amq.io/ex-aao created
 ```
 
-The custom resource file tells the operator to deploy one broker pod from the image **quay.io/artemiscloud/activemq-artemis-broker-kubernetes:0.2.1**,
+The custom resource file tells the operator to deploy one broker pod from the image **quay.io/arkmq-org/activemq-artemis-broker-kubernetes:0.2.1**,
 configured with **persistenceEnabled: true** and **messageMigration: true**.
 
 **persistenceEnabled: true** means the broker persists messages to persistent storage.
@@ -90,7 +90,7 @@ To inform the operator that we want to scale from one to two broker pods modify 
     spec:
       deploymentPlan:
         size: 2
-        image: quay.io/artemiscloud/activemq-artemis-broker-kubernetes:0.2.1
+        image: quay.io/arkmq-org/activemq-artemis-broker-kubernetes:0.2.1
         persistenceEnabled: true
         messageMigration: true
 ```
@@ -186,7 +186,7 @@ Now scale down the cluster from 2 pods to one. Edit the [broker cr](#broker_clus
     spec:
       deploymentPlan:
         size: 1
-        image: quay.io/artemiscloud/activemq-artemis-broker-kubernetes:0.2.1
+        image: quay.io/arkmq-org/activemq-artemis-broker-kubernetes:0.2.1
         persistenceEnabled: true
         messageMigration: true
 ```
@@ -221,5 +221,5 @@ It shows queue TEST's message count is **200** now!
 
 ### More information
 
-* Check out [artemiscloud project repo](https://github.com/artemiscloud)
-* Reach the [dev team at slack](artemiscloudio.slack.com) for questions/issues/help
+* Check out [arkmq-org project repo](https://github.com/arkmq-org)
+* Reach the [dev team at slack](arkmq-org.slack.com) for questions/issues/help

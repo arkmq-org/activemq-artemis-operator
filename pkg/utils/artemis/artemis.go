@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/artemiscloud/activemq-artemis-operator/pkg/utils/jolokia"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/jolokia"
 	rtclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 

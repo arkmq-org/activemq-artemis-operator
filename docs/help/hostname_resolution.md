@@ -29,7 +29,7 @@ running on your laptop will do fine.
 ### Start minikube with a parametrized `dns-domain` name
 
 ```console
-$ minikube start --dns-domain='demo.artemiscloud.io'
+$ minikube start --dns-domain='demo.arkmq-org.io'
 
 😄  minikube v1.32.0 on Fedora 39
 🎉  minikube 1.33.1 is available! Download it: https://github.com/kubernetes/minikube/releases/tag/v1.33.1
@@ -68,7 +68,7 @@ specify all the urls you are interested in.
 Here's an example for an ingress:
 ```console
 $ cat /etc/hosts
-192.168.39.54      ing.sslacceptor.send-receive-0.send-receive-project.demo.artemiscloud.io
+192.168.39.54      ing.sslacceptor.send-receive-0.send-receive-project.demo.arkmq-org.io
 ```
 ### pros
 
@@ -82,14 +82,14 @@ $ cat /etc/hosts
 
 We will use networkmanager's dnsmasq plugin
 ([source](https://fedoramagazine.org/using-the-networkmanagers-dnsmasq-plugin/))to
-configure the ip associated with the domain `demo.artemiscloud.io`. The dnsmasq plugin
+configure the ip associated with the domain `demo.arkmq-org.io`. The dnsmasq plugin
 has wildcards which is better than setting manually every hosts in the
 `/etc/hosts` file.
 
 ### Configure DNSMasq
 
 The goal here is to set up enable dnsmasq and to make it resolve your cluster
-domain `demo.artemiscloud.io` to the cluster's ip address. Because DNSMasq has a
+domain `demo.arkmq-org.io` to the cluster's ip address. Because DNSMasq has a
 wildcard, all subdomains will also resolve to the same ip address.
 
 1. Create the following files:
@@ -102,9 +102,9 @@ EOF
 ```
 
 ```console
-$ cat << EOF > /etc/NetworkManager/dnsmasq.d/00-demo.artemiscloud.io.conf
-local=/demo.artemiscloud.io/
-address=/.demo.artemiscloud.io/192.168.39.54
+$ cat << EOF > /etc/NetworkManager/dnsmasq.d/00-demo.arkmq-org.io.conf
+local=/demo.arkmq-org.io/
+address=/.demo.arkmq-org.io/192.168.39.54
 EOF
 ```
 
