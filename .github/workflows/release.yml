@@ -23,6 +23,8 @@ jobs:
 
       - name: Checkout the repo
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.BOT_TOKEN }}
 
       - name: Create release tag
         if: ${{ github.event_name == 'workflow_dispatch' }}
