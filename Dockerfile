@@ -41,7 +41,7 @@ RUN cp -r $REMOTE_SOURCE_DIR/app/* .
 # when is executed on nodes that are booted into FIPS mode.
 RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-X '${GO_MODULE}/version.BuildTimestamp=`date '+%Y-%m-%dT%H:%M:%S'`'" -o manager main.go
 
-FROM registry.access.redhat.com/ubi9-minimal:9.5-1731593028 as base-env
+FROM registry.access.redhat.com/ubi9-minimal:9.5-1733767867 as base-env
 
 ENV BROKER_NAME=activemq-artemis
 ENV USER_UID=1000
