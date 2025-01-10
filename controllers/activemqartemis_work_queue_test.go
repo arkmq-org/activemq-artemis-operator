@@ -177,7 +177,7 @@ var _ = Describe("work queue", func() {
 					"AMQPConnections.target.autostart=true",
 
 					"# in pull mode, batch=100",
-					"AMQPConnections.target.federations.peerN.properties.amqpCredit=0",
+					"AMQPConnections.target.federations.peerN.properties.amqpCredits=0",
 					"AMQPConnections.target.federations.peerN.properties.amqpPullConsumerCredits=100",
 
 					"AMQPConnections.target.federations.peerN.localQueuePolicies.forJobs.includes.justJobs.queueMatch=JOBS",

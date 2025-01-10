@@ -20,8 +20,12 @@ package controllers
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	cmv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -141,12 +145,14 @@ var _ = Describe("minimal", func() {
 			})
 
 			crd.Spec.Restricted = common.NewTrue()
-			crd.Spec.DeploymentPlan.Size = common.Int32ToPtr(2) // will be ignored and default to 1
 
 			// how the jdk command line can be configured or modified
 			crd.Spec.Env = []corev1.EnvVar{
-				{Name: "JDK_JAVA_OPTIONS", Value: "-XshowSettings:system -Xlog:os+container=trace -DordinalPropForDoubleO=${STATEFUL_SET_ORDINAL}${STATEFUL_SET_ORDINAL}7"},
-				{Name: "JAVA_ARGS_APPEND", Value: "-DordinalProp=${STATEFUL_SET_ORDINAL}"},
+				{Name: "JDK_JAVA_OPTIONS", Value: "-Djavax.net.debug=ssl -Djava.security.debug=logincontext"},
+				//{Name: "JAVA_ARGS_APPEND", Value: "-DordinalProp=${STATEFUL_SET_ORDINAL}"},
+			}
+			crd.Spec.BrokerProperties = []string{
+				"messageCounterSamplePeriod=500",
 			}
 
 			By("Deploying the CRD " + crd.ObjectMeta.Name)
@@ -164,6 +170,57 @@ var _ = Describe("minimal", func() {
 				}
 				g.Expect(meta.IsStatusConditionTrue(createdCrd.Status.Conditions, brokerv1beta1.ReadyConditionType)).Should(BeTrue())
 				g.Expect(meta.IsStatusConditionTrue(createdCrd.Status.Conditions, brokerv1beta1.ConfigAppliedConditionType)).Should(BeTrue())
+
+			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+			serverName := common.OrdinalFQDNS(crd.Name, defaultNamespace, 0)
+			By("setting up operator identity on http client")
+			httpClient := http.Client{
+				Transport: http.DefaultTransport,
+				// A timeout less than 3 seconds may cause connection issues when
+				// the server requires to change the chiper.
+				Timeout: time.Second * 3,
+			}
+
+			httpClientTransport := httpClient.Transport.(*http.Transport)
+			httpClientTransport.TLSClientConfig = &tls.Config{
+				ServerName:         serverName,
+				InsecureSkipVerify: false,
+			}
+			httpClientTransport.TLSClientConfig.GetClientCertificate =
+				func(cri *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+					return common.GetOperatorClientCertificate(k8sClient, cri)
+				}
+
+			if rootCas, err := common.GetRootCAs(k8sClient); err == nil {
+				httpClientTransport.TLSClientConfig.RootCAs = rootCas
+			}
+
+			By("Checking metrics with mtls are visible")
+			Eventually(func(g Gomega) {
+
+				resp, err := httpClient.Get("https://" + serverName + ":8888/metrics")
+				if verbose {
+					fmt.Printf("Resp form metrics get resp: %v, error: %v\n", resp, err)
+				}
+				g.Expect(err).Should(Succeed())
+
+				defer resp.Body.Close()
+				body, err := io.ReadAll(resp.Body)
+				g.Expect(err).Should(Succeed())
+
+				lines := strings.Split(string(body), "\n")
+
+				var done = false
+				for _, line := range lines {
+					if verbose {
+						fmt.Printf("%s\n", line)
+					}
+					if strings.Contains(line, "artemis_total_pending_message_count") {
+						done = true
+					}
+				}
+				g.Expect(done).To(BeTrue())
 
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 

@@ -1979,6 +1979,8 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		mountPathRoot := secretPathBase + getPropertiesResourceNsName(customResource).Name
 		security_properties := newPropsWithHeader()
 		fmt.Fprintf(security_properties, "login.config.url.1=file:%s/login.config\n", mountPathRoot)
+		fmt.Fprintf(security_properties, "security.provider.6=de.dentrassi.crypto.pem.PemKeyStoreProvider\n")
+
 		brokerPropertiesMapData["_security.config"] = security_properties.String()
 
 		additionalSystemPropsForRestricted = append(additionalSystemPropsForRestricted, fmt.Sprintf("-Djava.security.properties=%s/_security.config", mountPathRoot))
@@ -1987,7 +1989,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		fmt.Fprintln(login_config, "http_server_authenticator {")
 		fmt.Fprintln(login_config, "  org.apache.activemq.artemis.spi.core.security.jaas.TextFileCertificateLoginModule required")
 		fmt.Fprintln(login_config, "   reload=true")
-		fmt.Fprintln(login_config, "   debug=true")
+		fmt.Fprintln(login_config, "   debug=false")
 		fmt.Fprintln(login_config, "   org.apache.activemq.jaas.textfiledn.user=_cert-users")
 		fmt.Fprintln(login_config, "   org.apache.activemq.jaas.textfiledn.role=_cert-roles")
 		fmt.Fprintf(login_config, "   baseDir=\"%v\"\n", mountPathRoot)
@@ -2033,12 +2035,14 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 
 		cert_roles := newPropsWithHeader()
 		fmt.Fprintln(cert_roles, "status=operator,probe")
+		fmt.Fprintln(cert_roles, "metrics=operator")
 		fmt.Fprintln(cert_roles, "hawtio=hawtio")
 		brokerPropertiesMapData["_cert-roles"] = cert_roles.String()
 
 		foundationalProps := newPropsWithHeader()
 		fmt.Fprintf(foundationalProps, "name=%s\n", environments.ResolveBrokerNameFromEnvs(customResource.Spec.Env, customResource.Name))
 		fmt.Fprintln(foundationalProps, "criticalAnalyzer=false")
+		fmt.Fprintln(foundationalProps, "messageCounterEnabled=true")
 		fmt.Fprintln(foundationalProps, "journalDirectory=/app/data")
 		fmt.Fprintln(foundationalProps, "bindingsDirectory=/app/data/bindings")
 		fmt.Fprintln(foundationalProps, "largeMessagesDirectory=/app/data/largemessages")
@@ -2047,7 +2051,15 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		brokerPropertiesMapData["aa_restricted.properties"] = foundationalProps.String()
 
 		rbac := newPropsWithHeader()
+		// operator status check
 		fmt.Fprintln(rbac, "securityRoles.\"mops.broker.getStatus\".status.view=true")
+
+		// jmx_exporter metrics perms
+		fmt.Fprintln(rbac, "securityRoles.\"mops.mbeanserver.queryMBeans\".metrics.view=true")
+		fmt.Fprintln(rbac, "securityRoles.\"mops.broker\".metrics.view=true") // for query remove filter
+		fmt.Fprintln(rbac, "securityRoles.\"mops.broker.getTotalMessageCount\".metrics.view=true")
+		fmt.Fprintln(rbac, "securityRoles.\"mops.broker.getTotalMessagesAcknowledged\".metrics.view=true")
+		fmt.Fprintln(rbac, "securityRoles.\"mops.broker.getTotalMessagesAdded\".metrics.view=true")
 
 		brokerPropertiesMapData["aa_rbac.properties"] = rbac.String()
 
@@ -2070,14 +2082,65 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 
 		brokerPropertiesMapData["_jolokia.config"] = jolokia_config.String()
 
-		// adapt jolokia authentication
+		pem_cfg := newPropsWithHeader()
+
+		fmt.Fprintf(pem_cfg, "alias=alias\n")
+		fmt.Fprintf(pem_cfg, "source.cert=%s%s/tls.crt\n", secretPathBase, operandCertSecretName)
+		fmt.Fprintf(pem_cfg, "source.key=%s%s/tls.key\n", secretPathBase, operandCertSecretName)
+		brokerPropertiesMapData["_cert.pemcfg"] = pem_cfg.String()
+
+		prometheus_config := newPropsWithHeader() // yaml
+		fmt.Fprintf(prometheus_config, "httpServer:\n")
+		fmt.Fprintf(prometheus_config, "  authentication:\n")
+		fmt.Fprintf(prometheus_config, "    plugin:\n")
+		fmt.Fprintf(prometheus_config, "      class: org.apache.activemq.artemis.spi.core.security.jaas.HttpServerAuthenticator\n")
+		fmt.Fprintf(prometheus_config, "      subjectAttributeName: org.jolokia.jaasSubject\n") // match -DhttpServerAuthenticator.requestSubjectAttribute
+		fmt.Fprintf(prometheus_config, "  ssl:\n")
+		fmt.Fprintf(prometheus_config, "    mutualTLS: true\n")
+		fmt.Fprintf(prometheus_config, "    keyStore:\n")
+		fmt.Fprintf(prometheus_config, "      filename: %s/_cert.pemcfg\n", mountPathRoot)
+		fmt.Fprintf(prometheus_config, "      type: PEMCFG\n")
+		fmt.Fprintf(prometheus_config, "    trustStore:\n")
+		fmt.Fprintf(prometheus_config, "      filename: %s%s/%s\n", secretPathBase, caSecret, caSecretKey)
+		fmt.Fprintf(prometheus_config, "      type: PEMCA\n")
+		fmt.Fprintf(prometheus_config, "    certificate:\n")
+		fmt.Fprintf(prometheus_config, "      alias: alias\n")
+		// the collector/scraper config
+		fmt.Fprintf(prometheus_config, "lowercaseOutputName: true\n")
+		fmt.Fprintf(prometheus_config, "lowercaseOutputLabelNames: true\n")
+		fmt.Fprintf(prometheus_config, "includeObjectNames: [org.apache.activemq.artemis:broker=\"%s\"]\n", environments.ResolveBrokerNameFromEnvs(customResource.Spec.Env, customResource.Name))
+		fmt.Fprintf(prometheus_config, "includeObjectNameAttributes:\n")
+		fmt.Fprintf(prometheus_config, "  'org.apache.activemq.artemis:broker=\"%s\"':\n", environments.ResolveBrokerNameFromEnvs(customResource.Spec.Env, customResource.Name))
+		fmt.Fprintf(prometheus_config, "    - \"TotalMessageCount\"\n")
+		fmt.Fprintf(prometheus_config, "    - \"TotalMessagesAdded\"\n")
+		fmt.Fprintf(prometheus_config, "    - \"TotalMessagesAcknowledged\"\n")
+		fmt.Fprintf(prometheus_config, "rules:\n")
+		fmt.Fprintf(prometheus_config, "  - pattern: 'org.apache.activemq.artemis<broker=\"%s\"><>TotalMessageCount'\n", environments.ResolveBrokerNameFromEnvs(customResource.Spec.Env, customResource.Name))
+		fmt.Fprintf(prometheus_config, "    help: Number of pending messages\n")
+		fmt.Fprintf(prometheus_config, "    name: artemis_total_pending_message_count\n")
+		fmt.Fprintf(prometheus_config, "    type: GAUGE\n")
+		fmt.Fprintf(prometheus_config, "  - pattern: 'org.apache.activemq.artemis<broker=\"%s\"><>TotalMessagesAcknowledged'\n", environments.ResolveBrokerNameFromEnvs(customResource.Spec.Env, customResource.Name))
+		fmt.Fprintf(prometheus_config, "    help: Number of messages consumed since start\n")
+		fmt.Fprintf(prometheus_config, "    name: artemis_total_consumed_message_count\n")
+		fmt.Fprintf(prometheus_config, "    type: COUNTER\n")
+		fmt.Fprintf(prometheus_config, "  - pattern: 'org.apache.activemq.artemis<broker=\"%s\"><>TotalMessagesAdded'\n", environments.ResolveBrokerNameFromEnvs(customResource.Spec.Env, customResource.Name))
+		fmt.Fprintf(prometheus_config, "    help: Number of messages produced since start\n")
+		fmt.Fprintf(prometheus_config, "    name: artemis_total_produced_message_count\n")
+		fmt.Fprintf(prometheus_config, "    type: COUNTER\n")
+
+		brokerPropertiesMapData["_prometheus_exporter.yaml"] = prometheus_config.String()
+
+		// adapt jolokia and prometheus authentication
 		additionalSystemPropsForRestricted = append(additionalSystemPropsForRestricted, "-DhttpServerAuthenticator.requestSubjectAttribute=org.jolokia.jaasSubject")
 
 		// install mbean server guard
 		additionalSystemPropsForRestricted = append(additionalSystemPropsForRestricted, "-Dlog4j2.disableJmx=true -Djavax.management.builder.initial=org.apache.activemq.artemis.core.server.management.ArtemisRbacMBeanServerBuilder")
 
 		// install jolokia agent
-		additionalSystemPropsForRestricted = append(additionalSystemPropsForRestricted, fmt.Sprintf("-javaagent:/opt/jolokia/javaagent.jar=host=$HOSTNAME,config=%s/_jolokia.config", mountPathRoot))
+		additionalSystemPropsForRestricted = append(additionalSystemPropsForRestricted, fmt.Sprintf("-javaagent:/opt/agents/jolokia.jar=host=$HOSTNAME,config=%s/_jolokia.config", mountPathRoot))
+
+		// install prometheus agent
+		additionalSystemPropsForRestricted = append(additionalSystemPropsForRestricted, fmt.Sprintf("-javaagent:/opt/agents/prometheus.jar=$HOSTNAME:8888:%s/_prometheus_exporter.yaml", mountPathRoot))
 
 		// non boot jar isolation classpath
 		additionalSystemPropsForRestricted = append(additionalSystemPropsForRestricted, "-classpath /opt/amq/lib/*:/opt/amq/lib/extra/*")
