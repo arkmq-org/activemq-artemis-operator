@@ -2036,7 +2036,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		brokerPropertiesMapData["_cert-roles"] = cert_roles.String()
 
 		foundationalProps := newPropsWithHeader()
-		fmt.Fprintf(foundationalProps, "name=%s\n", customResource.Name)
+		fmt.Fprintf(foundationalProps, "name=%s\n", environments.ResolveBrokerNameFromEnvs(customResource.Spec.Env, customResource.Name))
 		fmt.Fprintln(foundationalProps, "criticalAnalyzer=false")
 		fmt.Fprintln(foundationalProps, "journalDirectory=/app/data")
 		fmt.Fprintln(foundationalProps, "bindingsDirectory=/app/data/bindings")
@@ -2095,7 +2095,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 							"/bin/bash",
 							"-c",
 							// use curl with mtls as the broker-cert to pull the status to find start state using dns
-							fmt.Sprintf(`export STATEFUL_SET_ORDINAL=${HOSTNAME##*-};curl --cacert %s%s/%s --cert %s%s/tls.crt --key %s%s/tls.key  https://%s:8778/jolokia/read/org.apache.activemq.artemis:broker=%%22%s%%22/Status | grep -w -P "(START|STOPP)(ED|ING)"`, secretPathBase, caSecret, caSecretKey, secretPathBase, operandCertSecretName, secretPathBase, operandCertSecretName, common.OrdinalStringFQDNS(customResource.Name, customResource.Namespace, "$STATEFUL_SET_ORDINAL"), customResource.Name),
+							fmt.Sprintf(`export STATEFUL_SET_ORDINAL=${HOSTNAME##*-};curl --cacert %s%s/%s --cert %s%s/tls.crt --key %s%s/tls.key  https://%s:8778/jolokia/read/org.apache.activemq.artemis:broker=%%22%s%%22/Status | grep -w -P "(START|STOPP)(ED|ING)"`, secretPathBase, caSecret, caSecretKey, secretPathBase, operandCertSecretName, secretPathBase, operandCertSecretName, common.OrdinalStringFQDNS(customResource.Name, customResource.Namespace, "$STATEFUL_SET_ORDINAL"), environments.ResolveBrokerNameFromEnvs(customResource.Spec.Env, customResource.Name)),
 						},
 					},
 				},
@@ -3097,8 +3097,8 @@ func MakeEnvVarArrayForCR(customResource *brokerv1beta1.ActiveMQArtemis, namer c
 	envVarArrayForMetricsPlugin := environments.AddEnvVarForMetricsPlugin(metricsPluginEnabled)
 	envVar = append(envVar, envVarArrayForMetricsPlugin...)
 
-	// appending any Env from CR, to allow potential override
-	envVar = append(envVar, customResource.Spec.Env...)
+	// Env from CR will override
+	envVar = environments.ReplaceOrAppend(envVar, customResource.Spec.Env...)
 
 	return envVar
 }

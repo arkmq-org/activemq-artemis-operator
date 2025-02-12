@@ -23,6 +23,7 @@ import (
 
 	"github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/environments"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/secrets"
 	ss "github.com/arkmq-org/activemq-artemis-operator/pkg/resources/statefulsets"
 	mgmt "github.com/arkmq-org/activemq-artemis-operator/pkg/utils/artemis"
@@ -69,7 +70,7 @@ func GetMinimalJolokiaAgents(cr *v1beta1.ActiveMQArtemis, client rtclient.Client
 
 		ordinalFqdn := common.OrdinalFQDNS(cr.Name, cr.Namespace, i)
 
-		artemis := mgmt.GetArtemisAgentForRestricted(client, cr.Name, ordinalFqdn)
+		artemis := mgmt.GetArtemisAgentForRestricted(client, environments.ResolveBrokerNameFromEnvs(cr.Spec.Env, cr.Name), ordinalFqdn)
 
 		jkInfo := JkInfo{
 			Artemis: artemis,
@@ -115,7 +116,7 @@ func GetBrokersFromDNS(crName string, namespace string, size int32, client rtcli
 
 			reqLogger.V(2).Info("hostname to use for jolokia ", "hostname", ordinalFqdn)
 
-			artemis := mgmt.GetArtemis(client, ordinalFqdn, "8161", "amq-broker", jolokiaUser, jolokiaPassword, jolokiaProtocol)
+			artemis := mgmt.GetArtemis(client, ordinalFqdn, "8161", environments.ResolveBrokerNameFromEnvs(pod.Spec.Containers[0].Env, environments.NameEnvVarDefaultValue), jolokiaUser, jolokiaPassword, jolokiaProtocol)
 
 			jkInfo := JkInfo{
 				Artemis: artemis,

@@ -7,6 +7,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+const (
+	NameEnvVar             = "AMQ_NAME"
+	NameEnvVarDefaultValue = "amq-broker"
+)
+
 // TODO: Remove this blatant hack
 var GLOBAL_AMQ_CLUSTER_USER string = ""
 var GLOBAL_AMQ_CLUSTER_PASSWORD string = ""
@@ -39,6 +44,17 @@ func init() {
 	}
 }
 
+func ResolveBrokerNameFromEnvs(envs []corev1.EnvVar, defaultValue string) string {
+	if len(envs) > 0 {
+		for _, v := range envs {
+			if v.Name == NameEnvVar {
+				return v.Value
+			}
+		}
+	}
+	return defaultValue
+}
+
 func AddEnvVarForBasic(requireLogin string, journalType string, svcPingName string) []corev1.EnvVar {
 
 	envVarArray := []corev1.EnvVar{
@@ -48,8 +64,8 @@ func AddEnvVarForBasic(requireLogin string, journalType string, svcPingName stri
 			ValueFrom: nil,
 		},
 		{
-			Name:      "AMQ_NAME",
-			Value:     "amq-broker",
+			Name:      NameEnvVar,
+			Value:     NameEnvVarDefaultValue,
 			ValueFrom: nil,
 		},
 		{
@@ -274,6 +290,21 @@ func Create(containers []corev1.Container, envVar *corev1.EnvVar) {
 	}
 }
 
+func ReplaceOrAppend(envs []corev1.EnvVar, elems ...corev1.EnvVar) []corev1.EnvVar {
+
+	var result []corev1.EnvVar = envs
+	var found *corev1.EnvVar = nil
+	for _, newElem := range elems {
+		found = Find(envs, newElem.Name)
+		if found != nil {
+			found.Value = newElem.Value
+		} else {
+			result = append(result, newElem)
+		}
+	}
+	return result
+}
+
 func CreateOrAppend(containers []corev1.Container, envVar *corev1.EnvVar) {
 
 	for i, container := range containers {
@@ -302,11 +333,14 @@ func Retrieve(containers []corev1.Container, envVarName string) *corev1.EnvVar {
 }
 
 func RetrieveFrom(container corev1.Container, envVarName string) *corev1.EnvVar {
+	return Find(container.Env, envVarName)
+}
 
+func Find(envs []corev1.EnvVar, envVarName string) *corev1.EnvVar {
 	var retEnvVar *corev1.EnvVar = nil
-	for i, envVar := range container.Env {
+	for i, envVar := range envs {
 		if envVarName == envVar.Name {
-			retEnvVar = &container.Env[i]
+			retEnvVar = &envs[i]
 			break
 		}
 	}
