@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -163,6 +164,12 @@ func (r *ActiveMQArtemisReconciler) Reconcile(ctx context.Context, request ctrl.
 		reqLogger.Error(err, "unable to retrieve the ActiveMQArtemis")
 		return result, err
 	}
+	var reconcileBlocked bool = false
+	if val, present := customResource.Annotations[common.BlockReconcileAnnotation]; present {
+		if boolVal, err := strconv.ParseBool(val); err == nil {
+			reconcileBlocked = boolVal
+		}
+	}
 
 	namer := MakeNamers(customResource)
 	reconciler := NewActiveMQArtemisReconcilerImpl(customResource, r)
@@ -171,13 +178,15 @@ func (r *ActiveMQArtemisReconciler) Reconcile(ctx context.Context, request ctrl.
 	var valid bool = false
 	if valid, requeueRequest = reconciler.validate(customResource, r.Client, *namer); valid {
 
-		err = reconciler.Process(customResource, *namer, r.Client, r.Scheme)
-
+		if !reconcileBlocked {
+			err = reconciler.Process(customResource, *namer, r.Client, r.Scheme)
+		}
 		if reconciler.ProcessBrokerStatus(customResource, r.Client, r.Scheme) {
 			requeueRequest = true
 		}
 	}
 
+	common.UpdateBlockedStatus(customResource, reconcileBlocked)
 	common.ProcessStatus(customResource, r.Client, request.NamespacedName, *namer, err)
 
 	crStatusUpdateErr := r.UpdateCRStatus(customResource, r.Client, request.NamespacedName)

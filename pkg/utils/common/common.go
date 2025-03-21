@@ -69,6 +69,8 @@ const (
 	DefaultOperatorCertSecretName = "activemq-artemis-manager-cert"
 	DefaultOperatorCASecretName   = "activemq-artemis-manager-ca"
 	DefaultOperandCertSecretName  = "broker-cert" // or can be prefixed with `cr.Name-`
+
+	BlockReconcileAnnotation = "arkmq.org/block-reconcile"
 )
 
 var lastStatusMap map[types.NamespacedName]olm.DeploymentStatus = make(map[types.NamespacedName]olm.DeploymentStatus)
@@ -370,6 +372,19 @@ func ProcessStatus(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, na
 	} else {
 		// could leave this to kube, it will do a []byte comparison
 		reqLogger.V(1).Info("Pods status unchanged")
+	}
+}
+
+func UpdateBlockedStatus(cr *brokerv1beta1.ActiveMQArtemis, blocked bool) {
+	if blocked {
+		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+			Type:    brokerv1beta1.ReconcileBlockedType,
+			Status:  metav1.ConditionTrue,
+			Reason:  brokerv1beta1.ReconcileBlockedReason,
+			Message: "Reconcile blocked by presence of annotation " + BlockReconcileAnnotation,
+		})
+	} else {
+		meta.RemoveStatusCondition(&cr.Status.Conditions, brokerv1beta1.ReconcileBlockedType)
 	}
 }
 

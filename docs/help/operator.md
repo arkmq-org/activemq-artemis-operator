@@ -628,7 +628,7 @@ spec:
 
 ###  Tolerations
 
-It is possible to configure tolerations on tge deployed broker image . An example of a toleration would be something like:
+It is possible to configure tolerations on the deployed broker image . An example of a toleration would be something like:
 
 ```yaml
 apiVersion: broker.amq.io/v1beta1
@@ -1064,6 +1064,10 @@ The operator supports a level of indirection when resolving versions, there are 
 
 The operator will validate the a CR specifies both image and initImage or a Version. It will also validate that a speficied version matches the internal list of supported versions.
 The CR Status sub resource will contain feedback via the Valid Condition if validation fails.
+
+## Disabling reconcile with the `arkmq.org/block-reconcile` annotation
+
+In cases where a rollout of the stateful set is necessitated via a new feature or bug fix but not immediately desirable, potentially because of the necessary broker restart, it is possible to block the reconcile of a CR. Applying the `arkmq.org/block-reconcile` boolean annotation to a CR will indicate that the operator should not reconcile the CR. The CR status will reflect the blocked state via an additional `ReconcileBlocked` Condition. Once the annotation is removed or set to false on the CR, reconcile will resume.
 
 
 ## Enable broker's metrics plugin
