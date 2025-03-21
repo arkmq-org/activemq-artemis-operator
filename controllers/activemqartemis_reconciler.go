@@ -1928,6 +1928,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 	}
 
 	terminationGracePeriodSeconds := int64(60)
+	respectExistingJavaOpts := isExistingDeploymentWithJavaOpts(current) // check before we mutate
 
 	// custom labels provided in CR applied only to the pod template spec
 	// note: work with a clone of the default labels to not modify defaults
@@ -2323,7 +2324,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 
 	// only use init container JAVA_OPTS on existing deployments and migrate to JDK_JAVA_OPTIONS for independence
 	// from init containers and broker run scripts
-	if environments.Retrieve(podSpec.InitContainers, javaOptsEnvVarName) != nil {
+	if respectExistingJavaOpts {
 		// this depends on init container passing --java-opts to artemis create via launch.sh *and* it
 		// not getting munged on the way. We CreateOrAppend to any value from spec.Env
 		javaOpts := corev1.EnvVar{
@@ -2435,6 +2436,10 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 	reqLogger.V(2).Info("Final Init spec", "Detail", podSpec.InitContainers)
 
 	return pts, nil
+}
+
+func isExistingDeploymentWithJavaOpts(current *corev1.PodTemplateSpec) bool {
+	return current != nil && environments.Retrieve(current.Spec.InitContainers, javaOptsEnvVarName) != nil
 }
 
 // support ${STATEFUL_SET_ORDINAL} replacement in JDK options from CR env if necessary

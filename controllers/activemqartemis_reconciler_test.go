@@ -716,6 +716,53 @@ func TestProcess_TemplateDuplicateKeyReplacesOk(t *testing.T) {
 	assert.True(t, secretFound)
 }
 
+func Test_Respect_existing_JAVA_OPTS_properties_def(t *testing.T) {
+
+	cr := &brokerv1beta1.ActiveMQArtemis{
+		ObjectMeta: metav1.ObjectMeta{Name: "cr"},
+		Spec:       brokerv1beta1.ActiveMQArtemisSpec{},
+	}
+
+	outer := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log.WithName("Test_Respect_existing_JAVA_OPTS_properties_def"), isOpenshift)
+	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
+
+	namer := MakeNamers(cr)
+
+	existingSS := appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{Name: namer.SsNameBuilder.Name()},
+		Spec: appsv1.StatefulSetSpec{
+			Template: v1.PodTemplateSpec{
+				Spec: v1.PodSpec{
+					InitContainers: []v1.Container{
+						{
+							Name: cr.Name + "-container-init",
+							Env: []v1.EnvVar{
+								{
+									Name:  javaOptsEnvVarName,
+									Value: "a",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	reconciler.deployed = make(map[reflect.Type][]client.Object)
+	reconciler.addToDeployed(reflect.TypeOf(appsv1.StatefulSet{}), &existingSS)
+	newSS, _ := reconciler.ProcessStatefulSet(cr, *namer, nil)
+
+	var index = -1
+	for i, env := range newSS.Spec.Template.Spec.InitContainers[0].Env {
+		if env.Name == javaOptsEnvVarName {
+			index = i
+			break
+		}
+	}
+	assert.True(t, index != -1)
+	assert.True(t, strings.Contains(newSS.Spec.Template.Spec.InitContainers[0].Env[index].Value, "properties"))
+}
+
 func TestProcess_TemplateKeyValue(t *testing.T) {
 
 	var kindMatch string = "Service"

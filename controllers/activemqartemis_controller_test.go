@@ -5767,48 +5767,6 @@ var _ = Describe("artemis controller", func() {
 			Expect(k8sClient.Delete(ctx, createdCrd)).Should(Succeed())
 		})
 
-		It("Respect JAVA_OPTS config map", func() {
-			ctx := context.Background()
-			crd := generateArtemisSpec(defaultNamespace)
-			// this will mimic an existing deployment using JAVA_OPTS
-			crd.Spec.Env = []corev1.EnvVar{{Name: "JAVA_OPTS", Value: "-Da=b"}}
-
-			Expect(k8sClient.Create(ctx, &crd)).Should(Succeed())
-
-			By("By checking the container stateful set for java opts referencing brokerProperties")
-			Eventually(func(g Gomega) {
-				key := types.NamespacedName{Name: namer.CrToSS(crd.Name), Namespace: defaultNamespace}
-				createdSs := &appsv1.StatefulSet{}
-
-				g.Expect(k8sClient.Get(ctx, key, createdSs)).To(Succeed())
-
-				found := false
-				for _, container := range createdSs.Spec.Template.Spec.InitContainers {
-					for _, env := range container.Env {
-						if env.Name == "JAVA_OPTS" {
-							if strings.Contains(env.Value, brokerPropertiesMatchString) {
-								found = true
-							}
-						}
-					}
-				}
-				g.Expect(found).To(BeTrue())
-
-				found_JDK_JAVA_OPTIONS := false
-				for _, container := range createdSs.Spec.Template.Spec.Containers {
-					for _, env := range container.Env {
-						if env.Name == "JDK_JAVA_OPTIONS" {
-							found_JDK_JAVA_OPTIONS = true
-						}
-					}
-				}
-				g.Expect(found_JDK_JAVA_OPTIONS).To(BeFalse())
-
-			}, duration, interval).Should(Succeed())
-
-			CleanResource(&crd, crd.Name, defaultNamespace)
-		})
-
 		It("Expect two crs to coexist", func() {
 			By("By creating two crds with BrokerProperties in the spec")
 			ctx := context.Background()
