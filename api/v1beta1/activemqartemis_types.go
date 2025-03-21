@@ -838,4 +838,7 @@ const (
 	BrokerVersionAlignedConditionType           = "BrokerVersionAligned"
 	BrokerVersionAlignedConditionMatchReason    = "VersionMatch"
 	BrokerVersionAlignedConditionMismatchReason = "VersionMismatch"
+
+	ReconcileBlockedType   = "ReconcileBlocked"
+	ReconcileBlockedReason = "AnnotationPresent"
 )
