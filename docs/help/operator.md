@@ -1227,7 +1227,7 @@ By default the operator gets the username and password from the broker container
 
 If you configure **adminUser** and **adminPassword** in the broker CR the values will be populated into the environment variables AMQ_USER and AMQ_PASSWORD respectively.
 
-Alternatively you can provide a secret called **[broker cr name]-credential-secret** within which contains 2 entries whose keys are `AMQ_USER` and `AMQ_PASSWORD` respectively, with corresponding values for each.
+Alternatively you can provide a secret called **[broker cr name]-credentials-secret** within which contains 2 entries whose keys are `AMQ_USER` and `AMQ_PASSWORD` respectively, with corresponding values for each.
 
 However when you use security CRs, jass login module configs, or init container to configure security login modules,
 The above adminUser and adminPassword may be overridden and jolokia client in the operator won't be able to get the correct credentials to connect to the broker. In that case the user should provide a secret called **[broker cr name]-jolokia-secret**, in which you put 2 entries for username and password for jolokia credential to use. The 2 entries should have keys named **jolokiaUser** and **jolokiaPassword** respectively, the value for **jolokiaUser** is the user name and the value for **jolokiaPassword** is the password.
