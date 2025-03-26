@@ -1223,11 +1223,25 @@ The operator uses jolokia endpoints to get broker status and also create queue/a
 
 To gain access to jolokia the operator need to have proper credentials (username/password).
 
-By default the operator gets the username and password from the broker container's environment variables AMQ_USER and AMQ_PASSWORD. The operator exposes the environment variables with the values defined in the broker CR's **spec.adminUser** and **spec.adminPassword** fields.
+By default, the operator retrieves the username and password from the broker container's environment variables `AMQ_USER` and `AMQ_PASSWORD`. These environment variables are populated with values from the secret **[broker CR name]-credentials-secret**, using the `AMQ_USER` and `AMQ_PASSWORD` keys.
 
-If you configure **adminUser** and **adminPassword** in the broker CR the values will be populated into the environment variables AMQ_USER and AMQ_PASSWORD respectively.
+If you specify adminUser and adminPassword in the broker CR, these values will be written to the auto-generated secret **[broker CR name]-credentials-secret**, using the `AMQ_USER` and `AMQ_PASSWORD` keys.
 
-Alternatively you can provide a secret called **[broker cr name]-credentials-secret** within which contains 2 entries whose keys are `AMQ_USER` and `AMQ_PASSWORD` respectively, with corresponding values for each.
+Alternatively, you can provide your own secret named **[broker CR name]-credentials-secret**, which must contain four entries: `AMQ_USER` / `AMQ_PASSWORD` for administrative access, and `AMQ_CLUSTER_USER` / `AMQ_CLUSTER_PASSWORD` for intra-cluster communication.
+
+```yaml
+apiVersion: v1
+metadata:
+  name: amq-credentials-secret
+  namespace: default
+kind: Secret
+type: Opaque
+stringData:
+  AMQ_USER: admin
+  AMQ_PASSWORD: adminPassword
+  AMQ_CLUSTER_USER: cluster
+  AMQ_CLUSTER_PASSWORD: clusterPassword
+```
 
 However when you use security CRs, jass login module configs, or init container to configure security login modules,
 The above adminUser and adminPassword may be overridden and jolokia client in the operator won't be able to get the correct credentials to connect to the broker. In that case the user should provide a secret called **[broker cr name]-jolokia-secret**, in which you put 2 entries for username and password for jolokia credential to use. The 2 entries should have keys named **jolokiaUser** and **jolokiaPassword** respectively, the value for **jolokiaUser** is the user name and the value for **jolokiaPassword** is the password.
