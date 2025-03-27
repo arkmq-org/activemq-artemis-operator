@@ -3548,16 +3548,35 @@ func SortedKeyValuePairsFromMap(dataMap map[string]interface{}, pairs *[]string)
 	KeyValuePairsFromMap("", dataMap, pairs)
 
 	sort.Slice(*pairs, func(i, j int) bool {
-		return (*pairs)[i] < (*pairs)[j]
+		return unQuotePair((*pairs)[i]) < unQuotePair((*pairs)[j])
 	})
 
 }
 
+// dots mean nesting for our property keys so we quote to protect user provided dots
+// but when we order by key, we need to remove the quote to be consistent
+func quoteKey(s string) string {
+	if strings.Contains(s, ".") {
+		return "\"" + s + "\""
+	}
+	return s
+}
+
+func unQuotePair(s string) string {
+	firstEquals := strings.Index(s, "=")
+	if firstEquals > 0 {
+		key := s[:firstEquals]
+		if strings.Contains(key, ".") {
+			// there may be many nested quoted values in the key
+			return strings.ReplaceAll(key, "\"", "") + s[firstEquals:]
+		}
+	}
+	return s
+}
+
 func KeyValuePairsFromMap(parentKey string, dataMap map[string]interface{}, pairs *[]string) {
 	for k, v := range dataMap {
-		if strings.Contains(k, ".") {
-			k = "\"" + k + "\""
-		}
+		k = quoteKey(k)
 		propertyKey := parentKey + k
 		if reflect.ValueOf(v).Kind() == reflect.Map {
 			KeyValuePairsFromMap(propertyKey+".", v.(map[string]interface{}), pairs)

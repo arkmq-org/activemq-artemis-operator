@@ -319,6 +319,57 @@ func TestAlder32Gen(t *testing.T) {
 	assert.True(t, strings.Contains(res, "2905476010"))
 }
 
+func TestAlder32GenOrder(t *testing.T) {
+
+	ordered := `one=one
+			two=two
+			three=three`
+
+	unOrdered := `three=three
+			one=one
+			two=two
+			`
+	assert.NotEqual(t, alder32FromData([]byte(ordered)), alder32FromData([]byte(unOrdered)))
+}
+
+func TestUnquotePair(t *testing.T) {
+
+	assert.Equal(t, unQuotePair("a"), "a")
+	assert.Equal(t, unQuotePair("a=b"), "a=b")
+	assert.Equal(t, unQuotePair("a.b=b"), "a.b=b")
+	assert.Equal(t, unQuotePair("\"a.a\"=b"), "a.a=b")
+	assert.Equal(t, unQuotePair("\"a.a\".\"b.b\"=b"), "a.a.b.b=b")
+}
+
+func TestSortedKeyValuePairsFromMap(t *testing.T) {
+
+	keyValuePairs := []string{}
+
+	jsonString := `{
+		"addressSettings": {
+		  "#": {
+			"maxDeliveryAttempts": 1,
+			"addressFullMessagePolicy": "PAGE"
+		  },
+		  "server.push": {
+			"maxDeliveryAttempts": 2,
+			"server.pushed": {
+			   "maxDeliveryAttempts": 3
+			}
+		  }
+		}
+	  }`
+
+	dataMap := map[string]interface{}{}
+	err := json.Unmarshal([]byte(jsonString), &dataMap)
+	assert.NoError(t, err)
+
+	SortedKeyValuePairsFromMap(dataMap, &keyValuePairs)
+
+	assert.True(t, strings.HasPrefix(keyValuePairs[0], "addressSettings.#"))
+	assert.True(t, strings.Contains(keyValuePairs[len(keyValuePairs)-1], "3"))
+}
+
 func TestAlder32GenSpace(t *testing.T) {
 
 	userProps := `admin = joe`
