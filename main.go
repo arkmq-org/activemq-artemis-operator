@@ -179,11 +179,6 @@ func main() {
 		Metrics: server.Options{
 			BindAddress: fmt.Sprintf("%s:%d", metricsHost, metricsPort),
 		},
-		WebhookServer: &webhook.DefaultServer{
-			Options: webhook.Options{
-				Port: 9443,
-			},
-		},
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "d864aab0.amq.io",
@@ -298,25 +293,6 @@ func main() {
 	if err = securityReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ActiveMQArtemisSecurity")
 		os.Exit(1)
-	}
-
-	enableWebhooks := os.Getenv("ENABLE_WEBHOOKS")
-	if enableWebhooks != "false" {
-		setupLog.Info("Setting up webhook functions", "ENABLE_WEBHOOKS", enableWebhooks)
-		if err = (&brokerv1beta1.ActiveMQArtemis{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "ActiveMQArtemis")
-			os.Exit(1)
-		}
-		if err = (&brokerv1beta1.ActiveMQArtemisSecurity{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "ActiveMQArtemisSecurity")
-			os.Exit(1)
-		}
-		if err = (&brokerv1beta1.ActiveMQArtemisAddress{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "ActiveMQArtemisAddress")
-			os.Exit(1)
-		}
-	} else {
-		setupLog.Info("NOT Setting up webhook functions", "ENABLE_WEBHOOKS", enableWebhooks)
 	}
 
 	//+kubebuilder:scaffold:builder
