@@ -16,6 +16,8 @@ limitations under the License.
 package controllers
 
 import (
+	"os"
+
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/namer"
 
@@ -60,13 +62,14 @@ var _ = Describe("reconcile block with annotation", func() {
 				Namespace: defaultNamespace,
 			}
 
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, brokerKey, crd)).Should(Succeed())
-				ready := meta.FindStatusCondition(crd.Status.Conditions, brokerv1beta1.ReadyConditionType)
-				g.Expect(ready).NotTo(BeNil())
-				g.Expect(ready.Status).To(Equal(metav1.ConditionTrue))
-			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
-
+			if os.Getenv("USE_EXISTING_CLUSTER") == "true" {
+				Eventually(func(g Gomega) {
+					g.Expect(k8sClient.Get(ctx, brokerKey, crd)).Should(Succeed())
+					ready := meta.FindStatusCondition(crd.Status.Conditions, brokerv1beta1.ReadyConditionType)
+					g.Expect(ready).NotTo(BeNil())
+					g.Expect(ready.Status).To(Equal(metav1.ConditionTrue))
+				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+			}
 			By("Checking SS env var")
 			Eventually(func(g Gomega) {
 				key := types.NamespacedName{Name: namer.CrToSS(crd.Name), Namespace: defaultNamespace}
@@ -98,9 +101,11 @@ var _ = Describe("reconcile block with annotation", func() {
 				g.Expect(blocked).NotTo(BeNil())
 				g.Expect(blocked.Status).To(Equal(metav1.ConditionTrue))
 
-				ready := meta.FindStatusCondition(crd.Status.Conditions, brokerv1beta1.ReadyConditionType)
-				g.Expect(ready).NotTo(BeNil())
-				g.Expect(ready.Status).To(Equal(metav1.ConditionTrue))
+				if os.Getenv("USE_EXISTING_CLUSTER") == "true" {
+					ready := meta.FindStatusCondition(crd.Status.Conditions, brokerv1beta1.ReadyConditionType)
+					g.Expect(ready).NotTo(BeNil())
+					g.Expect(ready.Status).To(Equal(metav1.ConditionTrue))
+				}
 
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
@@ -118,10 +123,11 @@ var _ = Describe("reconcile block with annotation", func() {
 				blocked := meta.FindStatusCondition(crd.Status.Conditions, brokerv1beta1.ReconcileBlockedType)
 				g.Expect(blocked).To(BeNil())
 
-				ready := meta.FindStatusCondition(crd.Status.Conditions, brokerv1beta1.ReadyConditionType)
-				g.Expect(ready).NotTo(BeNil())
-				g.Expect(ready.Status).To(Equal(metav1.ConditionTrue))
-
+				if os.Getenv("USE_EXISTING_CLUSTER") == "true" {
+					ready := meta.FindStatusCondition(crd.Status.Conditions, brokerv1beta1.ReadyConditionType)
+					g.Expect(ready).NotTo(BeNil())
+					g.Expect(ready.Status).To(Equal(metav1.ConditionTrue))
+				}
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
 			By("Checking SS env var")
@@ -159,10 +165,11 @@ var _ = Describe("reconcile block with annotation", func() {
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, brokerKey, crd)).Should(Succeed())
 
-				condition := meta.FindStatusCondition(crd.Status.Conditions, brokerv1beta1.ReadyConditionType)
-				g.Expect(condition).NotTo(BeNil())
-				g.Expect(condition.Status).To(Equal(metav1.ConditionFalse))
-
+				if os.Getenv("USE_EXISTING_CLUSTER") == "true" {
+					condition := meta.FindStatusCondition(crd.Status.Conditions, brokerv1beta1.ReadyConditionType)
+					g.Expect(condition).NotTo(BeNil())
+					g.Expect(condition.Status).To(Equal(metav1.ConditionFalse))
+				}
 				blocked := meta.FindStatusCondition(crd.Status.Conditions, brokerv1beta1.ReconcileBlockedType)
 				g.Expect(blocked).NotTo(BeNil())
 				g.Expect(blocked.Status).To(Equal(metav1.ConditionTrue))
@@ -182,10 +189,11 @@ var _ = Describe("reconcile block with annotation", func() {
 				blocked := meta.FindStatusCondition(crd.Status.Conditions, brokerv1beta1.ReconcileBlockedType)
 				g.Expect(blocked).To(BeNil())
 
-				ready := meta.FindStatusCondition(crd.Status.Conditions, brokerv1beta1.ReadyConditionType)
-				g.Expect(ready).NotTo(BeNil())
-				g.Expect(ready.Status).To(Equal(metav1.ConditionTrue))
-
+				if os.Getenv("USE_EXISTING_CLUSTER") == "true" {
+					ready := meta.FindStatusCondition(crd.Status.Conditions, brokerv1beta1.ReadyConditionType)
+					g.Expect(ready).NotTo(BeNil())
+					g.Expect(ready.Status).To(Equal(metav1.ConditionTrue))
+				}
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
 			CleanResource(crd, crd.Name, defaultNamespace)
