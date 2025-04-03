@@ -5,6 +5,9 @@ metadata:
     alm-examples: '[]'
     capabilities: Seamless Upgrades
     categories: Streaming & Messaging
+    containerImage: ""
+    createdAt: "2025-04-04 14:35:00"
+    description: An operator for managing the Apache ActiveMQ Artemis message broker
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
     features.operators.openshift.io/csi: "false"
@@ -15,6 +18,8 @@ metadata:
     features.operators.openshift.io/token-auth-aws: "false"
     features.operators.openshift.io/token-auth-azure: "false"
     features.operators.openshift.io/token-auth-gcp: "false"
+    repository: https://github.com/arkmq-org/activemq-artemis-operator
+    support: arkmq-org
   name: activemq-artemis-operator.v0.0.0
   namespace: placeholder
 spec:
