@@ -9966,6 +9966,136 @@ var _ = Describe("artemis controller", func() {
 			Expect(k8sClient.Delete(ctx, &crd)).To(Succeed())
 		})
 
+		It("complex extraSecret with JSON broker properties with quote and -bp suffix", func() {
+
+			ctx := context.Background()
+			crd := generateArtemisSpec(defaultNamespace)
+
+			loggingData := make(map[string]string)
+			loggingData[LoggingConfigKey] = `appender.stdout.name = STDOUT
+		appender.stdout.type = Console
+		rootLogger = info, STDOUT
+		logger.activemq.name=org.apache.activemq.artemis.core.config.impl.ConfigurationImpl
+        logger.activemq.level=TRACE`
+
+			loggingConfigMap := configmaps.MakeConfigMap(defaultNamespace, "config-impl-logging-config", loggingData)
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Create(ctx, loggingConfigMap, &client.CreateOptions{})).Should(Succeed())
+			}, timeout, interval).Should(Succeed())
+
+			secret := &corev1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "k8s.io.api.core.v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "y-bp",
+					Namespace: crd.ObjectMeta.Namespace,
+				},
+			}
+
+			secret.Data = map[string][]byte{
+				"config.json": []byte(`{}`),
+			}
+
+			crd.Spec.DeploymentPlan.ExtraMounts.Secrets = []string{secret.Name}
+			//loggingConfigMap
+			crd.Spec.DeploymentPlan.ExtraMounts.ConfigMaps = []string{loggingConfigMap.Name}
+
+			By("Deploying the -bp secret " + secret.ObjectMeta.Name)
+			Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
+
+			By("Deploying the CRD " + crd.ObjectMeta.Name)
+			Expect(k8sClient.Create(ctx, &crd)).Should(Succeed())
+
+			if os.Getenv("USE_EXISTING_CLUSTER") == "true" {
+
+				createdCrd := &brokerv1beta1.ActiveMQArtemis{}
+				brokerKey := types.NamespacedName{Name: crd.Name, Namespace: crd.Namespace}
+
+				By("verify status ok")
+				Eventually(func(g Gomega) {
+					g.Expect(k8sClient.Get(ctx, brokerKey, createdCrd)).Should(Succeed())
+
+					condition := meta.FindStatusCondition(createdCrd.Status.Conditions, brokerv1beta1.ConfigAppliedConditionType)
+					g.Expect(condition).NotTo(BeNil())
+					g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+				jolokia := jolokia.GetJolokia(k8sClient, crd.Name+"-ss-0."+crd.Name+"-hdls-svc.test.svc.cluster.local", "8161", "/console/jolokia", "", "", "http")
+
+				var hasFileChecksum bool = false
+				By("verify file checksum")
+				Eventually(func(g Gomega) {
+					g.Expect(k8sClient.Get(ctx, brokerKey, createdCrd)).Should(Succeed())
+					// check for fileAlder32
+					data, err := jolokia.Read("org.apache.activemq.artemis:broker=\"amq-broker\"/Status")
+
+					if verbose {
+						fmt.Printf("\nStatus ERROR: %v : %v\n", data, err)
+					}
+					g.Expect(err).To(BeNil())
+					hasFileChecksum = strings.Contains(data.Value, "fileAlder32")
+				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+				if hasFileChecksum {
+
+					By("Update json config with quote value")
+					createdSecret := corev1.Secret{}
+					Eventually(func(g Gomega) {
+
+						g.Expect(k8sClient.Get(ctx, client.ObjectKey{Name: secret.Name, Namespace: secret.Namespace}, &createdSecret)).To(Succeed())
+
+						createdSecret.Data["config.json"] = []byte(`{
+						"key.surround": "$$",
+						"addressSettings": {
+						  "a": {
+							"maxDeliveryAttempts": 0
+						  },
+						  "$$e.\"\"e$$": {
+							"maxDeliveryAttempts": 1
+						  },
+						  "b.b": {
+							"maxDeliveryAttempts": 2
+						  }
+						}
+					  }`)
+						g.Expect(k8sClient.Update(ctx, &createdSecret)).To(Succeed())
+
+					}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+					By("verify status ok")
+					Eventually(func(g Gomega) {
+						g.Expect(k8sClient.Get(ctx, brokerKey, createdCrd)).Should(Succeed())
+
+						condition := meta.FindStatusCondition(createdCrd.Status.Conditions, brokerv1beta1.ConfigAppliedConditionType)
+						g.Expect(condition).NotTo(BeNil())
+
+						g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+
+						By("check applied address settings via jolokia")
+						for index, addr := range []string{"a", `e.\"\"e`, "b.b"} {
+							data, err := jolokia.Exec("", `{ "type":"EXEC","mbean":"org.apache.activemq.artemis:broker=\"amq-broker\"","operation":"getAddressSettingsAsJSON(java.lang.String)","arguments":["`+addr+`"] }`)
+
+							if verbose {
+								fmt.Printf("\nSettings ERROR: %s : %v\n", addr, err)
+							}
+							g.Expect(err).To(BeNil())
+							if verbose {
+								fmt.Printf("\nSettings: %s : %v\n", addr, data.Value)
+							}
+							g.Expect(data.Value).Should(ContainSubstring(`"maxDeliveryAttempts":`+strconv.Itoa(index)), data.Value)
+						}
+
+					}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+				}
+			}
+
+			Expect(k8sClient.Delete(ctx, loggingConfigMap)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, secret)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, &crd)).To(Succeed())
+		})
+
 		It("-bp suffix secret broker-n support", Label("broker-n-bp-secret"), func() {
 
 			ctx := context.Background()

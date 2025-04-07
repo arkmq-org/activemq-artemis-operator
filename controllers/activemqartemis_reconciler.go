@@ -3131,6 +3131,7 @@ type brokerConfigStatus struct {
 
 type propertiesStatus struct {
 	Alder32     string       `json:"alder32"`
+	FileAlder32 string       `json:"fileAlder32,omitempty"`
 	ReloadTime  string       `json:"reloadTime"`
 	ApplyErrors []applyError `json:"errors"`
 }
@@ -3252,7 +3253,8 @@ type projection struct {
 }
 
 type propertyFile struct {
-	Alder32 string
+	Alder32     string
+	FileAlder32 string
 }
 
 func AssertBrokersAvailable(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, scheme *runtime.Scheme) ArtemisError {
@@ -3425,14 +3427,21 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) checkProjectionStatus(cr *broke
 				continue
 			}
 
-			if current.Alder32 == "" {
+			if current.Alder32 == "" && current.FileAlder32 == "" {
 				err = errors.Errorf("out of sync on pod %s-%s, property file %s has an empty checksum",
 					namer.CrToSS(cr.Name), jk.Ordinal, name)
 				reqLogger.V(1).Info(err.Error(), "status", brokerStatus, "tracked", secretProjection)
 				return NewStatusOutOfSyncError(err)
 			}
 
-			if file.Alder32 != current.Alder32 {
+			if current.FileAlder32 != "" {
+				if file.FileAlder32 != current.FileAlder32 {
+					err = errors.Errorf("out of sync on pod %s-%s, mismatched file checksum on property file %s, expected: %s, current: %s. A delay can occur before a volume mount projection is refreshed.",
+						namer.CrToSS(cr.Name), jk.Ordinal, name, file.FileAlder32, current.FileAlder32)
+					reqLogger.V(1).Info(err.Error(), "status", brokerStatus, "tracked", secretProjection)
+					return NewStatusOutOfSyncError(err)
+				}
+			} else if file.Alder32 != current.Alder32 {
 				err = errors.Errorf("out of sync on pod %s-%s, mismatched checksum on property file %s, expected: %s, current: %s. A delay can occur before a volume mount projection is refreshed.",
 					namer.CrToSS(cr.Name), jk.Ordinal, name, file.Alder32, current.Alder32)
 				reqLogger.V(1).Info(err.Error(), "status", brokerStatus, "tracked", secretProjection)
@@ -3535,10 +3544,16 @@ func newProjectionFromByteValues(resourceMeta metav1.ObjectMeta, configKeyValue 
 			if err := json.Unmarshal(data, &dataMap); err == nil {
 				keyValuePairs := []string{}
 				SortedKeyValuePairsFromMap(dataMap, &keyValuePairs)
-				projection.Files[prop_file_name] = propertyFile{Alder32: alder32StringValue(alder32Of(keyValuePairs))}
+				projection.Files[prop_file_name] = propertyFile{
+					Alder32:     alder32StringValue(alder32Of(keyValuePairs)),
+					FileAlder32: fmt.Sprintf("%d", adler32.Checksum(data)),
+				}
 			}
 		} else {
-			projection.Files[prop_file_name] = propertyFile{Alder32: alder32FromData(data)}
+			projection.Files[prop_file_name] = propertyFile{
+				Alder32:     alder32FromData(data),
+				FileAlder32: fmt.Sprintf("%d", adler32.Checksum(data)),
+			}
 		}
 	}
 	return &projection
