@@ -1,0 +1,85 @@
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemis
+metadata:
+  name: artemis-broker-props-json
+spec:
+  deploymentPlan:
+    extraMounts:
+      secrets:
+        - config-bp
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: config-bp
+stringData:
+  config.json: |
+    {
+      "globalMaxSize": "512M",
+      "addressConfigurations": {
+        "APP.JOBS": {
+          "routingTypes": "ANYCAST",
+          "queueConfigs": {
+            "APP.JOBS": {
+              "routingType": "ANYCAST"
+            }
+          }
+        },
+        "APP.COMMANDS": {
+          "routingTypes": "MULTICAST"
+        }
+      },
+      "addressSettings": {
+        "#": {
+          "redeliveryDelay": 10000,
+          "addressFullMessagePolicy": "PAGE"
+        },
+        "APP.#": {
+          "configDeleteAddresses": "FORCE",
+          "configDeleteQueues": "FORCE"
+        }
+      },
+      "securityRoles": {
+        "#": {
+          "admin": {
+            "createNonDurableQueue": true,
+            "deleteNonDurableQueue": true,
+            "createDurableQueue": true,
+            "deleteDurableQueue": true,
+            "createAddress": true,
+            "deleteAddress": true,
+            "consume": true,
+            "browse": true,
+            "send": true,
+            "manage": true
+          }
+        },
+        "APP.#": {
+          "admin": {
+            "createNonDurableQueue": true,
+            "deleteNonDurableQueue": true,
+            "createDurableQueue": true,
+            "deleteDurableQueue": true,
+            "createAddress": true,
+            "deleteAddress": true,
+            "consume": true,
+            "browse": true,
+            "send": true,
+            "manage": true
+          },
+          "sender_role": {
+            "createNonDurableQueue": true,
+            "deleteNonDurableQueue": true,
+            "createDurableQueue": true,
+            "deleteDurableQueue": true,
+            "createAddress": true,
+            "deleteAddress": true,
+            "consume": false,
+            "browse": false,
+            "send": true,
+            "manage": false
+          }
+        }  
+      }
+    }
