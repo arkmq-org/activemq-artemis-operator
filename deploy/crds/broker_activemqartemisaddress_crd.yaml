@@ -228,7 +228,7 @@ spec:
     name: v2alpha1
     schema:
       openAPIV3Schema:
-        description: ActiveMQArtemisAddress is the Schema for the activemqartemisaddresses API
+        description: Adding and removing addresses using custom resource definitions
         properties:
           apiVersion:
             description: |-
@@ -251,10 +251,13 @@ spec:
             description: ActiveMQArtemisAddressSpec defines the desired state of ActiveMQArtemisAddress
             properties:
               addressName:
+                description: The Address Name
                 type: string
               queueName:
+                description: The Queue Name
                 type: string
               routingType:
+                description: The Routing Type
                 type: string
             type: object
           status:
@@ -329,7 +332,7 @@ spec:
     name: v2alpha2
     schema:
       openAPIV3Schema:
-        description: ActiveMQArtemisAddress is the Schema for the activemqartemisaddresses API
+        description: Adding and removing addresses using custom resource definitions
         properties:
           apiVersion:
             description: |-
@@ -352,12 +355,16 @@ spec:
             description: ActiveMQArtemisAddressSpec defines the desired state of ActiveMQArtemisAddress
             properties:
               addressName:
+                description: The Address Name
                 type: string
               queueName:
+                description: The Queue Name
                 type: string
               removeFromBrokerOnDelete:
+                description: Whether or not delete the queue from broker when CR is undeployed(default false)
                 type: boolean
               routingType:
+                description: The Routing Type
                 type: string
             type: object
           status:
@@ -432,7 +439,7 @@ spec:
     name: v2alpha3
     schema:
       openAPIV3Schema:
-        description: ActiveMQArtemisAddress is the Schema for the activemqartemisaddresses API
+        description: Adding and removing addresses using custom resource definitions
         properties:
           apiVersion:
             description: |-
@@ -455,83 +462,117 @@ spec:
             description: ActiveMQArtemisAddressSpec defines the desired state of ActiveMQArtemisAddress
             properties:
               addressName:
+                description: The Address Name
                 type: string
               applyToCrNames:
+                description: Apply to the broker crs in the current namespace. A value of * or empty string means applying to all broker crs. Default apply to all broker crs
                 items:
                   type: string
                 type: array
               password:
+                description: The password for the user
                 type: string
               queueConfiguration:
+                description: Specify the queue configuration
                 properties:
                   autoCreateAddress:
+                    description: Whether auto create address
                     type: boolean
                   autoDelete:
+                    description: Auto-delete the queue
                     type: boolean
                   autoDeleteDelay:
+                    description: Delay (Milliseconds) before auto-delete the queue
                     format: int64
                     type: integer
                   autoDeleteMessageCount:
+                    description: Message count of the queue to allow auto delete
                     format: int64
                     type: integer
                   configurationManaged:
+                    description: ' If the queue is configuration managed'
                     type: boolean
                   consumerPriority:
+                    description: Consumer Priority
                     format: int32
                     type: integer
                   consumersBeforeDispatch:
+                    description: Number of consumers required before dispatching messages
                     format: int32
                     type: integer
                   delayBeforeDispatch:
+                    description: Milliseconds to wait for `consumers-before-dispatch` to be met before dispatching messages anyway
                     format: int64
                     type: integer
                   durable:
+                    description: If the queue is durable or not
                     type: boolean
                   enabled:
+                    description: If the queue is enabled
                     type: boolean
                   exclusive:
+                    description: If the queue is exclusive
                     type: boolean
                   filterString:
+                    description: The filter string for the queue
                     type: string
                   groupBuckets:
+                    description: Number of messaging group buckets
                     format: int32
                     type: integer
                   groupFirstKey:
+                    description: Header set on the first group message
                     type: string
                   groupRebalance:
+                    description: If rebalance the message group
                     type: boolean
                   groupRebalancePauseDispatch:
+                    description: If pause message dispatch when rebalancing groups
                     type: boolean
                   ignoreIfExists:
+                    description: If ignore if the target queue already exists
                     type: boolean
                   lastValue:
+                    description: If it is a last value queue
                     type: boolean
                   lastValueKey:
+                    description: The property used for last value queue to identify last values
                     type: string
                   maxConsumers:
+                    description: Max number of consumers allowed on this queue
                     format: int32
                     type: integer
                   nonDestructive:
+                    description: If force non-destructive consumers on the queue
                     type: boolean
                   purgeOnNoConsumers:
+                    description: Whether to delete all messages when no consumers connected to the queue
                     type: boolean
                   ringSize:
+                    description: The size the queue should maintain according to ring semantics
                     format: int64
                     type: integer
                   routingType:
+                    description: The routing type of the queue
                     type: string
                   temporary:
+                    description: If the queue is temporary
                     type: boolean
                   user:
+                    description: The user associated with the queue
                     type: string
                 type: object
               queueName:
+                description: The Queue Name
                 type: string
               removeFromBrokerOnDelete:
+                description: Whether or not delete the queue from broker when CR is undeployed(default false)
                 type: boolean
               routingType:
+                description: The Routing Type
                 type: string
               user:
+                description: User name for creating the queue or address
                 type: string
             type: object
           status:

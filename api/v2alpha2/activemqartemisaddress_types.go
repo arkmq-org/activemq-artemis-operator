@@ -28,10 +28,18 @@ type ActiveMQArtemisAddressSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	AddressName              string `json:"addressName,omitempty"`
-	QueueName                string `json:"queueName,omitempty"`
-	RoutingType              string `json:"routingType,omitempty"`
-	RemoveFromBrokerOnDelete bool   `json:"removeFromBrokerOnDelete,omitempty"`
+	// The Address Name
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Address Name",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:text"}
+	AddressName string `json:"addressName,omitempty"`
+	// The Queue Name
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Queue Name",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:text"}
+	QueueName string `json:"queueName,omitempty"`
+	// The Routing Type
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Routing Type",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:text"}
+	RoutingType string `json:"routingType,omitempty"`
+	// Whether or not delete the queue from broker when CR is undeployed(default false)
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Remove From Broker On Delete",xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	RemoveFromBrokerOnDelete bool `json:"removeFromBrokerOnDelete,omitempty"`
 }
 
 // ActiveMQArtemisAddressStatus defines the observed state of ActiveMQArtemisAddress
@@ -54,7 +62,8 @@ type ActiveMQArtemisAddressStatus struct {
 //+operator-sdk:csv:customresourcedefinitions:resources={{"Secret", "v1"}}
 
 // +kubebuilder:deprecatedversion:warning="The ActiveMQArtemisAddress CRD is deprecated. Use the spec.brokerProperties attribute in the ActiveMQArtemis CR to create addresses and queues instead"
-// ActiveMQArtemisAddress is the Schema for the activemqartemisaddresses API
+// Adding and removing addresses using custom resource definitions
+// +operator-sdk:csv:customresourcedefinitions:displayName="ActiveMQ Artemis Address"
 type ActiveMQArtemisAddress struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

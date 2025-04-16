@@ -486,15 +486,30 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v1beta1
-    - description: ActiveMQArtemisAddress is the Schema for the activemqartemisaddresses
-        API
-      displayName: Active MQArtemis Address
+    - description: Adding and removing addresses using custom resource definitions
+      displayName: ActiveMQ Artemis Address
       kind: ActiveMQArtemisAddress
       name: activemqartemisaddresses.broker.amq.io
       resources:
       - kind: Secret
         name: ""
         version: v1
+      specDescriptors:
+      - description: The Address Name
+        displayName: Address Name
+        path: addressName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The Queue Name
+        displayName: Queue Name
+        path: queueName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The Routing Type
+        displayName: Routing Type
+        path: routingType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
       statusDescriptors:
       - description: Current state of the resource Conditions represent the latest
           available observations of an object's state
@@ -503,15 +518,36 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v2alpha1
-    - description: ActiveMQArtemisAddress is the Schema for the activemqartemisaddresses
-        API
-      displayName: Active MQArtemis Address
+    - description: Adding and removing addresses using custom resource definitions
+      displayName: ActiveMQ Artemis Address
       kind: ActiveMQArtemisAddress
       name: activemqartemisaddresses.broker.amq.io
       resources:
       - kind: Secret
         name: ""
         version: v1
+      specDescriptors:
+      - description: The Address Name
+        displayName: Address Name
+        path: addressName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The Queue Name
+        displayName: Queue Name
+        path: queueName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not delete the queue from broker when CR is undeployed(default
+          false)
+        displayName: Remove From Broker On Delete
+        path: removeFromBrokerOnDelete
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: The Routing Type
+        displayName: Routing Type
+        path: routingType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
       statusDescriptors:
       - description: Current state of the resource Conditions represent the latest
           available observations of an object's state
@@ -520,15 +556,186 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v2alpha2
-    - description: ActiveMQArtemisAddress is the Schema for the activemqartemisaddresses
-        API
-      displayName: Active MQArtemis Address
+    - description: Adding and removing addresses using custom resource definitions
+      displayName: ActiveMQ Artemis Address
       kind: ActiveMQArtemisAddress
       name: activemqartemisaddresses.broker.amq.io
       resources:
       - kind: Secret
         name: ""
         version: v1
+      specDescriptors:
+      - description: The Address Name
+        displayName: Address Name
+        path: addressName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Apply to the broker crs in the current namespace. A value of
+          * or empty string means applying to all broker crs. Default apply to all
+          broker crs
+        displayName: Apply To Broker CR Names
+        path: applyToCrNames
+      - description: The password for the user
+        displayName: Password
+        path: password
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
+      - description: Specify the queue configuration
+        displayName: Queue Configuration
+        path: queueConfiguration
+      - description: Whether auto create address
+        displayName: Auto Create Address
+        path: queueConfiguration.autoCreateAddress
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Auto-delete the queue
+        displayName: Auto Delete
+        path: queueConfiguration.autoDelete
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Delay (Milliseconds) before auto-delete the queue
+        displayName: Auto Delete Delay
+        path: queueConfiguration.autoDeleteDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Message count of the queue to allow auto delete
+        displayName: Auto Delete Message Count
+        path: queueConfiguration.autoDeleteMessageCount
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: If the queue is configuration managed
+        displayName: Configuration Managed
+        path: queueConfiguration.configurationManaged
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Consumer Priority
+        displayName: Consumer Priority
+        path: queueConfiguration.consumerPriority
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Number of consumers required before dispatching messages
+        displayName: Consumers Before Dispatch
+        path: queueConfiguration.consumersBeforeDispatch
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Milliseconds to wait for `consumers-before-dispatch` to be met
+          before dispatching messages anyway
+        displayName: Delay Before Dispatch
+        path: queueConfiguration.delayBeforeDispatch
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: If the queue is durable or not
+        displayName: Durable
+        path: queueConfiguration.durable
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If the queue is enabled
+        displayName: Enabled
+        path: queueConfiguration.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If the queue is exclusive
+        displayName: Exclusive
+        path: queueConfiguration.exclusive
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: The filter string for the queue
+        displayName: Filter String
+        path: queueConfiguration.filterString
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Number of messaging group buckets
+        displayName: Group Buckets
+        path: queueConfiguration.groupBuckets
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Header set on the first group message
+        displayName: Group First Key
+        path: queueConfiguration.groupFirstKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: If rebalance the message group
+        displayName: Group Rebalance
+        path: queueConfiguration.groupRebalance
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If pause message dispatch when rebalancing groups
+        displayName: Group Rebalance Pause Dispatch
+        path: queueConfiguration.groupRebalancePauseDispatch
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If ignore if the target queue already exists
+        displayName: Ignore If Exists
+        path: queueConfiguration.ignoreIfExists
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If it is a last value queue
+        displayName: Last Value
+        path: queueConfiguration.lastValue
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: The property used for last value queue to identify last values
+        displayName: Last Value Key
+        path: queueConfiguration.lastValueKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Max number of consumers allowed on this queue
+        displayName: Max Consumers
+        path: queueConfiguration.maxConsumers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: If force non-destructive consumers on the queue
+        displayName: Non Destructive
+        path: queueConfiguration.nonDestructive
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Whether to delete all messages when no consumers connected to
+          the queue
+        displayName: Purge On No Consumers
+        path: queueConfiguration.purgeOnNoConsumers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: The size the queue should maintain according to ring semantics
+        displayName: Ring Size
+        path: queueConfiguration.ringSize
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: The routing type of the queue
+        displayName: Routing Type
+        path: queueConfiguration.routingType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: If the queue is temporary
+        displayName: Temporary
+        path: queueConfiguration.temporary
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: The user associated with the queue
+        displayName: User
+        path: queueConfiguration.user
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The Queue Name
+        displayName: Queue Name
+        path: queueName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not delete the queue from broker when CR is undeployed(default
+          false)
+        displayName: Remove From Broker On Delete
+        path: removeFromBrokerOnDelete
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: The Routing Type
+        displayName: Routing Type
+        path: routingType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: User name for creating the queue or address
+        displayName: User
+        path: user
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
       statusDescriptors:
       - description: Current state of the resource Conditions represent the latest
           available observations of an object's state
@@ -1589,14 +1796,254 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:org.w3:link
       version: v1beta1
-    - description: ActiveMQArtemis is the Schema for the activemqartemises API
-      displayName: Active MQArtemis
+    - description: A stateful deployment of one or more brokers
+      displayName: ActiveMQ Artemis
       kind: ActiveMQArtemis
       name: activemqartemises.broker.amq.io
       resources:
       - kind: Secret
         name: ""
         version: v1
+      specDescriptors:
+      - description: Specifies the acceptor configuration
+        displayName: Acceptors
+        path: acceptors
+      - description: To indicate which kind of routing type to use.
+        displayName: Anycast Prefix
+        path: acceptors[0].anycastPrefix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Max number of connections allowed to make
+        displayName: Connections Allowed
+        path: acceptors[0].connectionsAllowed
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Comma separated list of cipher suites used for SSL communication.
+        displayName: Enabled Cipher Suites
+        path: acceptors[0].enabledCipherSuites
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Comma separated list of protocols used for SSL communication.
+        displayName: Enabled Protocols
+        path: acceptors[0].enabledProtocols
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to expose this acceptor
+        displayName: Expose
+        path: acceptors[0].expose
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: To indicate which kind of routing type to use
+        displayName: Multicast Prefix
+        path: acceptors[0].multicastPrefix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The acceptor name
+        displayName: Name
+        path: acceptors[0].name
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Tells a client connecting to this acceptor that 2-way SSL is
+          required. This property takes precedence over wantClientAuth.
+        displayName: Need Client Auth
+        path: acceptors[0].needClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Port number
+        displayName: Port
+        path: acceptors[0].port
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: The protocols to enable for this acceptor
+        displayName: Protocols
+        path: acceptors[0].protocols
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: A regular expression used to match the server_name extension
+          on incoming SSL connections. If the name doesn't match then the connection
+          to the acceptor will be rejected.
+        displayName: SNI Host
+        path: acceptors[0].sniHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to enable SSL on this port
+        displayName: SSL Enabled
+        path: acceptors[0].sslEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Used to change the SSL Provider between JDK and OPENSSL. The
+          default is JDK.
+        displayName: SSL Provider
+        path: acceptors[0].sslProvider
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Name of the secret to use for ssl information
+        displayName: SSL Secret
+        path: acceptors[0].sslSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The CN of the connecting client's SSL certificate will be compared
+          to its hostname to verify they match. This is useful only for 2-way SSL.
+        displayName: Verify Host
+        path: acceptors[0].verifyHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Tells a client connecting to this acceptor that 2-way SSL is
+          requested but not required. Overridden by needClientAuth.
+        displayName: Want Client Auth
+        path: acceptors[0].wantClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Password for standard broker user. It is required for connecting
+          to the broker and the web console. If left empty, it will be generated.
+        displayName: Admin Password
+        path: adminPassword
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
+      - description: User name for standard broker user. It is required for connecting
+          to the broker and the web console. If left empty, it will be generated.
+        displayName: Admin User
+        path: adminUser
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Specifies connectors and connector configuration
+        displayName: Connectors
+        path: connectors
+      - description: Comma separated list of cipher suites used for SSL communication.
+        displayName: Enabled Cipher Suites
+        path: connectors[0].enabledCipherSuites
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Comma separated list of protocols used for SSL communication.
+        displayName: Enabled Protocols
+        path: connectors[0].enabledProtocols
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to expose this connector
+        displayName: Expose
+        path: connectors[0].expose
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Hostname or IP to connect to
+        displayName: Host
+        path: connectors[0].host
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The name of the connector
+        displayName: Name
+        path: connectors[0].name
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Tells a client connecting to this connector that 2-way SSL is
+          required. This property takes precedence over wantClientAuth.
+        displayName: Need Client Auth
+        path: connectors[0].needClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Port number
+        displayName: Port
+        path: connectors[0].port
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: A regular expression used to match the server_name extension
+          on incoming SSL connections. If the name doesn't match then the connection
+          to the acceptor will be rejected.
+        displayName: SNI Host
+        path: connectors[0].sniHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to enable SSL on this port
+        displayName: SSL Enabled
+        path: connectors[0].sslEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Used to change the SSL Provider between JDK and OPENSSL. The
+          default is JDK.
+        displayName: SSL Provider
+        path: connectors[0].sslProvider
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Name of the secret to use for ssl information
+        displayName: SSL Secret
+        path: connectors[0].sslSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The type either tcp or vm
+        displayName: Type
+        path: connectors[0].type
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The CN of the connecting client's SSL certificate will be compared
+          to its hostname to verify they match. This is useful only for 2-way SSL.
+        displayName: Verify Host
+        path: connectors[0].verifyHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Tells a client connecting to this connector that 2-way SSL is
+          requested but not required. Overridden by needClientAuth.
+        displayName: Want Client Auth
+        path: connectors[0].wantClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Specifies the console configuration
+        displayName: Console Configurations
+        path: console
+      - description: Whether or not to expose this port
+        displayName: Expose
+        path: console.expose
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Whether or not to enable SSL on this port
+        displayName: SSL Enabled
+        path: console.sslEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Name of the secret to use for ssl information
+        displayName: SSL Secret
+        path: console.sslSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: If the embedded server requires client authentication
+        displayName: Use Client Auth
+        path: console.useClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Specifies the deployment plan
+        displayName: Deployment Plan
+        path: deploymentPlan
+      - description: The image used for the broker, all upgrades are disabled. Needs
+          a corresponding initImage
+        displayName: Image
+        path: deploymentPlan.image
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: If aio use ASYNCIO, if nio use NIO for journal IO
+        displayName: Journal Type
+        path: deploymentPlan.journalType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: If true migrate messages on scaledown
+        displayName: Message Migration
+        path: deploymentPlan.messageMigration
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If true use persistent volume via persistent volume claim for
+          journal storage
+        displayName: Persistence Enabled
+        path: deploymentPlan.persistenceEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If true require user password login credentials for broker protocol
+          ports
+        displayName: Require Login
+        path: deploymentPlan.requireLogin
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: The number of broker pods to deploy
+        displayName: Size
+        path: deploymentPlan.size
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podCount
       statusDescriptors:
       - description: Current state of the resource Conditions represent the latest
           available observations of an object's state
@@ -1605,14 +2052,276 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v2alpha1
-    - description: ActiveMQArtemis is the Schema for the activemqartemises API
-      displayName: Active MQArtemis
+    - description: A stateful deployment of one or more brokers
+      displayName: ActiveMQ Artemis
       kind: ActiveMQArtemis
       name: activemqartemises.broker.amq.io
       resources:
       - kind: Secret
         name: ""
         version: v1
+      specDescriptors:
+      - description: Specifies the acceptor configuration
+        displayName: Acceptors
+        path: acceptors
+      - description: To indicate which kind of routing type to use.
+        displayName: Anycast Prefix
+        path: acceptors[0].anycastPrefix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Max number of connections allowed to make
+        displayName: Connections Allowed
+        path: acceptors[0].connectionsAllowed
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Comma separated list of cipher suites used for SSL communication.
+        displayName: Enabled Cipher Suites
+        path: acceptors[0].enabledCipherSuites
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Comma separated list of protocols used for SSL communication.
+        displayName: Enabled Protocols
+        path: acceptors[0].enabledProtocols
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to expose this acceptor
+        displayName: Expose
+        path: acceptors[0].expose
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: To indicate which kind of routing type to use
+        displayName: Multicast Prefix
+        path: acceptors[0].multicastPrefix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The acceptor name
+        displayName: Name
+        path: acceptors[0].name
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Tells a client connecting to this acceptor that 2-way SSL is
+          required. This property takes precedence over wantClientAuth.
+        displayName: Need Client Auth
+        path: acceptors[0].needClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Port number
+        displayName: Port
+        path: acceptors[0].port
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: The protocols to enable for this acceptor
+        displayName: Protocols
+        path: acceptors[0].protocols
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: A regular expression used to match the server_name extension
+          on incoming SSL connections. If the name doesn't match then the connection
+          to the acceptor will be rejected.
+        displayName: SNI Host
+        path: acceptors[0].sniHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to enable SSL on this port
+        displayName: SSL Enabled
+        path: acceptors[0].sslEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Used to change the SSL Provider between JDK and OPENSSL. The
+          default is JDK.
+        displayName: SSL Provider
+        path: acceptors[0].sslProvider
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Name of the secret to use for ssl information
+        displayName: SSL Secret
+        path: acceptors[0].sslSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The CN of the connecting client's SSL certificate will be compared
+          to its hostname to verify they match. This is useful only for 2-way SSL.
+        displayName: Verify Host
+        path: acceptors[0].verifyHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Tells a client connecting to this acceptor that 2-way SSL is
+          requested but not required. Overridden by needClientAuth.
+        displayName: Want Client Auth
+        path: acceptors[0].wantClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Password for standard broker user. It is required for connecting
+          to the broker and the web console. If left empty, it will be generated.
+        displayName: Admin Password
+        path: adminPassword
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
+      - description: User name for standard broker user. It is required for connecting
+          to the broker and the web console. If left empty, it will be generated.
+        displayName: Admin User
+        path: adminUser
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Specifies connectors and connector configuration
+        displayName: Connectors
+        path: connectors
+      - description: Comma separated list of cipher suites used for SSL communication.
+        displayName: Enabled Cipher Suites
+        path: connectors[0].enabledCipherSuites
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Comma separated list of protocols used for SSL communication.
+        displayName: Enabled Protocols
+        path: connectors[0].enabledProtocols
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to expose this connector
+        displayName: Expose
+        path: connectors[0].expose
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Hostname or IP to connect to
+        displayName: Host
+        path: connectors[0].host
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The name of the connector
+        displayName: Name
+        path: connectors[0].name
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Tells a client connecting to this connector that 2-way SSL is
+          required. This property takes precedence over wantClientAuth.
+        displayName: Need Client Auth
+        path: connectors[0].needClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Port number
+        displayName: Port
+        path: connectors[0].port
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: A regular expression used to match the server_name extension
+          on incoming SSL connections. If the name doesn't match then the connection
+          to the acceptor will be rejected.
+        displayName: SNI Host
+        path: connectors[0].sniHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to enable SSL on this port
+        displayName: SSL Enabled
+        path: connectors[0].sslEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Used to change the SSL Provider between JDK and OPENSSL. The
+          default is JDK.
+        displayName: SSL Provider
+        path: connectors[0].sslProvider
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Name of the secret to use for ssl information
+        displayName: SSL Secret
+        path: connectors[0].sslSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The type either tcp or vm
+        displayName: Type
+        path: connectors[0].type
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The CN of the connecting client's SSL certificate will be compared
+          to its hostname to verify they match. This is useful only for 2-way SSL.
+        displayName: Verify Host
+        path: connectors[0].verifyHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Tells a client connecting to this connector that 2-way SSL is
+          requested but not required. Overridden by needClientAuth.
+        displayName: Want Client Auth
+        path: connectors[0].wantClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Specifies the console configuration
+        displayName: Console Configurations
+        path: console
+      - description: Whether or not to expose this port
+        displayName: Expose
+        path: console.expose
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Whether or not to enable SSL on this port
+        displayName: SSL Enabled
+        path: console.sslEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Name of the secret to use for ssl information
+        displayName: SSL Secret
+        path: console.sslSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: If the embedded server requires client authentication
+        displayName: Use Client Auth
+        path: console.useClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Specifies the deployment plan
+        displayName: Deployment Plan
+        path: deploymentPlan
+      - description: The image used for the broker, all upgrades are disabled. Needs
+          a corresponding initImage
+        displayName: Image
+        path: deploymentPlan.image
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: If aio use ASYNCIO, if nio use NIO for journal IO
+        displayName: Journal Type
+        path: deploymentPlan.journalType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: If true migrate messages on scaledown
+        displayName: Message Migration
+        path: deploymentPlan.messageMigration
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If true use persistent volume via persistent volume claim for
+          journal storage
+        displayName: Persistence Enabled
+        path: deploymentPlan.persistenceEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If true require user password login credentials for broker protocol
+          ports
+        displayName: Require Login
+        path: deploymentPlan.requireLogin
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: The number of broker pods to deploy
+        displayName: Size
+        path: deploymentPlan.size
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podCount
+      - description: Specifies the upgrades (deprecated in favour of Version)
+        displayName: Upgrades
+        path: upgrades
+      - description: Set true to enable automatic micro version product upgrades,
+          it is disabled by default.
+        displayName: Enable Upgrades
+        path: upgrades.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:ui:booleanSwitch
+      - description: Set true to enable automatic minor product version upgrades,
+          it is disabled by default. Requires spec.upgrades.enabled to be true.
+        displayName: Include minor version upgrades
+        path: upgrades.minor
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:fieldDependency:upgrades.enabled:true
+        - urn:alm:descriptor:com.tectonic.ui:ui:booleanSwitch
+      - description: The desired version of the broker. Can be x, or x.y or x.y.z
+          to configure upgrades
+        displayName: Version
+        path: version
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
       statusDescriptors:
       - description: Current state of the resource Conditions represent the latest
           available observations of an object's state
@@ -1621,14 +2330,652 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v2alpha2
-    - description: ActiveMQArtemis is the Schema for the activemqartemises API
-      displayName: Active MQArtemis
+    - description: A stateful deployment of one or more brokers
+      displayName: ActiveMQ Artemis
       kind: ActiveMQArtemis
       name: activemqartemises.broker.amq.io
       resources:
       - kind: Secret
         name: ""
         version: v1
+      specDescriptors:
+      - description: Specifies the acceptor configuration
+        displayName: Acceptors
+        path: acceptors
+      - description: AMQP Minimum Large Message Size
+        displayName: AMQP Min Large Message Size
+        path: acceptors[0].amqpMinLargeMessageSize
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: To indicate which kind of routing type to use.
+        displayName: Anycast Prefix
+        path: acceptors[0].anycastPrefix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Max number of connections allowed to make
+        displayName: Connections Allowed
+        path: acceptors[0].connectionsAllowed
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Comma separated list of cipher suites used for SSL communication.
+        displayName: Enabled Cipher Suites
+        path: acceptors[0].enabledCipherSuites
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Comma separated list of protocols used for SSL communication.
+        displayName: Enabled Protocols
+        path: acceptors[0].enabledProtocols
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to expose this acceptor
+        displayName: Expose
+        path: acceptors[0].expose
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: To indicate which kind of routing type to use
+        displayName: Multicast Prefix
+        path: acceptors[0].multicastPrefix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The acceptor name
+        displayName: Name
+        path: acceptors[0].name
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Tells a client connecting to this acceptor that 2-way SSL is
+          required. This property takes precedence over wantClientAuth.
+        displayName: Need Client Auth
+        path: acceptors[0].needClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Port number
+        displayName: Port
+        path: acceptors[0].port
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: The protocols to enable for this acceptor
+        displayName: Protocols
+        path: acceptors[0].protocols
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: A regular expression used to match the server_name extension
+          on incoming SSL connections. If the name doesn't match then the connection
+          to the acceptor will be rejected.
+        displayName: SNI Host
+        path: acceptors[0].sniHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to enable SSL on this port
+        displayName: SSL Enabled
+        path: acceptors[0].sslEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Used to change the SSL Provider between JDK and OPENSSL. The
+          default is JDK.
+        displayName: SSL Provider
+        path: acceptors[0].sslProvider
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Name of the secret to use for ssl information
+        displayName: SSL Secret
+        path: acceptors[0].sslSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The CN of the connecting client's SSL certificate will be compared
+          to its hostname to verify they match. This is useful only for 2-way SSL.
+        displayName: Verify Host
+        path: acceptors[0].verifyHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Tells a client connecting to this acceptor that 2-way SSL is
+          requested but not required. Overridden by needClientAuth.
+        displayName: Want Client Auth
+        path: acceptors[0].wantClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Specifies the address configurations (deprecated in favour of
+          BrokerProperties)
+        displayName: Address Configurations
+        path: addressSettings
+      - description: Specifies the address settings
+        displayName: Address Settings
+        path: addressSettings.addressSetting
+      - description: what happens when an address where maxSizeBytes is specified
+          becomes full
+        displayName: Address Full Policy
+        path: addressSettings.addressSetting[0].addressFullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: whether or not to automatically create addresses when a client
+          sends a message to or attempts to consume a message from a queue mapped
+          to an address that doesnt exist
+        displayName: Auto Create Addresses
+        path: addressSettings.addressSetting[0].autoCreateAddresses
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether or not to automatically create the dead-letter-address
+          and/or a corresponding queue on that address when a message found to be
+          undeliverable
+        displayName: AutoCreateDeadLetterResources
+        path: addressSettings.addressSetting[0].autoCreateDeadLetterResources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether or not to automatically create the expiry-address and/or
+          a corresponding queue on that address when a message is sent to a matching
+          queue
+        displayName: Auto Create Expiry Resources
+        path: addressSettings.addressSetting[0].autoCreateExpiryResources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: DEPRECATED. whether or not to automatically create JMS queues
+          when a producer sends or a consumer connects to a queue
+        displayName: Auto Create Jms Queues
+        path: addressSettings.addressSetting[0].autoCreateJmsQueues
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: DEPRECATED. whether or not to automatically create JMS topics
+          when a producer sends or a consumer subscribes to a topic
+        displayName: Auto Create Jms Topics
+        path: addressSettings.addressSetting[0].autoCreateJmsTopics
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether or not to automatically create a queue when a client
+          sends a message to or attempts to consume a message from a queue
+        displayName: Auto Create Queues
+        path: addressSettings.addressSetting[0].autoCreateQueues
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether or not to delete auto-created addresses when it no longer
+          has any queues
+        displayName: Auto Delete Addresses
+        path: addressSettings.addressSetting[0].autoDeleteAddresses
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: how long to wait (in milliseconds) before deleting auto-created
+          addresses after they no longer have any queues
+        displayName: Auto Delete Addresses Delay
+        path: addressSettings.addressSetting[0].autoDeleteAddressesDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: whether or not to delete created queues when the queue has 0
+          consumers and 0 messages
+        displayName: Auto Delete Created Queues
+        path: addressSettings.addressSetting[0].autoDeleteCreatedQueues
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: DEPRECATED. whether or not to delete auto-created JMS queues
+          when the queue has 0 consumers and 0 messages
+        displayName: Auto Delete Jms Queues
+        path: addressSettings.addressSetting[0].autoDeleteJmsQueues
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: DEPRECATED. whether or not to delete auto-created JMS topics
+          when the last subscription is closed
+        displayName: Auto Delete Jms Topics
+        path: addressSettings.addressSetting[0].autoDeleteJmsTopics
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether or not to delete auto-created queues when the queue has
+          0 consumers and 0 messages
+        displayName: Auto Delete Queues
+        path: addressSettings.addressSetting[0].autoDeleteQueues
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: how long to wait (in milliseconds) before deleting auto-created
+          queues after the queue has 0 consumers.
+        displayName: Auto Delete Queues Delay
+        path: addressSettings.addressSetting[0].autoDeleteQueuesDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: the message count the queue must be at or below before it can
+          be evaluated to be auto deleted, 0 waits until empty queue (default) and
+          -1 disables this check.
+        displayName: Auto Delete Queues Message Count
+        path: addressSettings.addressSetting[0].autoDeleteQueuesMessageCount
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: What to do when an address is no longer in broker.xml.  OFF =
+          will do nothing addresses will remain, FORCE = delete address and its queues
+          even if messages remaining.
+        displayName: Config Delete Addresses
+        path: addressSettings.addressSetting[0].configDeleteAddresses
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: What to do when a queue is no longer in broker.xml.  OFF = will
+          do nothing queues will remain, FORCE = delete queues even if messages remaining.
+        displayName: Config Delete Queues
+        path: addressSettings.addressSetting[0].configDeleteQueues
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the address to send dead messages to
+        displayName: Dead Letter Address
+        path: addressSettings.addressSetting[0].deadLetterAddress
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the prefix to use for auto-created dead letter queues
+        displayName: Dead Letter Queue Prefix
+        path: addressSettings.addressSetting[0].deadLetterQueuePrefix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the suffix to use for auto-created dead letter queues
+        displayName: Dead Letter Queue Suffix
+        path: addressSettings.addressSetting[0].deadLetterQueueSuffix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the routing-type used on auto-created addresses
+        displayName: Default Address Routing Type
+        path: addressSettings.addressSetting[0].defaultAddressRoutingType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the default window size for a consumer
+        displayName: Default Consumer Window Size
+        path: addressSettings.addressSetting[0].defaultConsumerWindowSize
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: the default number of consumers needed before dispatch can start
+          for queues under the address.
+        displayName: Default Consumers Before Dispatch
+        path: addressSettings.addressSetting[0].defaultConsumersBeforeDispatch
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: the default delay (in milliseconds) to wait before dispatching
+          if number of consumers before dispatch is not met for queues under the address.
+        displayName: Default Delay Before Dispatch
+        path: addressSettings.addressSetting[0].defaultDelayBeforeDispatch
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: whether to treat the queues under the address as exclusive queues
+          by default
+        displayName: Default Exclusive Queue
+        path: addressSettings.addressSetting[0].defaultExclusiveQueue
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: number of buckets to use for grouping, -1 (default) is unlimited
+          and uses the raw group, 0 disables message groups.
+        displayName: Default Group Buckets
+        path: addressSettings.addressSetting[0].defaultGroupBuckets
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: key used to mark a message is first in a group for a consumer
+        displayName: Default Group First Key
+        path: addressSettings.addressSetting[0].defaultGroupFirstKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: whether to rebalance groups when a consumer is added
+        displayName: Default Group Rebalance
+        path: addressSettings.addressSetting[0].defaultGroupRebalance
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether to pause dispatch when rebalancing groups
+        displayName: Default Group Rebalance Pause Dispatch
+        path: addressSettings.addressSetting[0].defaultGroupRebalancePauseDispatch
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: the property to use as the key for a last value queue by default
+        displayName: Default Last Value Key
+        path: addressSettings.addressSetting[0].defaultLastValueKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: whether to treat the queues under the address as a last value
+          queues by default
+        displayName: Default Last Value Queue
+        path: addressSettings.addressSetting[0].defaultLastValueQueue
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: the maximum number of consumers allowed on this queue at any
+          one time
+        displayName: Default Max Consumers
+        path: addressSettings.addressSetting[0].defaultMaxConsumers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: whether the queue should be non-destructive by default
+        displayName: Default Non Destructive
+        path: addressSettings.addressSetting[0].defaultNonDestructive
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: purge the contents of the queue once there are no consumers
+        displayName: Default Purge On No Consumers
+        path: addressSettings.addressSetting[0].defaultPurgeOnNoConsumers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: the routing-type used on auto-created queues
+        displayName: Default Queue Routing Type
+        path: addressSettings.addressSetting[0].defaultQueueRoutingType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the default ring-size value for any matching queue which doesnt
+          have ring-size explicitly defined
+        displayName: Default Ring Size
+        path: addressSettings.addressSetting[0].defaultRingSize
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: whether or not to enable metrics for metrics plugins on the matching
+          address
+        displayName: Enable Metrics
+        path: addressSettings.addressSetting[0].enableMetrics
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: the address to send expired messages to
+        displayName: Expiry Address
+        path: addressSettings.addressSetting[0].expiryAddress
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Overrides the expiration time for messages using the default
+          value for expiration time. "-1" disables this setting.
+        displayName: Expiry Delay
+        path: addressSettings.addressSetting[0].expiryDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: the prefix to use for auto-created expiry queues
+        displayName: Expiry Queue Prefix
+        path: addressSettings.addressSetting[0].expiryQueuePrefix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the suffix to use for auto-created expiry queues
+        displayName: Expiry Queue Suffix
+        path: addressSettings.addressSetting[0].expiryQueueSuffix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: This is deprecated please use default-last-value-queue instead.
+        displayName: Last Value Queue
+        path: addressSettings.addressSetting[0].lastValueQueue
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: how many message a management resource can browse
+        displayName: Management Browse Page Size
+        path: addressSettings.addressSetting[0].managementBrowsePageSize
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: pattern for matching settings against addresses; can use wildards
+        displayName: Match
+        path: addressSettings.addressSetting[0].match
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: how many times to attempt to deliver a message before sending
+          to dead letter address
+        displayName: Max Delivery Attempts
+        path: addressSettings.addressSetting[0].maxDeliveryAttempts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Overrides the expiration time for messages using a higher value.
+          "-1" disables this setting.
+        displayName: Max Expiry Delay
+        path: addressSettings.addressSetting[0].maxExpiryDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Maximum value for the redelivery-delay
+        displayName: Max Redelivery Delay
+        path: addressSettings.addressSetting[0].maxRedeliveryDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: the maximum size in bytes for an address. -1 means no limits.
+          This is used in PAGING, BLOCK and FAIL policies. Supports byte notation
+          like K, Mb, GB, etc.
+        displayName: Max Size Bytes
+        path: addressSettings.addressSetting[0].maxSizeBytes
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: used with the address full BLOCK policy, the maximum size in
+          bytes an address can reach before messages start getting rejected. Works
+          in combination with max-size-bytes for AMQP protocol only.  Default = -1
+          (no limit).
+        displayName: Max Size Bytes Reject Threshold
+        path: addressSettings.addressSetting[0].maxSizeBytesRejectThreshold
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: how many days to keep message counter history for this address
+        displayName: Message Counter History Day Limit
+        path: addressSettings.addressSetting[0].messageCounterHistoryDayLimit
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Overrides the expiration time for messages using a lower value.
+          "-1" disables this setting.
+        displayName: Min Expiry Delay
+        path: addressSettings.addressSetting[0].minExpiryDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Number of paging files to cache in memory to avoid IO during
+          paging navigation
+        displayName: Page Max Cache Size
+        path: addressSettings.addressSetting[0].pageMaxCacheSize
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: The page size in bytes to use for an address. Supports byte notation
+          like K, Mb, GB, etc.
+        displayName: Page Size Bytes
+        path: addressSettings.addressSetting[0].pageSizeBytes
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the time (in ms) to wait before redelivering a cancelled message.
+        displayName: Redelivery Delay
+        path: addressSettings.addressSetting[0].redeliveryDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: how long (in ms) to wait after the last consumer is closed on
+          a queue before redistributing messages.
+        displayName: Redistribution Delay
+        path: addressSettings.addressSetting[0].redistributionDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: the number of messages to preserve for future queues created
+          on the matching address
+        displayName: Retroactive Message Count
+        path: addressSettings.addressSetting[0].retroactiveMessageCount
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: if there are no queues matching this address, whether to forward
+          message to DLA (if it exists for this address)
+        displayName: Send To DLA On No Route
+        path: addressSettings.addressSetting[0].sendToDlaOnNoRoute
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: How often to check for slow consumers on a particular queue.
+          Measured in seconds.
+        displayName: Slow Consumer Check Period
+        path: addressSettings.addressSetting[0].slowConsumerCheckPeriod
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: what happens when a slow consumer is identified
+        displayName: Slow Consumer Policy
+        path: addressSettings.addressSetting[0].slowConsumerPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The minimum rate of message consumption allowed before a consumer
+          is considered "slow." Measured in messages-per-second.
+        displayName: Slow Consumer Threshold
+        path: addressSettings.addressSetting[0].slowConsumerThreshold
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: How to merge the address settings to broker configuration
+        displayName: Apply Rule
+        path: addressSettings.applyRule
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Password for standard broker user. It is required for connecting
+          to the broker and the web console. If left empty, it will be generated.
+        displayName: Admin Password
+        path: adminPassword
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
+      - description: User name for standard broker user. It is required for connecting
+          to the broker and the web console. If left empty, it will be generated.
+        displayName: Admin User
+        path: adminUser
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Specifies connectors and connector configuration
+        displayName: Connectors
+        path: connectors
+      - description: Comma separated list of cipher suites used for SSL communication.
+        displayName: Enabled Cipher Suites
+        path: connectors[0].enabledCipherSuites
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Comma separated list of protocols used for SSL communication.
+        displayName: Enabled Protocols
+        path: connectors[0].enabledProtocols
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to expose this connector
+        displayName: Expose
+        path: connectors[0].expose
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Hostname or IP to connect to
+        displayName: Host
+        path: connectors[0].host
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The name of the connector
+        displayName: Name
+        path: connectors[0].name
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Tells a client connecting to this connector that 2-way SSL is
+          required. This property takes precedence over wantClientAuth.
+        displayName: Need Client Auth
+        path: connectors[0].needClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Port number
+        displayName: Port
+        path: connectors[0].port
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: A regular expression used to match the server_name extension
+          on incoming SSL connections. If the name doesn't match then the connection
+          to the acceptor will be rejected.
+        displayName: SNI Host
+        path: connectors[0].sniHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to enable SSL on this port
+        displayName: SSL Enabled
+        path: connectors[0].sslEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Used to change the SSL Provider between JDK and OPENSSL. The
+          default is JDK.
+        displayName: SSL Provider
+        path: connectors[0].sslProvider
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Name of the secret to use for ssl information
+        displayName: SSL Secret
+        path: connectors[0].sslSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The type either tcp or vm
+        displayName: Type
+        path: connectors[0].type
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The CN of the connecting client's SSL certificate will be compared
+          to its hostname to verify they match. This is useful only for 2-way SSL.
+        displayName: Verify Host
+        path: connectors[0].verifyHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Tells a client connecting to this connector that 2-way SSL is
+          requested but not required. Overridden by needClientAuth.
+        displayName: Want Client Auth
+        path: connectors[0].wantClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Specifies the console configuration
+        displayName: Console Configurations
+        path: console
+      - description: Whether or not to expose this port
+        displayName: Expose
+        path: console.expose
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Whether or not to enable SSL on this port
+        displayName: SSL Enabled
+        path: console.sslEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Name of the secret to use for ssl information
+        displayName: SSL Secret
+        path: console.sslSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: If the embedded server requires client authentication
+        displayName: Use Client Auth
+        path: console.useClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Specifies the deployment plan
+        displayName: Deployment Plan
+        path: deploymentPlan
+      - description: The image used for the broker, all upgrades are disabled. Needs
+          a corresponding initImage
+        displayName: Image
+        path: deploymentPlan.image
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: If aio use ASYNCIO, if nio use NIO for journal IO
+        displayName: Journal Type
+        path: deploymentPlan.journalType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: If true migrate messages on scaledown
+        displayName: Message Migration
+        path: deploymentPlan.messageMigration
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If true use persistent volume via persistent volume claim for
+          journal storage
+        displayName: Persistence Enabled
+        path: deploymentPlan.persistenceEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If true require user password login credentials for broker protocol
+          ports
+        displayName: Require Login
+        path: deploymentPlan.requireLogin
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Specifies the minimum/maximum amount of compute resources required/allowed
+        displayName: Resource Requirements
+        path: deploymentPlan.resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: The number of broker pods to deploy
+        displayName: Size
+        path: deploymentPlan.size
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podCount
+      - description: Specifies the storage configurations
+        displayName: Storage Configurations
+        path: deploymentPlan.storage
+      - description: The storage size
+        displayName: Size
+        path: deploymentPlan.storage.size
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Specifies the upgrades (deprecated in favour of Version)
+        displayName: Upgrades
+        path: upgrades
+      - description: Set true to enable automatic micro version product upgrades,
+          it is disabled by default.
+        displayName: Enable Upgrades
+        path: upgrades.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:ui:booleanSwitch
+      - description: Set true to enable automatic minor product version upgrades,
+          it is disabled by default. Requires spec.upgrades.enabled to be true.
+        displayName: Include minor version upgrades
+        path: upgrades.minor
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:fieldDependency:upgrades.enabled:true
+        - urn:alm:descriptor:com.tectonic.ui:ui:booleanSwitch
+      - description: The desired version of the broker. Can be x, or x.y or x.y.z
+          to configure upgrades
+        displayName: Version
+        path: version
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
       statusDescriptors:
       - description: Current state of the resource Conditions represent the latest
           available observations of an object's state
@@ -1636,15 +2983,674 @@ spec:
         path: conditions
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
+      - description: The current pods
+        displayName: Pods Status
+        path: podStatus
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podStatuses
       version: v2alpha3
-    - description: ActiveMQArtemis is the Schema for the activemqartemises API
-      displayName: Active MQArtemis
+    - description: A stateful deployment of one or more brokers
+      displayName: ActiveMQ Artemis
       kind: ActiveMQArtemis
       name: activemqartemises.broker.amq.io
       resources:
       - kind: Secret
         name: ""
         version: v1
+      specDescriptors:
+      - description: Specifies the acceptor configuration
+        displayName: Acceptors
+        path: acceptors
+      - description: AMQP Minimum Large Message Size
+        displayName: AMQP Min Large Message Size
+        path: acceptors[0].amqpMinLargeMessageSize
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: To indicate which kind of routing type to use.
+        displayName: Anycast Prefix
+        path: acceptors[0].anycastPrefix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Max number of connections allowed to make
+        displayName: Connections Allowed
+        path: acceptors[0].connectionsAllowed
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Comma separated list of cipher suites used for SSL communication.
+        displayName: Enabled Cipher Suites
+        path: acceptors[0].enabledCipherSuites
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Comma separated list of protocols used for SSL communication.
+        displayName: Enabled Protocols
+        path: acceptors[0].enabledProtocols
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to expose this acceptor
+        displayName: Expose
+        path: acceptors[0].expose
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: To indicate which kind of routing type to use
+        displayName: Multicast Prefix
+        path: acceptors[0].multicastPrefix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The acceptor name
+        displayName: Name
+        path: acceptors[0].name
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Tells a client connecting to this acceptor that 2-way SSL is
+          required. This property takes precedence over wantClientAuth.
+        displayName: Need Client Auth
+        path: acceptors[0].needClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Port number
+        displayName: Port
+        path: acceptors[0].port
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: The protocols to enable for this acceptor
+        displayName: Protocols
+        path: acceptors[0].protocols
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: A regular expression used to match the server_name extension
+          on incoming SSL connections. If the name doesn't match then the connection
+          to the acceptor will be rejected.
+        displayName: SNI Host
+        path: acceptors[0].sniHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to enable SSL on this port
+        displayName: SSL Enabled
+        path: acceptors[0].sslEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Used to change the SSL Provider between JDK and OPENSSL. The
+          default is JDK.
+        displayName: SSL Provider
+        path: acceptors[0].sslProvider
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Name of the secret to use for ssl information
+        displayName: SSL Secret
+        path: acceptors[0].sslSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The CN of the connecting client's SSL certificate will be compared
+          to its hostname to verify they match. This is useful only for 2-way SSL.
+        displayName: Verify Host
+        path: acceptors[0].verifyHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Tells a client connecting to this acceptor that 2-way SSL is
+          requested but not required. Overridden by needClientAuth.
+        displayName: Want Client Auth
+        path: acceptors[0].wantClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Specifies the address configurations (deprecated in favour of
+          BrokerProperties)
+        displayName: Address Configurations
+        path: addressSettings
+      - description: Specifies the address settings
+        displayName: Address Settings
+        path: addressSettings.addressSetting
+      - description: what happens when an address where maxSizeBytes is specified
+          becomes full
+        displayName: Address Full Policy
+        path: addressSettings.addressSetting[0].addressFullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: whether or not to automatically create addresses when a client
+          sends a message to or attempts to consume a message from a queue mapped
+          to an address that doesnt exist
+        displayName: Auto Create Addresses
+        path: addressSettings.addressSetting[0].autoCreateAddresses
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether or not to automatically create the dead-letter-address
+          and/or a corresponding queue on that address when a message found to be
+          undeliverable
+        displayName: AutoCreateDeadLetterResources
+        path: addressSettings.addressSetting[0].autoCreateDeadLetterResources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether or not to automatically create the expiry-address and/or
+          a corresponding queue on that address when a message is sent to a matching
+          queue
+        displayName: Auto Create Expiry Resources
+        path: addressSettings.addressSetting[0].autoCreateExpiryResources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: DEPRECATED. whether or not to automatically create JMS queues
+          when a producer sends or a consumer connects to a queue
+        displayName: Auto Create Jms Queues
+        path: addressSettings.addressSetting[0].autoCreateJmsQueues
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: DEPRECATED. whether or not to automatically create JMS topics
+          when a producer sends or a consumer subscribes to a topic
+        displayName: Auto Create Jms Topics
+        path: addressSettings.addressSetting[0].autoCreateJmsTopics
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether or not to automatically create a queue when a client
+          sends a message to or attempts to consume a message from a queue
+        displayName: Auto Create Queues
+        path: addressSettings.addressSetting[0].autoCreateQueues
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether or not to delete auto-created addresses when it no longer
+          has any queues
+        displayName: Auto Delete Addresses
+        path: addressSettings.addressSetting[0].autoDeleteAddresses
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: how long to wait (in milliseconds) before deleting auto-created
+          addresses after they no longer have any queues
+        displayName: Auto Delete Addresses Delay
+        path: addressSettings.addressSetting[0].autoDeleteAddressesDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: whether or not to delete created queues when the queue has 0
+          consumers and 0 messages
+        displayName: Auto Delete Created Queues
+        path: addressSettings.addressSetting[0].autoDeleteCreatedQueues
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: DEPRECATED. whether or not to delete auto-created JMS queues
+          when the queue has 0 consumers and 0 messages
+        displayName: Auto Delete Jms Queues
+        path: addressSettings.addressSetting[0].autoDeleteJmsQueues
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: DEPRECATED. whether or not to delete auto-created JMS topics
+          when the last subscription is closed
+        displayName: Auto Delete Jms Topics
+        path: addressSettings.addressSetting[0].autoDeleteJmsTopics
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether or not to delete auto-created queues when the queue has
+          0 consumers and 0 messages
+        displayName: Auto Delete Queues
+        path: addressSettings.addressSetting[0].autoDeleteQueues
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: how long to wait (in milliseconds) before deleting auto-created
+          queues after the queue has 0 consumers.
+        displayName: Auto Delete Queues Delay
+        path: addressSettings.addressSetting[0].autoDeleteQueuesDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: the message count the queue must be at or below before it can
+          be evaluated to be auto deleted, 0 waits until empty queue (default) and
+          -1 disables this check.
+        displayName: Auto Delete Queues Message Count
+        path: addressSettings.addressSetting[0].autoDeleteQueuesMessageCount
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: What to do when an address is no longer in broker.xml.  OFF =
+          will do nothing addresses will remain, FORCE = delete address and its queues
+          even if messages remaining.
+        displayName: Config Delete Addresses
+        path: addressSettings.addressSetting[0].configDeleteAddresses
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: What to do when a queue is no longer in broker.xml.  OFF = will
+          do nothing queues will remain, FORCE = delete queues even if messages remaining.
+        displayName: Config Delete Queues
+        path: addressSettings.addressSetting[0].configDeleteQueues
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the address to send dead messages to
+        displayName: Dead Letter Address
+        path: addressSettings.addressSetting[0].deadLetterAddress
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the prefix to use for auto-created dead letter queues
+        displayName: Dead Letter Queue Prefix
+        path: addressSettings.addressSetting[0].deadLetterQueuePrefix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the suffix to use for auto-created dead letter queues
+        displayName: Dead Letter Queue Suffix
+        path: addressSettings.addressSetting[0].deadLetterQueueSuffix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the routing-type used on auto-created addresses
+        displayName: Default Address Routing Type
+        path: addressSettings.addressSetting[0].defaultAddressRoutingType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the default window size for a consumer
+        displayName: Default Consumer Window Size
+        path: addressSettings.addressSetting[0].defaultConsumerWindowSize
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: the default number of consumers needed before dispatch can start
+          for queues under the address.
+        displayName: Default Consumers Before Dispatch
+        path: addressSettings.addressSetting[0].defaultConsumersBeforeDispatch
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: the default delay (in milliseconds) to wait before dispatching
+          if number of consumers before dispatch is not met for queues under the address.
+        displayName: Default Delay Before Dispatch
+        path: addressSettings.addressSetting[0].defaultDelayBeforeDispatch
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: whether to treat the queues under the address as exclusive queues
+          by default
+        displayName: Default Exclusive Queue
+        path: addressSettings.addressSetting[0].defaultExclusiveQueue
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: number of buckets to use for grouping, -1 (default) is unlimited
+          and uses the raw group, 0 disables message groups.
+        displayName: Default Group Buckets
+        path: addressSettings.addressSetting[0].defaultGroupBuckets
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: key used to mark a message is first in a group for a consumer
+        displayName: Default Group First Key
+        path: addressSettings.addressSetting[0].defaultGroupFirstKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: whether to rebalance groups when a consumer is added
+        displayName: Default Group Rebalance
+        path: addressSettings.addressSetting[0].defaultGroupRebalance
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether to pause dispatch when rebalancing groups
+        displayName: Default Group Rebalance Pause Dispatch
+        path: addressSettings.addressSetting[0].defaultGroupRebalancePauseDispatch
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: the property to use as the key for a last value queue by default
+        displayName: Default Last Value Key
+        path: addressSettings.addressSetting[0].defaultLastValueKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: whether to treat the queues under the address as a last value
+          queues by default
+        displayName: Default Last Value Queue
+        path: addressSettings.addressSetting[0].defaultLastValueQueue
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: the maximum number of consumers allowed on this queue at any
+          one time
+        displayName: Default Max Consumers
+        path: addressSettings.addressSetting[0].defaultMaxConsumers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: whether the queue should be non-destructive by default
+        displayName: Default Non Destructive
+        path: addressSettings.addressSetting[0].defaultNonDestructive
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: purge the contents of the queue once there are no consumers
+        displayName: Default Purge On No Consumers
+        path: addressSettings.addressSetting[0].defaultPurgeOnNoConsumers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: the routing-type used on auto-created queues
+        displayName: Default Queue Routing Type
+        path: addressSettings.addressSetting[0].defaultQueueRoutingType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the default ring-size value for any matching queue which doesnt
+          have ring-size explicitly defined
+        displayName: Default Ring Size
+        path: addressSettings.addressSetting[0].defaultRingSize
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: whether or not to enable metrics for metrics plugins on the matching
+          address
+        displayName: Enable Metrics
+        path: addressSettings.addressSetting[0].enableMetrics
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: the address to send expired messages to
+        displayName: Expiry Address
+        path: addressSettings.addressSetting[0].expiryAddress
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Overrides the expiration time for messages using the default
+          value for expiration time. "-1" disables this setting.
+        displayName: Expiry Delay
+        path: addressSettings.addressSetting[0].expiryDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: the prefix to use for auto-created expiry queues
+        displayName: Expiry Queue Prefix
+        path: addressSettings.addressSetting[0].expiryQueuePrefix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the suffix to use for auto-created expiry queues
+        displayName: Expiry Queue Suffix
+        path: addressSettings.addressSetting[0].expiryQueueSuffix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: This is deprecated please use default-last-value-queue instead.
+        displayName: Last Value Queue
+        path: addressSettings.addressSetting[0].lastValueQueue
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: how many message a management resource can browse
+        displayName: Management Browse Page Size
+        path: addressSettings.addressSetting[0].managementBrowsePageSize
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: pattern for matching settings against addresses; can use wildards
+        displayName: Match
+        path: addressSettings.addressSetting[0].match
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: how many times to attempt to deliver a message before sending
+          to dead letter address
+        displayName: Max Delivery Attempts
+        path: addressSettings.addressSetting[0].maxDeliveryAttempts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Overrides the expiration time for messages using a higher value.
+          "-1" disables this setting.
+        displayName: Max Expiry Delay
+        path: addressSettings.addressSetting[0].maxExpiryDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Maximum value for the redelivery-delay
+        displayName: Max Redelivery Delay
+        path: addressSettings.addressSetting[0].maxRedeliveryDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: the maximum size in bytes for an address. -1 means no limits.
+          This is used in PAGING, BLOCK and FAIL policies. Supports byte notation
+          like K, Mb, GB, etc.
+        displayName: Max Size Bytes
+        path: addressSettings.addressSetting[0].maxSizeBytes
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: used with the address full BLOCK policy, the maximum size in
+          bytes an address can reach before messages start getting rejected. Works
+          in combination with max-size-bytes for AMQP protocol only.  Default = -1
+          (no limit).
+        displayName: Max Size Bytes Reject Threshold
+        path: addressSettings.addressSetting[0].maxSizeBytesRejectThreshold
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: how many days to keep message counter history for this address
+        displayName: Message Counter History Day Limit
+        path: addressSettings.addressSetting[0].messageCounterHistoryDayLimit
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Overrides the expiration time for messages using a lower value.
+          "-1" disables this setting.
+        displayName: Min Expiry Delay
+        path: addressSettings.addressSetting[0].minExpiryDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Number of paging files to cache in memory to avoid IO during
+          paging navigation
+        displayName: Page Max Cache Size
+        path: addressSettings.addressSetting[0].pageMaxCacheSize
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: The page size in bytes to use for an address. Supports byte notation
+          like K, Mb, GB, etc.
+        displayName: Page Size Bytes
+        path: addressSettings.addressSetting[0].pageSizeBytes
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the time (in ms) to wait before redelivering a cancelled message.
+        displayName: Redelivery Delay
+        path: addressSettings.addressSetting[0].redeliveryDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: how long (in ms) to wait after the last consumer is closed on
+          a queue before redistributing messages.
+        displayName: Redistribution Delay
+        path: addressSettings.addressSetting[0].redistributionDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: the number of messages to preserve for future queues created
+          on the matching address
+        displayName: Retroactive Message Count
+        path: addressSettings.addressSetting[0].retroactiveMessageCount
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: if there are no queues matching this address, whether to forward
+          message to DLA (if it exists for this address)
+        displayName: Send To DLA On No Route
+        path: addressSettings.addressSetting[0].sendToDlaOnNoRoute
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: How often to check for slow consumers on a particular queue.
+          Measured in seconds.
+        displayName: Slow Consumer Check Period
+        path: addressSettings.addressSetting[0].slowConsumerCheckPeriod
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: what happens when a slow consumer is identified
+        displayName: Slow Consumer Policy
+        path: addressSettings.addressSetting[0].slowConsumerPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The minimum rate of message consumption allowed before a consumer
+          is considered "slow." Measured in messages-per-second.
+        displayName: Slow Consumer Threshold
+        path: addressSettings.addressSetting[0].slowConsumerThreshold
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: How to merge the address settings to broker configuration
+        displayName: Apply Rule
+        path: addressSettings.applyRule
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Password for standard broker user. It is required for connecting
+          to the broker and the web console. If left empty, it will be generated.
+        displayName: Admin Password
+        path: adminPassword
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
+      - description: User name for standard broker user. It is required for connecting
+          to the broker and the web console. If left empty, it will be generated.
+        displayName: Admin User
+        path: adminUser
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Specifies connectors and connector configuration
+        displayName: Connectors
+        path: connectors
+      - description: Comma separated list of cipher suites used for SSL communication.
+        displayName: Enabled Cipher Suites
+        path: connectors[0].enabledCipherSuites
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Comma separated list of protocols used for SSL communication.
+        displayName: Enabled Protocols
+        path: connectors[0].enabledProtocols
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to expose this connector
+        displayName: Expose
+        path: connectors[0].expose
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Hostname or IP to connect to
+        displayName: Host
+        path: connectors[0].host
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The name of the connector
+        displayName: Name
+        path: connectors[0].name
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Tells a client connecting to this connector that 2-way SSL is
+          required. This property takes precedence over wantClientAuth.
+        displayName: Need Client Auth
+        path: connectors[0].needClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Port number
+        displayName: Port
+        path: connectors[0].port
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: A regular expression used to match the server_name extension
+          on incoming SSL connections. If the name doesn't match then the connection
+          to the acceptor will be rejected.
+        displayName: SNI Host
+        path: connectors[0].sniHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to enable SSL on this port
+        displayName: SSL Enabled
+        path: connectors[0].sslEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Used to change the SSL Provider between JDK and OPENSSL. The
+          default is JDK.
+        displayName: SSL Provider
+        path: connectors[0].sslProvider
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Name of the secret to use for ssl information
+        displayName: SSL Secret
+        path: connectors[0].sslSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The type either tcp or vm
+        displayName: Type
+        path: connectors[0].type
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The CN of the connecting client's SSL certificate will be compared
+          to its hostname to verify they match. This is useful only for 2-way SSL.
+        displayName: Verify Host
+        path: connectors[0].verifyHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Tells a client connecting to this connector that 2-way SSL is
+          requested but not required. Overridden by needClientAuth.
+        displayName: Want Client Auth
+        path: connectors[0].wantClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Specifies the console configuration
+        displayName: Console Configurations
+        path: console
+      - description: Whether or not to expose this port
+        displayName: Expose
+        path: console.expose
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Whether or not to enable SSL on this port
+        displayName: SSL Enabled
+        path: console.sslEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Name of the secret to use for ssl information
+        displayName: SSL Secret
+        path: console.sslSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: If the embedded server requires client authentication
+        displayName: Use Client Auth
+        path: console.useClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Specifies the deployment plan
+        displayName: Deployment Plan
+        path: deploymentPlan
+      - description: The image used for the broker, all upgrades are disabled. Needs
+          a corresponding initImage
+        displayName: Image
+        path: deploymentPlan.image
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The init container image used to configure broker, all upgrades
+          are disabled. Needs a corresponding image
+        displayName: Init Image
+        path: deploymentPlan.initImage
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: If true enable the Jolokia JVM Agent
+        displayName: Jolokia Agent Enabled
+        path: deploymentPlan.jolokiaAgentEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If aio use ASYNCIO, if nio use NIO for journal IO
+        displayName: Journal Type
+        path: deploymentPlan.journalType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: If true enable the management role based access control
+        displayName: Management RBAC Enabled
+        path: deploymentPlan.managementRBACEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If true migrate messages on scaledown
+        displayName: Message Migration
+        path: deploymentPlan.messageMigration
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If true use persistent volume via persistent volume claim for
+          journal storage
+        displayName: Persistence Enabled
+        path: deploymentPlan.persistenceEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If true require user password login credentials for broker protocol
+          ports
+        displayName: Require Login
+        path: deploymentPlan.requireLogin
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Specifies the minimum/maximum amount of compute resources required/allowed
+        displayName: Resource Requirements
+        path: deploymentPlan.resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: The number of broker pods to deploy
+        displayName: Size
+        path: deploymentPlan.size
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podCount
+      - description: Specifies the storage configurations
+        displayName: Storage Configurations
+        path: deploymentPlan.storage
+      - description: The storage size
+        displayName: Size
+        path: deploymentPlan.storage.size
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Specifies the upgrades (deprecated in favour of Version)
+        displayName: Upgrades
+        path: upgrades
+      - description: Set true to enable automatic micro version product upgrades,
+          it is disabled by default.
+        displayName: Enable Upgrades
+        path: upgrades.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:ui:booleanSwitch
+      - description: Set true to enable automatic minor product version upgrades,
+          it is disabled by default. Requires spec.upgrades.enabled to be true.
+        displayName: Include minor version upgrades
+        path: upgrades.minor
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:fieldDependency:upgrades.enabled:true
+        - urn:alm:descriptor:com.tectonic.ui:ui:booleanSwitch
+      - description: The desired version of the broker. Can be x, or x.y or x.y.z
+          to configure upgrades
+        displayName: Version
+        path: version
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
       statusDescriptors:
       - description: Current state of the resource Conditions represent the latest
           available observations of an object's state
@@ -1652,15 +3658,741 @@ spec:
         path: conditions
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
+      - description: The current pods
+        displayName: Pods Status
+        path: podStatus
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podStatuses
       version: v2alpha4
-    - description: ActiveMQArtemis is the Schema for the activemqartemises API
-      displayName: Active MQArtemis
+    - description: A stateful deployment of one or more brokers
+      displayName: ActiveMQ Artemis
       kind: ActiveMQArtemis
       name: activemqartemises.broker.amq.io
       resources:
       - kind: Secret
         name: ""
         version: v1
+      specDescriptors:
+      - description: Specifies the acceptor configuration
+        displayName: Acceptors
+        path: acceptors
+      - description: AMQP Minimum Large Message Size
+        displayName: AMQP Min Large Message Size
+        path: acceptors[0].amqpMinLargeMessageSize
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: To indicate which kind of routing type to use.
+        displayName: Anycast Prefix
+        path: acceptors[0].anycastPrefix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Max number of connections allowed to make
+        displayName: Connections Allowed
+        path: acceptors[0].connectionsAllowed
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Comma separated list of cipher suites used for SSL communication.
+        displayName: Enabled Cipher Suites
+        path: acceptors[0].enabledCipherSuites
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Comma separated list of protocols used for SSL communication.
+        displayName: Enabled Protocols
+        path: acceptors[0].enabledProtocols
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to expose this acceptor
+        displayName: Expose
+        path: acceptors[0].expose
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: To indicate which kind of routing type to use
+        displayName: Multicast Prefix
+        path: acceptors[0].multicastPrefix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The acceptor name
+        displayName: Name
+        path: acceptors[0].name
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Tells a client connecting to this acceptor that 2-way SSL is
+          required. This property takes precedence over wantClientAuth.
+        displayName: Need Client Auth
+        path: acceptors[0].needClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Port number
+        displayName: Port
+        path: acceptors[0].port
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: The protocols to enable for this acceptor
+        displayName: Protocols
+        path: acceptors[0].protocols
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: A regular expression used to match the server_name extension
+          on incoming SSL connections. If the name doesn't match then the connection
+          to the acceptor will be rejected.
+        displayName: SNI Host
+        path: acceptors[0].sniHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to enable SSL on this port
+        displayName: SSL Enabled
+        path: acceptors[0].sslEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Used to change the SSL Provider between JDK and OPENSSL. The
+          default is JDK.
+        displayName: SSL Provider
+        path: acceptors[0].sslProvider
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Name of the secret to use for ssl information
+        displayName: SSL Secret
+        path: acceptors[0].sslSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: For openwire protocol if advisory topics are enabled, default
+          false
+        displayName: Support Advisory
+        path: acceptors[0].supportAdvisory
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If prevents advisory addresses/queues to be registered to management
+          service, default false
+        displayName: Suppress Internal Management Objects
+        path: acceptors[0].suppressInternalManagementObjects
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: The CN of the connecting client's SSL certificate will be compared
+          to its hostname to verify they match. This is useful only for 2-way SSL.
+        displayName: Verify Host
+        path: acceptors[0].verifyHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Tells a client connecting to this acceptor that 2-way SSL is
+          requested but not required. Overridden by needClientAuth.
+        displayName: Want Client Auth
+        path: acceptors[0].wantClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Specifies the address configurations (deprecated in favour of
+          BrokerProperties)
+        displayName: Address Configurations
+        path: addressSettings
+      - description: Specifies the address settings
+        displayName: Address Settings
+        path: addressSettings.addressSetting
+      - description: what happens when an address where maxSizeBytes is specified
+          becomes full
+        displayName: Address Full Policy
+        path: addressSettings.addressSetting[0].addressFullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: whether or not to automatically create addresses when a client
+          sends a message to or attempts to consume a message from a queue mapped
+          to an address that doesnt exist
+        displayName: Auto Create Addresses
+        path: addressSettings.addressSetting[0].autoCreateAddresses
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether or not to automatically create the dead-letter-address
+          and/or a corresponding queue on that address when a message found to be
+          undeliverable
+        displayName: AutoCreateDeadLetterResources
+        path: addressSettings.addressSetting[0].autoCreateDeadLetterResources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether or not to automatically create the expiry-address and/or
+          a corresponding queue on that address when a message is sent to a matching
+          queue
+        displayName: Auto Create Expiry Resources
+        path: addressSettings.addressSetting[0].autoCreateExpiryResources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: DEPRECATED. whether or not to automatically create JMS queues
+          when a producer sends or a consumer connects to a queue
+        displayName: Auto Create Jms Queues
+        path: addressSettings.addressSetting[0].autoCreateJmsQueues
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: DEPRECATED. whether or not to automatically create JMS topics
+          when a producer sends or a consumer subscribes to a topic
+        displayName: Auto Create Jms Topics
+        path: addressSettings.addressSetting[0].autoCreateJmsTopics
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether or not to automatically create a queue when a client
+          sends a message to or attempts to consume a message from a queue
+        displayName: Auto Create Queues
+        path: addressSettings.addressSetting[0].autoCreateQueues
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether or not to delete auto-created addresses when it no longer
+          has any queues
+        displayName: Auto Delete Addresses
+        path: addressSettings.addressSetting[0].autoDeleteAddresses
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: how long to wait (in milliseconds) before deleting auto-created
+          addresses after they no longer have any queues
+        displayName: Auto Delete Addresses Delay
+        path: addressSettings.addressSetting[0].autoDeleteAddressesDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: whether or not to delete created queues when the queue has 0
+          consumers and 0 messages
+        displayName: Auto Delete Created Queues
+        path: addressSettings.addressSetting[0].autoDeleteCreatedQueues
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: DEPRECATED. whether or not to delete auto-created JMS queues
+          when the queue has 0 consumers and 0 messages
+        displayName: Auto Delete Jms Queues
+        path: addressSettings.addressSetting[0].autoDeleteJmsQueues
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: DEPRECATED. whether or not to delete auto-created JMS topics
+          when the last subscription is closed
+        displayName: Auto Delete Jms Topics
+        path: addressSettings.addressSetting[0].autoDeleteJmsTopics
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether or not to delete auto-created queues when the queue has
+          0 consumers and 0 messages
+        displayName: Auto Delete Queues
+        path: addressSettings.addressSetting[0].autoDeleteQueues
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: how long to wait (in milliseconds) before deleting auto-created
+          queues after the queue has 0 consumers.
+        displayName: Auto Delete Queues Delay
+        path: addressSettings.addressSetting[0].autoDeleteQueuesDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: the message count the queue must be at or below before it can
+          be evaluated to be auto deleted, 0 waits until empty queue (default) and
+          -1 disables this check.
+        displayName: Auto Delete Queues Message Count
+        path: addressSettings.addressSetting[0].autoDeleteQueuesMessageCount
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: What to do when an address is no longer in broker.xml.  OFF =
+          will do nothing addresses will remain, FORCE = delete address and its queues
+          even if messages remaining.
+        displayName: Config Delete Addresses
+        path: addressSettings.addressSetting[0].configDeleteAddresses
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: What to do when a queue is no longer in broker.xml.  OFF = will
+          do nothing queues will remain, FORCE = delete queues even if messages remaining.
+        displayName: Config Delete Queues
+        path: addressSettings.addressSetting[0].configDeleteQueues
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the address to send dead messages to
+        displayName: Dead Letter Address
+        path: addressSettings.addressSetting[0].deadLetterAddress
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the prefix to use for auto-created dead letter queues
+        displayName: Dead Letter Queue Prefix
+        path: addressSettings.addressSetting[0].deadLetterQueuePrefix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the suffix to use for auto-created dead letter queues
+        displayName: Dead Letter Queue Suffix
+        path: addressSettings.addressSetting[0].deadLetterQueueSuffix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the routing-type used on auto-created addresses
+        displayName: Default Address Routing Type
+        path: addressSettings.addressSetting[0].defaultAddressRoutingType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the default window size for a consumer
+        displayName: Default Consumer Window Size
+        path: addressSettings.addressSetting[0].defaultConsumerWindowSize
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: the default number of consumers needed before dispatch can start
+          for queues under the address.
+        displayName: Default Consumers Before Dispatch
+        path: addressSettings.addressSetting[0].defaultConsumersBeforeDispatch
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: the default delay (in milliseconds) to wait before dispatching
+          if number of consumers before dispatch is not met for queues under the address.
+        displayName: Default Delay Before Dispatch
+        path: addressSettings.addressSetting[0].defaultDelayBeforeDispatch
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: whether to treat the queues under the address as exclusive queues
+          by default
+        displayName: Default Exclusive Queue
+        path: addressSettings.addressSetting[0].defaultExclusiveQueue
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: number of buckets to use for grouping, -1 (default) is unlimited
+          and uses the raw group, 0 disables message groups.
+        displayName: Default Group Buckets
+        path: addressSettings.addressSetting[0].defaultGroupBuckets
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: key used to mark a message is first in a group for a consumer
+        displayName: Default Group First Key
+        path: addressSettings.addressSetting[0].defaultGroupFirstKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: whether to rebalance groups when a consumer is added
+        displayName: Default Group Rebalance
+        path: addressSettings.addressSetting[0].defaultGroupRebalance
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether to pause dispatch when rebalancing groups
+        displayName: Default Group Rebalance Pause Dispatch
+        path: addressSettings.addressSetting[0].defaultGroupRebalancePauseDispatch
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: the property to use as the key for a last value queue by default
+        displayName: Default Last Value Key
+        path: addressSettings.addressSetting[0].defaultLastValueKey
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: whether to treat the queues under the address as a last value
+          queues by default
+        displayName: Default Last Value Queue
+        path: addressSettings.addressSetting[0].defaultLastValueQueue
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: the maximum number of consumers allowed on this queue at any
+          one time
+        displayName: Default Max Consumers
+        path: addressSettings.addressSetting[0].defaultMaxConsumers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: whether the queue should be non-destructive by default
+        displayName: Default Non Destructive
+        path: addressSettings.addressSetting[0].defaultNonDestructive
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: purge the contents of the queue once there are no consumers
+        displayName: Default Purge On No Consumers
+        path: addressSettings.addressSetting[0].defaultPurgeOnNoConsumers
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: the routing-type used on auto-created queues
+        displayName: Default Queue Routing Type
+        path: addressSettings.addressSetting[0].defaultQueueRoutingType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the default ring-size value for any matching queue which doesnt
+          have ring-size explicitly defined
+        displayName: Default Ring Size
+        path: addressSettings.addressSetting[0].defaultRingSize
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Whether or not set the timestamp of arrival on messages. default
+          false
+        displayName: Enable Ingress Timestamp
+        path: addressSettings.addressSetting[0].enableIngressTimestamp
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: whether or not to enable metrics for metrics plugins on the matching
+          address
+        displayName: Enable Metrics
+        path: addressSettings.addressSetting[0].enableMetrics
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: the address to send expired messages to
+        displayName: Expiry Address
+        path: addressSettings.addressSetting[0].expiryAddress
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Overrides the expiration time for messages using the default
+          value for expiration time. "-1" disables this setting.
+        displayName: Expiry Delay
+        path: addressSettings.addressSetting[0].expiryDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: the prefix to use for auto-created expiry queues
+        displayName: Expiry Queue Prefix
+        path: addressSettings.addressSetting[0].expiryQueuePrefix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the suffix to use for auto-created expiry queues
+        displayName: Expiry Queue Suffix
+        path: addressSettings.addressSetting[0].expiryQueueSuffix
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: This is deprecated please use default-last-value-queue instead.
+        displayName: Last Value Queue
+        path: addressSettings.addressSetting[0].lastValueQueue
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: how many message a management resource can browse
+        displayName: Management Browse Page Size
+        path: addressSettings.addressSetting[0].managementBrowsePageSize
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: max size of the message returned from management API, default
+          256
+        displayName: Max Management Message Size Limit
+        path: addressSettings.addressSetting[0].managementMessageAttributeSizeLimit
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: pattern for matching settings against addresses; can use wildards
+        displayName: Match
+        path: addressSettings.addressSetting[0].match
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: how many times to attempt to deliver a message before sending
+          to dead letter address
+        displayName: Max Delivery Attempts
+        path: addressSettings.addressSetting[0].maxDeliveryAttempts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Overrides the expiration time for messages using a higher value.
+          "-1" disables this setting.
+        displayName: Max Expiry Delay
+        path: addressSettings.addressSetting[0].maxExpiryDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Maximum value for the redelivery-delay
+        displayName: Max Redelivery Delay
+        path: addressSettings.addressSetting[0].maxRedeliveryDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: the maximum size in bytes for an address. -1 means no limits.
+          This is used in PAGING, BLOCK and FAIL policies. Supports byte notation
+          like K, Mb, GB, etc.
+        displayName: Max Size Bytes
+        path: addressSettings.addressSetting[0].maxSizeBytes
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: used with the address full BLOCK policy, the maximum size in
+          bytes an address can reach before messages start getting rejected. Works
+          in combination with max-size-bytes for AMQP protocol only.  Default = -1
+          (no limit).
+        displayName: Max Size Bytes Reject Threshold
+        path: addressSettings.addressSetting[0].maxSizeBytesRejectThreshold
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: how many days to keep message counter history for this address
+        displayName: Message Counter History Day Limit
+        path: addressSettings.addressSetting[0].messageCounterHistoryDayLimit
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Overrides the expiration time for messages using a lower value.
+          "-1" disables this setting.
+        displayName: Min Expiry Delay
+        path: addressSettings.addressSetting[0].minExpiryDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Number of paging files to cache in memory to avoid IO during
+          paging navigation
+        displayName: Page Max Cache Size
+        path: addressSettings.addressSetting[0].pageMaxCacheSize
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: The page size in bytes to use for an address. Supports byte notation
+          like K, Mb, GB, etc.
+        displayName: Page Size Bytes
+        path: addressSettings.addressSetting[0].pageSizeBytes
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: the time (in ms) to wait before redelivering a cancelled message.
+        displayName: Redelivery Delay
+        path: addressSettings.addressSetting[0].redeliveryDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: how long (in ms) to wait after the last consumer is closed on
+          a queue before redistributing messages.
+        displayName: Redistribution Delay
+        path: addressSettings.addressSetting[0].redistributionDelay
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: the number of messages to preserve for future queues created
+          on the matching address
+        displayName: Retroactive Message Count
+        path: addressSettings.addressSetting[0].retroactiveMessageCount
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: if there are no queues matching this address, whether to forward
+          message to DLA (if it exists for this address)
+        displayName: Send To DLA On No Route
+        path: addressSettings.addressSetting[0].sendToDlaOnNoRoute
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: How often to check for slow consumers on a particular queue.
+          Measured in seconds.
+        displayName: Slow Consumer Check Period
+        path: addressSettings.addressSetting[0].slowConsumerCheckPeriod
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: what happens when a slow consumer is identified
+        displayName: Slow Consumer Policy
+        path: addressSettings.addressSetting[0].slowConsumerPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The minimum rate of message consumption allowed before a consumer
+          is considered "slow." Measured in messages-per-second.
+        displayName: Slow Consumer Threshold
+        path: addressSettings.addressSetting[0].slowConsumerThreshold
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Unit used in specifying slow consumer threshold, default is MESSAGE_PER_SECOND
+        displayName: Slow Consumer Threshold Measurement Unit
+        path: addressSettings.addressSetting[0].slowConsumerThresholdMeasurementUnit
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: How to merge the address settings to broker configuration
+        displayName: Apply Rule
+        path: addressSettings.applyRule
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Password for standard broker user. It is required for connecting
+          to the broker and the web console. If left empty, it will be generated.
+        displayName: Admin Password
+        path: adminPassword
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
+      - description: User name for standard broker user. It is required for connecting
+          to the broker and the web console. If left empty, it will be generated.
+        displayName: Admin User
+        path: adminUser
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Specifies connectors and connector configuration
+        displayName: Connectors
+        path: connectors
+      - description: Comma separated list of cipher suites used for SSL communication.
+        displayName: Enabled Cipher Suites
+        path: connectors[0].enabledCipherSuites
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Comma separated list of protocols used for SSL communication.
+        displayName: Enabled Protocols
+        path: connectors[0].enabledProtocols
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to expose this connector
+        displayName: Expose
+        path: connectors[0].expose
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Hostname or IP to connect to
+        displayName: Host
+        path: connectors[0].host
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The name of the connector
+        displayName: Name
+        path: connectors[0].name
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Tells a client connecting to this connector that 2-way SSL is
+          required. This property takes precedence over wantClientAuth.
+        displayName: Need Client Auth
+        path: connectors[0].needClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Port number
+        displayName: Port
+        path: connectors[0].port
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: A regular expression used to match the server_name extension
+          on incoming SSL connections. If the name doesn't match then the connection
+          to the acceptor will be rejected.
+        displayName: SNI Host
+        path: connectors[0].sniHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Whether or not to enable SSL on this port
+        displayName: SSL Enabled
+        path: connectors[0].sslEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Used to change the SSL Provider between JDK and OPENSSL. The
+          default is JDK.
+        displayName: SSL Provider
+        path: connectors[0].sslProvider
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Name of the secret to use for ssl information
+        displayName: SSL Secret
+        path: connectors[0].sslSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The type either tcp or vm
+        displayName: Type
+        path: connectors[0].type
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The CN of the connecting client's SSL certificate will be compared
+          to its hostname to verify they match. This is useful only for 2-way SSL.
+        displayName: Verify Host
+        path: connectors[0].verifyHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Tells a client connecting to this connector that 2-way SSL is
+          requested but not required. Overridden by needClientAuth.
+        displayName: Want Client Auth
+        path: connectors[0].wantClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Specifies the console configuration
+        displayName: Console Configurations
+        path: console
+      - description: Whether or not to expose this port
+        displayName: Expose
+        path: console.expose
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Whether or not to enable SSL on this port
+        displayName: SSL Enabled
+        path: console.sslEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Name of the secret to use for ssl information
+        displayName: SSL Secret
+        path: console.sslSecret
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: If the embedded server requires client authentication
+        displayName: Use Client Auth
+        path: console.useClientAuth
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Specifies the deployment plan
+        displayName: Deployment Plan
+        path: deploymentPlan
+      - description: Whether broker is clustered
+        displayName: Clustered
+        path: deploymentPlan.clustered
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Whether or not to install the artemis metrics plugin
+        displayName: Enable Metrics Plugin
+        path: deploymentPlan.enableMetricsPlugin
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Specifies extra mounts
+        displayName: Extra Mounts
+        path: deploymentPlan.extraMounts
+      - description: Specifies ConfigMap names
+        displayName: ConfigMap Names
+        path: deploymentPlan.extraMounts.configMaps
+      - description: Specifies Secret names
+        displayName: Secret Names
+        path: deploymentPlan.extraMounts.secrets
+      - description: The image used for the broker, all upgrades are disabled. Needs
+          a corresponding initImage
+        displayName: Image
+        path: deploymentPlan.image
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The init container image used to configure broker, all upgrades
+          are disabled. Needs a corresponding image
+        displayName: Init Image
+        path: deploymentPlan.initImage
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: If true enable the Jolokia JVM Agent
+        displayName: Jolokia Agent Enabled
+        path: deploymentPlan.jolokiaAgentEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If aio use ASYNCIO, if nio use NIO for journal IO
+        displayName: Journal Type
+        path: deploymentPlan.journalType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Specifies the liveness probe configuration
+        displayName: Liveness Probe Configurations
+        path: deploymentPlan.livenessProbe
+      - description: If true enable the management role based access control
+        displayName: Management RBAC Enabled
+        path: deploymentPlan.managementRBACEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If true migrate messages on scaledown
+        displayName: Message Migration
+        path: deploymentPlan.messageMigration
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: If true use persistent volume via persistent volume claim for
+          journal storage
+        displayName: Persistence Enabled
+        path: deploymentPlan.persistenceEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Specifies the pod security configurations
+        displayName: Pod Security Configurations
+        path: deploymentPlan.podSecurity
+      - description: runAsUser as defined in PodSecurityContext for the pod
+        displayName: Run As User
+        path: deploymentPlan.podSecurity.runAsUser
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: ServiceAccount Name of the pod
+        displayName: Service Account Name
+        path: deploymentPlan.podSecurity.serviceAccountName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Specifies the readiness probe configuration
+        displayName: Readiness Probe Configurations
+        path: deploymentPlan.readinessProbe
+      - description: If true require user password login credentials for broker protocol
+          ports
+        displayName: Require Login
+        path: deploymentPlan.requireLogin
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Specifies the minimum/maximum amount of compute resources required/allowed
+        displayName: Resource Requirements
+        path: deploymentPlan.resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: The number of broker pods to deploy
+        displayName: Size
+        path: deploymentPlan.size
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podCount
+      - description: Specifies the storage configurations
+        displayName: Storage Configurations
+        path: deploymentPlan.storage
+      - description: The storage size
+        displayName: Size
+        path: deploymentPlan.storage.size
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Specifies the upgrades (deprecated in favour of Version)
+        displayName: Upgrades
+        path: upgrades
+      - description: Set true to enable automatic micro version product upgrades,
+          it is disabled by default.
+        displayName: Enable Upgrades
+        path: upgrades.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:ui:booleanSwitch
+      - description: Set true to enable automatic minor product version upgrades,
+          it is disabled by default. Requires spec.upgrades.enabled to be true.
+        displayName: Include minor version upgrades
+        path: upgrades.minor
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:fieldDependency:upgrades.enabled:true
+        - urn:alm:descriptor:com.tectonic.ui:ui:booleanSwitch
+      - description: The desired version of the broker. Can be x, or x.y or x.y.z
+          to configure upgrades
+        displayName: Version
+        path: version
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
       statusDescriptors:
       - description: Current state of the resource Conditions represent the latest
           available observations of an object's state
@@ -1668,6 +4400,11 @@ spec:
         path: conditions
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
+      - description: The current pods
+        displayName: Pods Status
+        path: podStatus
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podStatuses
       version: v2alpha5
     - description: Provides internal message migration on clustered broker scaledown
       displayName: ActiveMQ Artemis Scaledown
