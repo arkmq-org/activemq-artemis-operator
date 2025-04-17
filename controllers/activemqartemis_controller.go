@@ -30,6 +30,7 @@ import (
 	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -194,12 +195,9 @@ func (r *ActiveMQArtemisReconciler) Reconcile(ctx context.Context, request ctrl.
 		requeueRequest = true
 	}
 
-	if !requeueRequest {
-		reqLogger.V(1).Info("resource successfully reconciled")
-		if hasExtraMounts(customResource) {
-			reqLogger.V(1).Info("resource has extraMounts, requeuing")
-			requeueRequest = true
-		}
+	if !requeueRequest && hasExtraMounts(customResource) {
+		reqLogger.V(1).Info("resource has extraMounts, requeuing")
+		requeueRequest = true
 	}
 
 	if requeueRequest {
@@ -207,6 +205,9 @@ func (r *ActiveMQArtemisReconciler) Reconcile(ctx context.Context, request ctrl.
 		result = ctrl.Result{RequeueAfter: common.GetReconcileResyncPeriod()}
 	}
 
+	if valid && err == nil && crStatusUpdateErr == nil {
+		reqLogger.V(1).Info("resource successfully reconciled")
+	}
 	return result, err
 }
 
@@ -232,6 +233,13 @@ func (r *ActiveMQArtemisReconcilerImpl) validate(customResource *brokerv1beta1.A
 
 	if validationCondition.Status != metav1.ConditionFalse {
 		condition, retry = validateNoDupKeysInBrokerProperties(customResource)
+		if condition != nil {
+			validationCondition = *condition
+		}
+	}
+
+	if validationCondition.Status != metav1.ConditionFalse {
+		condition, retry = r.validateStorage()
 		if condition != nil {
 			validationCondition = *condition
 		}
@@ -446,6 +454,24 @@ func (r *ActiveMQArtemisReconcilerImpl) validateEnvVars(customResource *brokerv1
 			Reason:  brokerv1beta1.ValidConditionInvalidInternalVarUsage,
 			Message: fmt.Sprintf("Don't use valueFrom on env vars that the operator can mutate: %v. Instead use a different var and refernece it in its value field.", invalidVars),
 		}, false
+	}
+	return nil, false
+}
+
+func (r *ActiveMQArtemisReconcilerImpl) validateStorage() (*metav1.Condition, bool) {
+
+	if r.customResource.Spec.DeploymentPlan.PersistenceEnabled {
+		if r.customResource.Spec.DeploymentPlan.Storage.Size != "" {
+			_, err := resource.ParseQuantity(r.customResource.Spec.DeploymentPlan.Storage.Size)
+			if err != nil {
+				return &metav1.Condition{
+					Type:    brokerv1beta1.ValidConditionType,
+					Status:  metav1.ConditionFalse,
+					Reason:  brokerv1beta1.ValidConditionFailureReason,
+					Message: fmt.Sprintf(".Spec.DeploymentPlan.Storage.Size quantity string is invalid, %v", err),
+				}, false
+			}
+		}
 	}
 	return nil, false
 }

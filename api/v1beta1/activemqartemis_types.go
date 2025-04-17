@@ -807,6 +807,7 @@ const (
 
 	ValidConditionType                   = "Valid"
 	ValidConditionSuccessReason          = "ValidationSucceded"
+	ValidConditionFailureReason          = "ValidationFailed"
 	ValidConditionUnknownReason          = "NonFatalValidationFailure"
 	ValidConditionMissingResourcesReason = "MissingDependentResources"
 	ValidConditionInvalidVersionReason   = "SpecVersionInvalid"

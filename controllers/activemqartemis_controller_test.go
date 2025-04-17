@@ -8011,6 +8011,49 @@ var _ = Describe("artemis controller", func() {
 
 			CleanResource(&crd, crd.Name, defaultNamespace)
 		})
+
+		It("Checking storage size mal configured", func() {
+
+			By("By creating a new crd")
+			ctx := context.Background()
+			crd := generateArtemisSpec(defaultNamespace)
+
+			crd.Spec.DeploymentPlan = brokerv1beta1.DeploymentPlanType{
+				Size:               common.Int32ToPtr(1),
+				PersistenceEnabled: true,
+				Storage: brokerv1beta1.StorageType{
+					Size: "2GI", // note wrong capital I
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, &crd)).Should(Succeed())
+
+			key := types.NamespacedName{Name: crd.Name, Namespace: defaultNamespace}
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, key, &crd)
+				return err == nil
+			}, timeout, interval).Should(BeTrue())
+
+			By("verifying status")
+			Eventually(func(g Gomega) {
+
+				g.Expect(k8sClient.Get(ctx, key, &crd)).Should(Succeed())
+
+				g.Expect(common.IsConditionPresentAndEqualIgnoringMessage(crd.Status.Conditions, metav1.Condition{
+					Type:   brokerv1beta1.DeployedConditionType,
+					Status: metav1.ConditionFalse,
+					Reason: brokerv1beta1.DeployedConditionValidationFailedReason,
+				})).Should(BeTrue())
+
+				condition := meta.FindStatusCondition(crd.Status.Conditions, brokerv1beta1.ValidConditionType)
+				g.Expect(condition).NotTo(BeNil())
+
+				By("checking message" + fmt.Sprintf("%v", condition.Message))
+				g.Expect(condition.Message).To(ContainSubstring("Size"))
+			}, timeout, interval).Should(Succeed())
+
+			CleanResource(&crd, crd.Name, defaultNamespace)
+		})
 	})
 
 	It("populateValidatedUser", func() {
