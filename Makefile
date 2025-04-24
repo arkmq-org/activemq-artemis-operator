@@ -135,6 +135,9 @@ endif
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	sed -i "s~Version = \"${CURRENT_VERSION}\"~Version = \"${VERSION}\"~" version/version.go
+	sed -i "s~^LABEL version=.*~LABEL version=\"${VERSION}\"~g" Dockerfile
+
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
@@ -288,6 +291,7 @@ bundle: manifests operator-sdk kustomize ## Generate bundle manifests and metada
 	sed -i.bak '/creationTimestamp:/d' ./bundle/manifests/*.yaml && rm ./bundle/manifests/*.bak
 	sed -i.bak "s/createdAt:.*/`grep -oP 'createdAt:.*' config/manifests/bases/$(BUNDLE_PACKAGE).clusterserviceversion.yaml`/" ./bundle/manifests/*.yaml && rm ./bundle/manifests/*.bak
 	sed -i.bak 's|containerImage: .*|containerImage: '${IMG}'|' ./bundle/manifests/*.yaml && rm ./bundle/manifests/*.bak
+	sed -i "s~version:.*~version: \"${VERSION}\"~" config/metadata/$(BUNDLE_PACKAGE).annotations.yaml
 	sed 's/annotations://' config/metadata/$(BUNDLE_PACKAGE).annotations.yaml >> bundle/metadata/annotations.yaml
 	sed -e 's/annotations://' -e 's/  /LABEL /g' -e 's/: /=/g'  config/metadata/$(BUNDLE_PACKAGE).annotations.yaml >> bundle.Dockerfile
 	sed -i.bak 's/operators.operatorframework.io.bundle.package.v1:.*/operators.operatorframework.io.bundle.package.v1: $(BUNDLE_ANNOTATION_PACKAGE)/' bundle/metadata/annotations.yaml && rm bundle/metadata/annotations.yaml.bak
