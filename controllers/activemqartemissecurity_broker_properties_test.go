@@ -112,6 +112,19 @@ var _ = Describe("security without controller", func() {
 				"# rbac, give tom's role send access",
 				"securityRoles.TOMS_WORK_QUEUE.toms.send=true",
 
+				"addressConfigurations.TOPIC.routingTypes=MULTICAST",
+				"addressConfigurations.TOPIC.queueConfigs.FOR_TOM.routingType=MULTICAST",
+				"addressConfigurations.TOPIC.queueConfigs.FOR_TOM.address=TOPIC",
+				"addressConfigurations.TOPIC.queueConfigs.FOR_TOM.durable=true",
+
+				"# rbac topic, give tom's role send access",
+				"securityRoles.TOPIC.toms.send=true",
+
+				"# ffqn send to topic sub over amqp",
+				"acceptorConfigurations.amqp.factoryClassName=org.apache.activemq.artemis.core.remoting.impl.netty.NettyAcceptorFactory",
+				"acceptorConfigurations.amqp.params.host=${HOSTNAME}",
+				"acceptorConfigurations.amqp.params.port=61617",
+
 				"# rbac, give tom's role view/edit access for JMX",
 				"securityRoles.\"mops.address.TOMS_WORK_QUEUE.*\".toms.view=true",
 				"securityRoles.\"mops.address.TOMS_WORK_QUEUE.*\".toms.edit=true",
@@ -213,6 +226,17 @@ var _ = Describe("security without controller", func() {
 				g.Expect(err).To(BeNil())
 				g.Expect(*result).To(ContainSubstring("403"))
 				g.Expect(*result).To(ContainSubstring("EDIT"))
+			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+			By("Verify send to FQQN")
+			Eventually(func(g Gomega) {
+				result, err := RunCommandInPod(podWithOrdinal0, crd.Name+"-container",
+					[]string{"/bin/sh", "-c", "/opt/amq/bin/artemis producer --protocol=AMQP --user tom --password tom --url tcp://" + podWithOrdinal0 + ":61617 --message-count 10 --destination topic://TOPIC::FOR_TOM"})
+				g.Expect(err).To(BeNil())
+				if verbose {
+					fmt.Printf("res: %v\n", *result)
+				}
+				g.Expect(*result).To(ContainSubstring("TOPIC::FOR_TOM, thread=0 Produced: 10 messages"))
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
 			Expect(k8sClient.Delete(ctx, createdCrd)).Should(Succeed())
