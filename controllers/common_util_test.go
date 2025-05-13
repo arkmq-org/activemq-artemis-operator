@@ -451,11 +451,12 @@ func RunCommandInPodWithNamespace(podName string, podNamespace string, container
 	}
 
 	var consumerCapturedOut bytes.Buffer
+	var consumerCapturedErr bytes.Buffer
 
 	err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
 		Stdin:  os.Stdin,
 		Stdout: &consumerCapturedOut,
-		Stderr: os.Stderr,
+		Stderr: &consumerCapturedErr,
 		Tty:    false,
 	})
 	if err != nil {
@@ -464,11 +465,13 @@ func RunCommandInPodWithNamespace(podName string, podNamespace string, container
 
 	//try get some content if any
 	Eventually(func(g Gomega) {
-		g.Expect(consumerCapturedOut.Len() > 0)
-	}, existingClusterTimeout, interval).Should(Succeed())
+		g.Expect(consumerCapturedOut.Len() > 0 || consumerCapturedErr.Len() > 0)
+	}, timeout, interval).Should(Succeed())
 
 	content := consumerCapturedOut.String()
-
+	if consumerCapturedErr.Len() > 0 {
+		content += ", err: " + consumerCapturedErr.String()
+	}
 	return &content, nil
 }
 

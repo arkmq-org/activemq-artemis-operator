@@ -117,10 +117,10 @@ var _ = Describe("security without controller", func() {
 				"addressConfigurations.TOPIC.queueConfigs.FOR_TOM.address=TOPIC",
 				"addressConfigurations.TOPIC.queueConfigs.FOR_TOM.durable=true",
 
-				"# rbac topic, give tom's role send access",
-				"securityRoles.TOPIC.toms.send=true",
+				"# rbac topic, give tom's role send access to fqqn, :: needs escape",
+				"securityRoles.\"TOPIC\\:\\:FOR_TOM\".toms.send=true",
 
-				"# ffqn send to topic sub over amqp",
+				"# amqp acceptor",
 				"acceptorConfigurations.amqp.factoryClassName=org.apache.activemq.artemis.core.remoting.impl.netty.NettyAcceptorFactory",
 				"acceptorConfigurations.amqp.params.host=${HOSTNAME}",
 				"acceptorConfigurations.amqp.params.port=61617",
@@ -232,11 +232,22 @@ var _ = Describe("security without controller", func() {
 			Eventually(func(g Gomega) {
 				result, err := RunCommandInPod(podWithOrdinal0, crd.Name+"-container",
 					[]string{"/bin/sh", "-c", "/opt/amq/bin/artemis producer --protocol=AMQP --user tom --password tom --url tcp://" + podWithOrdinal0 + ":61617 --message-count 10 --destination topic://TOPIC::FOR_TOM"})
-				g.Expect(err).To(BeNil())
 				if verbose {
-					fmt.Printf("res: %v\n", *result)
+					fmt.Printf("err: %v, res: %v\n", err, *result)
 				}
+				g.Expect(err).To(BeNil())
 				g.Expect(*result).To(ContainSubstring("TOPIC::FOR_TOM, thread=0 Produced: 10 messages"))
+			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+			By("Verify no permission to send to topic")
+			Eventually(func(g Gomega) {
+				result, err := RunCommandInPod(podWithOrdinal0, crd.Name+"-container",
+					[]string{"/bin/sh", "-c", "/opt/amq/bin/artemis producer --protocol=AMQP --user tom --password tom --url tcp://" + podWithOrdinal0 + ":61617 --message-count 10 --destination topic://TOPIC"})
+				if verbose {
+					fmt.Printf("err: %v, res: %v\n", err, *result)
+				}
+				g.Expect(err).To(BeNil())
+				g.Expect(*result).To(ContainSubstring("tom does not have permission='SEND' on address TOPIC"))
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
 			Expect(k8sClient.Delete(ctx, createdCrd)).Should(Succeed())
