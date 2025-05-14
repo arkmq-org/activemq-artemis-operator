@@ -693,7 +693,7 @@ func uninstallYamlResource(resPath string, namespace string) error {
 	return nil
 }
 
-func installYamlResource(resPath string, envMap map[string]string, namespace string) error {
+func installYamlResource(resPath string, setupEnvs map[string]string, namespace string) error {
 	ctrl.Log.Info("Installing yaml resource", "yaml", resPath)
 	robj, gkv, err := loadYamlResource(resPath)
 	if err != nil {
@@ -706,17 +706,42 @@ func installYamlResource(resPath string, envMap map[string]string, namespace str
 		oprObj := cobj.(*appsv1.Deployment)
 		depName = oprObj.Name
 		oprName = oprObj.Spec.Template.Labels["name"]
-		if oprImg := os.Getenv("IMG"); oprImg != "" {
+		if oprImg := os.Getenv("DEFAULT_OPERATOR_IMAGE"); oprImg != "" {
 			ctrl.Log.Info("Using custom operator image", "url", oprImg)
 			oprObj.Spec.Template.Spec.Containers[0].Image = oprImg
 		}
-		for k, v := range envMap {
-			ctrl.Log.Info("Adding new env var into operator", "name", k, "value", v)
-			newEnv := corev1.EnvVar{
-				Name:  k,
-				Value: v,
+
+		// update default envs
+		defaultEnvs := []string{
+			"DEFAULT_BROKER_VERSION",
+			"DEFAULT_BROKER_COMPACT_VERSION",
+			"DEFAULT_BROKER_KUBE_IMAGE",
+			"DEFAULT_BROKER_INIT_IMAGE",
+		}
+		for _, defaultEnv := range defaultEnvs {
+			defaultEnvValue := os.Getenv(defaultEnv)
+			if defaultEnvValue != "" {
+				oprObj.Spec.Template.Spec.Containers[0].Env =
+					putEnv(oprObj.Spec.Template.Spec.Containers[0].Env,
+						defaultEnv, defaultEnvValue)
 			}
-			oprObj.Spec.Template.Spec.Containers[0].Env = append(oprObj.Spec.Template.Spec.Containers[0].Env, newEnv)
+		}
+
+		// update releated image envs
+		for _, env := range os.Environ() {
+			if strings.HasPrefix(env, "RELATED_IMAGE_") {
+				relatedImageEnv := strings.SplitN(env, "=", 2)
+				oprObj.Spec.Template.Spec.Containers[0].Env =
+					putEnv(oprObj.Spec.Template.Spec.Containers[0].Env,
+						relatedImageEnv[0], relatedImageEnv[1])
+			}
+		}
+
+		// update setup envs
+		for setupEnvName, setupEnvValue := range setupEnvs {
+			oprObj.Spec.Template.Spec.Containers[0].Env =
+				putEnv(oprObj.Spec.Template.Spec.Containers[0].Env,
+					setupEnvName, setupEnvValue)
 		}
 	}
 
@@ -734,6 +759,24 @@ func installYamlResource(resPath string, envMap map[string]string, namespace str
 
 	ctrl.Log.Info("Successfully installed", "yaml", resPath)
 	return nil
+}
+
+func putEnv(envs []corev1.EnvVar, envName string, envValue string) []corev1.EnvVar {
+	ctrl.Log.Info("Putting env var into operator", "name", envName, "value", envValue)
+
+	envFound := false
+	for i := 0; i < len(envs) && !envFound; i++ {
+		envFound = envName == envs[i].Name
+		if envFound {
+			envs[i].Value = envValue
+		}
+	}
+
+	if !envFound {
+		envs = append(envs, corev1.EnvVar{Name: envName, Value: envValue})
+	}
+
+	return envs
 }
 
 func setUpK8sClient() {

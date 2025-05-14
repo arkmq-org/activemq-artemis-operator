@@ -648,7 +648,7 @@ var _ = Describe("artemis controller", func() {
 		It("version validation when both version and images are explicitly specified", func() {
 			By("deploy a broker with images specified")
 			brokerCr, createdBrokerCr := DeployCustomBroker(defaultNamespace, func(candidate *brokerv1beta1.ActiveMQArtemis) {
-				candidate.Spec.Version = version.LatestVersion
+				candidate.Spec.Version = version.GetDefaultVersion()
 				candidate.Spec.DeploymentPlan.Image = "myrepo/my-image:1.0"
 				candidate.Spec.DeploymentPlan.InitImage = "myrepo/my-init-image:1.0"
 			})
@@ -666,7 +666,7 @@ var _ = Describe("artemis controller", func() {
 
 		It("version validation when version is loosly specified and images are explicitly specified", func() {
 			By("deploy a broker with images specified")
-			latestVersion := semver.MustParse(version.LatestVersion)
+			latestVersion := semver.MustParse(version.GetDefaultVersion())
 			brokerCr, createdBrokerCr := DeployCustomBroker(defaultNamespace, func(candidate *brokerv1beta1.ActiveMQArtemis) {
 				candidate.Spec.Version = strconv.FormatUint(latestVersion.Major, 10)
 				candidate.Spec.DeploymentPlan.Image = "myrepo/my-image:1.0"
@@ -691,7 +691,7 @@ var _ = Describe("artemis controller", func() {
 
 		It("version validation when version and images are loosly specified", func() {
 			By("deploy a broker with images default and version")
-			latestVersion := semver.MustParse(version.LatestVersion)
+			latestVersion := semver.MustParse(version.GetDefaultVersion())
 			brokerCr, createdBrokerCr := DeployCustomBroker(defaultNamespace, func(candidate *brokerv1beta1.ActiveMQArtemis) {
 				candidate.Spec.Version = strconv.FormatUint(latestVersion.Major, 10)
 				candidate.Spec.DeploymentPlan.Image = "placeholder"
@@ -861,14 +861,14 @@ var _ = Describe("artemis controller", func() {
 		})
 
 		It("specify only major version", func() {
-			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_"+version.CompactLatestVersion, "quay.io/arkmq-org/fake-broker:latest")
-			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_"+version.CompactLatestVersion, "quay.io/arkmq-org/fake-broker-init:latest")
+			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_"+version.GetDefaultCompactVersion(), "quay.io/arkmq-org/fake-broker:latest")
+			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_"+version.GetDefaultCompactVersion(), "quay.io/arkmq-org/fake-broker-init:latest")
 			defer func() {
-				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_" + version.CompactLatestVersion)
-				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_" + version.CompactLatestVersion)
+				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_" + version.GetDefaultCompactVersion())
+				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_" + version.GetDefaultCompactVersion())
 			}()
 			By("deploy a broker")
-			verFields := strings.Split(version.LatestVersion, ".")
+			verFields := strings.Split(version.GetDefaultVersion(), ".")
 			major := verFields[0]
 			brokerCr, createdBrokerCr := DeployCustomBroker(defaultNamespace, func(candidate *brokerv1beta1.ActiveMQArtemis) {
 				candidate.Spec.Version = major
@@ -896,7 +896,7 @@ var _ = Describe("artemis controller", func() {
 
 				g.Expect(createdBrokerCr.Status.Version.Image).Should(ContainSubstring("fake"))
 				g.Expect(createdBrokerCr.Status.Version.InitImage).Should(ContainSubstring("fake"))
-				g.Expect(createdBrokerCr.Status.Version.BrokerVersion).Should(Equal(version.LatestVersion))
+				g.Expect(createdBrokerCr.Status.Version.BrokerVersion).Should(Equal(version.GetDefaultVersion()))
 
 				g.Expect(createdBrokerCr.Status.Upgrade.MajorUpdates).Should(BeFalse())
 				g.Expect(createdBrokerCr.Status.Upgrade.MinorUpdates).Should(BeTrue())
@@ -909,14 +909,14 @@ var _ = Describe("artemis controller", func() {
 		})
 
 		It("specify only major.minor version", func() {
-			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_"+version.CompactLatestVersion, "quay.io/arkmq-org/fake-broker:latest")
-			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_"+version.CompactLatestVersion, "quay.io/arkmq-org/fake-broker-init:latest")
+			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_"+version.GetDefaultCompactVersion(), "quay.io/arkmq-org/fake-broker:latest")
+			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_"+version.GetDefaultCompactVersion(), "quay.io/arkmq-org/fake-broker-init:latest")
 			defer func() {
-				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_" + version.CompactLatestVersion)
-				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_" + version.CompactLatestVersion)
+				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_" + version.GetDefaultCompactVersion())
+				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_" + version.GetDefaultCompactVersion())
 			}()
 			By("deploy a broker")
-			verFields := strings.Split(version.LatestVersion, ".")
+			verFields := strings.Split(version.GetDefaultVersion(), ".")
 			major := verFields[0]
 			minor := verFields[1]
 			brokerCr, createdBrokerCr := DeployCustomBroker(defaultNamespace, func(candidate *brokerv1beta1.ActiveMQArtemis) {
@@ -945,7 +945,7 @@ var _ = Describe("artemis controller", func() {
 
 				g.Expect(createdBrokerCr.Status.Version.Image).Should(ContainSubstring("fake"))
 				g.Expect(createdBrokerCr.Status.Version.InitImage).Should(ContainSubstring("fake"))
-				g.Expect(createdBrokerCr.Status.Version.BrokerVersion).Should(Equal(version.LatestVersion))
+				g.Expect(createdBrokerCr.Status.Version.BrokerVersion).Should(Equal(version.GetDefaultVersion()))
 
 				g.Expect(createdBrokerCr.Status.Upgrade.MajorUpdates).Should(BeFalse())
 				g.Expect(createdBrokerCr.Status.Upgrade.MinorUpdates).Should(BeFalse())
@@ -958,11 +958,11 @@ var _ = Describe("artemis controller", func() {
 		})
 
 		It("default broker versions", func() {
-			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_"+version.CompactLatestVersion, "quay.io/arkmq-org/fake-broker:latest")
-			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_"+version.CompactLatestVersion, "quay.io/arkmq-org/fake-broker-init:latest")
+			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_"+version.GetDefaultCompactVersion(), "quay.io/arkmq-org/fake-broker:latest")
+			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_"+version.GetDefaultCompactVersion(), "quay.io/arkmq-org/fake-broker-init:latest")
 			defer func() {
-				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_" + version.CompactLatestVersion)
-				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_" + version.CompactLatestVersion)
+				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_" + version.GetDefaultCompactVersion())
+				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_" + version.GetDefaultCompactVersion())
 			}()
 			By("deploy a broker")
 			brokerCr, createdBrokerCr := DeployCustomBroker(defaultNamespace, func(candidate *brokerv1beta1.ActiveMQArtemis) {
@@ -991,7 +991,7 @@ var _ = Describe("artemis controller", func() {
 
 				g.Expect(createdBrokerCr.Status.Version.Image).Should(ContainSubstring("fake"))
 				g.Expect(createdBrokerCr.Status.Version.InitImage).Should(ContainSubstring("fake"))
-				g.Expect(createdBrokerCr.Status.Version.BrokerVersion).Should(Equal(version.LatestVersion))
+				g.Expect(createdBrokerCr.Status.Version.BrokerVersion).Should(Equal(version.GetDefaultVersion()))
 
 				g.Expect(createdBrokerCr.Status.Upgrade.MajorUpdates).Should(BeTrue())
 				g.Expect(createdBrokerCr.Status.Upgrade.MinorUpdates).Should(BeTrue())
@@ -1702,14 +1702,14 @@ var _ = Describe("artemis controller", func() {
 		It("default image to use latest", func() {
 			crd := generateArtemisSpec(defaultNamespace)
 			imageToUse := common.DetermineImageToUse(&crd, "Kubernetes")
-			Expect(imageToUse).To(Equal(version.LatestKubeImage), "actual", imageToUse)
+			Expect(imageToUse).To(Equal(version.GetDefaultKubeImage()), "actual", imageToUse)
 
 			imageToUse = common.DetermineImageToUse(&crd, "Init")
-			Expect(imageToUse).To(Equal(version.LatestInitImage), "actual", imageToUse)
+			Expect(imageToUse).To(Equal(version.GetDefaultInitImage()), "actual", imageToUse)
 			brokerCr := generateArtemisSpec(defaultNamespace)
 			compactVersionToUse, verr := common.DetermineCompactVersionToUse(&brokerCr)
 			Expect(verr).To(BeNil())
-			Expect(compactVersionToUse).To(Equal(version.CompactLatestVersion), "actual", compactVersionToUse)
+			Expect(compactVersionToUse).To(Equal(version.GetDefaultCompactVersion()), "actual", compactVersionToUse)
 		})
 	})
 
@@ -2355,7 +2355,7 @@ var _ = Describe("artemis controller", func() {
 				}
 
 				// force a non-fatal failure for the validation of the broker images
-				candidate.Spec.DeploymentPlan.Image = version.LatestKubeImage
+				candidate.Spec.DeploymentPlan.Image = version.GetDefaultKubeImage()
 				candidate.Spec.Version = ""
 			})
 
@@ -5944,7 +5944,7 @@ var _ = Describe("artemis controller", func() {
 			ctx := context.Background()
 			crd := generateArtemisSpec(defaultNamespace)
 
-			latestVersion := semver.MustParse(version.LatestVersion)
+			latestVersion := semver.MustParse(version.GetDefaultVersion())
 			crd.Spec.Version = strconv.FormatUint(latestVersion.Major, 10)
 			Expect(k8sClient.Create(ctx, &crd)).Should(Succeed())
 
@@ -5977,8 +5977,8 @@ var _ = Describe("artemis controller", func() {
 			ctx := context.Background()
 			crd := generateArtemisSpec(defaultNamespace)
 
-			crd.Spec.DeploymentPlan.Image = version.LatestKubeImage
-			crd.Spec.Version = version.LatestVersion
+			crd.Spec.DeploymentPlan.Image = version.GetDefaultKubeImage()
+			crd.Spec.Version = version.GetDefaultVersion()
 			Expect(k8sClient.Create(ctx, &crd)).Should(Succeed())
 
 			crdRef := types.NamespacedName{
@@ -6014,7 +6014,7 @@ var _ = Describe("artemis controller", func() {
 			ctx := context.Background()
 			crd := generateArtemisSpec(defaultNamespace)
 
-			crd.Spec.DeploymentPlan.Image = version.LatestKubeImage
+			crd.Spec.DeploymentPlan.Image = version.GetDefaultKubeImage()
 			crd.Spec.Version = version.SupportedActiveMQArtemisVersions[0]
 			Expect(k8sClient.Create(ctx, &crd)).Should(Succeed())
 
@@ -6894,17 +6894,17 @@ var _ = Describe("artemis controller", func() {
 				Skip("The supported ActiveMQ Artemis versions are less than 4")
 			}
 			previousVersion := orderedSemVersions[len(orderedSemVersions)-4]
-			Expect(previousVersion.String()).ShouldNot(Equal(version.LatestVersion))
+			Expect(previousVersion.String()).ShouldNot(Equal(version.GetDefaultVersion()))
 
 			previousCompactVersion := version.CompactActiveMQArtemisVersion(previousVersion.String())
-			Expect(previousCompactVersion).ShouldNot(Equal(version.CompactLatestVersion))
+			Expect(previousCompactVersion).ShouldNot(Equal(version.GetDefaultCompactVersion()))
 
 			previousImageEnvVar := common.ImageNamePrefix + "Kubernetes_" + previousCompactVersion
-			os.Setenv(previousImageEnvVar, strings.Replace(version.LatestKubeImage, version.LatestVersion, previousVersion.String(), 1))
+			os.Setenv(previousImageEnvVar, strings.Replace(version.GetDefaultKubeImage(), version.GetDefaultVersion(), previousVersion.String(), 1))
 			defer os.Unsetenv(previousImageEnvVar)
 
 			perviousInitImageEnvVar := common.ImageNamePrefix + "Init_" + previousCompactVersion
-			os.Setenv(perviousInitImageEnvVar, strings.Replace(version.LatestInitImage, version.LatestVersion, previousVersion.String(), 1))
+			os.Setenv(perviousInitImageEnvVar, strings.Replace(version.GetDefaultInitImage(), version.GetDefaultVersion(), previousVersion.String(), 1))
 			defer os.Unsetenv(perviousInitImageEnvVar)
 
 			By("By creating a crd without persistence")
@@ -6964,7 +6964,7 @@ var _ = Describe("artemis controller", func() {
 
 				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crd.ObjectMeta.Name, Namespace: crd.ObjectMeta.Namespace}, createdCrd)).Should(Succeed())
 
-				createdCrd.Spec.Version = version.LatestVersion
+				createdCrd.Spec.Version = version.GetDefaultVersion()
 				g.Expect(k8sClient.Update(ctx, createdCrd)).Should(Succeed())
 
 			}, timeout, interval).Should(Succeed())
