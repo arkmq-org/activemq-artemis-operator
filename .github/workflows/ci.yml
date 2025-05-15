@@ -70,19 +70,17 @@ jobs:
           export SHELL=/bin/bash
           eval $(minikube -p minikube docker-env)
           docker image list
-          export OPERATOR_IMAGE=$(grep -Po '(?<=image: ).*' ./deploy/operator.yaml)
-          podman tag $IMAGE_NAME:dev.latest $OPERATOR_IMAGE
-          podman save --output activemq-artemis-operator-image.tar --format docker-archive $OPERATOR_IMAGE
+          podman save --output activemq-artemis-operator-image.tar --format docker-archive $IMAGE_NAME:dev.latest
           docker image load --input activemq-artemis-operator-image.tar
           docker image list
 
       - name: Execute tests
         if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' && !inputs.skipTests }}
-        run: make test-mk-v
+        run: export DEFAULT_OPERATOR_IMAGE=localhost/$IMAGE_NAME:dev.latest && make test-mk-v
 
       - name: Execute do tests
         if: ${{ github.event_name != 'workflow_dispatch' || !inputs.skipDOTests }}
-        run: make test-mk-do-v
+        run: export DEFAULT_OPERATOR_IMAGE=localhost/$IMAGE_NAME:dev.latest && make test-mk-do-v
 
       - name: Run scorecard tests
         run: make scorecard | tee scorecard.log && ! grep 'Suggestions' scorecard.log

@@ -108,7 +108,7 @@ var configCmd = "/opt/amq/bin/launch.sh"
 
 // default ApplyRule for address-settings
 var defApplyRule string = "merge_all"
-var yacfgProfileVersion = version.YacfgProfileVersionFromFullVersion[version.LatestVersion]
+var yacfgProfileVersion = version.YacfgProfileVersionFromFullVersion[version.GetDefaultVersion()]
 
 type ActiveMQArtemisReconcilerImpl struct {
 	requestedResources map[reflect.Type]map[string]rtclient.Object

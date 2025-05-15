@@ -27,6 +27,8 @@ import (
 
 	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/namer"
+	"github.com/arkmq-org/activemq-artemis-operator/version"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -165,6 +167,59 @@ var _ = Describe("artemis controller", Label("do"), func() {
 
 				//clean up all resources
 				Expect(k8sClient.Delete(ctx, createdCr)).Should(Succeed())
+			}
+		})
+	})
+
+	Context("operator deployment in default namespace", Label("do-operator-restricted"), func() {
+		It("default broker versions", func() {
+			if os.Getenv("DEPLOY_OPERATOR") == "true" {
+				By("Uninstall existing operator")
+				uninstallOperator(false, defaultNamespace)
+
+				By("install the operator again with custom relaated images")
+				setupEnvs := make(map[string]string)
+				setupEnvs["RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_"+version.GetDefaultCompactVersion()] = "quay.io/arkmq-org/fake-broker:latest"
+				setupEnvs["RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_"+version.GetDefaultCompactVersion()] = "quay.io/arkmq-org/fake-broker-init:latest"
+				installOperator(setupEnvs, defaultNamespace)
+
+				By("deploy a broker")
+				brokerCr, createdBrokerCr := DeployCustomBroker(defaultNamespace, func(candidate *brokerv1beta1.ActiveMQArtemis) {
+					candidate.Spec.Version = ""
+					candidate.Spec.DeploymentPlan.Image = ""
+					candidate.Spec.DeploymentPlan.InitImage = ""
+				})
+
+				By("checking the default broker version would be the latest")
+				createdSs := &appsv1.StatefulSet{}
+				ssKey := types.NamespacedName{Name: namer.CrToSS(brokerCr.Name), Namespace: defaultNamespace}
+				Eventually(func(g Gomega) {
+					g.Expect(k8sClient.Get(ctx, ssKey, createdSs)).Should(Succeed())
+					mainContainer := createdSs.Spec.Template.Spec.Containers[0]
+					g.Expect(mainContainer.Image).To(Equal("quay.io/arkmq-org/fake-broker:latest"))
+					initContainer := createdSs.Spec.Template.Spec.InitContainers[0]
+					g.Expect(initContainer.Image).To(Equal("quay.io/arkmq-org/fake-broker-init:latest"))
+
+				}, timeout, interval).Should(Succeed())
+
+				By("checking the CR status")
+				brokerKey := types.NamespacedName{Name: createdBrokerCr.Name, Namespace: createdBrokerCr.Namespace}
+				Eventually(func(g Gomega) {
+
+					g.Expect(k8sClient.Get(ctx, brokerKey, createdBrokerCr)).Should(Succeed())
+
+					g.Expect(createdBrokerCr.Status.Version.Image).Should(ContainSubstring("fake"))
+					g.Expect(createdBrokerCr.Status.Version.InitImage).Should(ContainSubstring("fake"))
+					g.Expect(createdBrokerCr.Status.Version.BrokerVersion).Should(Equal(version.GetDefaultVersion()))
+
+					g.Expect(createdBrokerCr.Status.Upgrade.MajorUpdates).Should(BeTrue())
+					g.Expect(createdBrokerCr.Status.Upgrade.MinorUpdates).Should(BeTrue())
+					g.Expect(createdBrokerCr.Status.Upgrade.PatchUpdates).Should(BeTrue())
+					g.Expect(createdBrokerCr.Status.Upgrade.SecurityUpdates).Should(BeTrue())
+
+				}, timeout, interval).Should(Succeed())
+
+				CleanResource(brokerCr, brokerCr.Name, defaultNamespace)
 			}
 		})
 	})
