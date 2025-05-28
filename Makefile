@@ -324,7 +324,7 @@ ifeq (,$(shell which opm 2>/dev/null))
 	set -e ;\
 	mkdir -p $(dir $(OPM)) ;\
 	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
-	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.23.0/$${OS}-$${ARCH}-opm ;\
+	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.54.0/$${OS}-$${ARCH}-opm ;\
 	chmod +x $(OPM) ;\
 	}
 else
@@ -360,12 +360,34 @@ ifneq ($(origin CATALOG_BASE_IMG), undefined)
 FROM_INDEX_OPT := --from-index $(CATALOG_BASE_IMG)
 endif
 
+.PHONY: catalog-generate
+catalog-generate:
+# Step 1: Initialize operator.yaml with package info
+	$(OPM) init activemq-artemis-operator --default-channel=upstream --output yaml > catalog/operator.yaml 
+# Step 2: Generate catalog manifests and write to temporary file
+	$(OPM) render ${BUNDLE_IMGS} --output=yaml > catalog/.bundle.yaml
+# Step 3: Append bundle manifests to operator.yaml
+	cat catalog/.bundle.yaml >> catalog/operator.yaml
+# Step 4: Append olm.channel schema entry
+	echo "---" >> catalog/operator.yaml
+	echo "schema: olm.channel" >> catalog/operator.yaml
+	echo "package: activemq-artemis-operator" >> catalog/operator.yaml
+	echo "name: upstream" >> catalog/operator.yaml
+	echo "entries:" >> catalog/operator.yaml
+	echo "  - name: activemq-artemis-operator.v${VERSION}" >> catalog/operator.yaml	
+# Step 5: Clean up temp file
+	rm -f catalog/.bundle.yaml	
+
+.PHONY: catalog-validate
+catalog-validate:
+	$(OPM) validate catalog
+
 # Build a catalog image by adding bundle images to an empty catalog using the operator package manager tool, 'opm'.
 # This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
 # https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
 .PHONY: catalog-build
-catalog-build: opm ## Build a catalog image.
-	$(OPM) index add --container-tool docker --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
+catalog-build: catalog-generate catalog-validate ## Validate first, then Build a catalog image.
+	docker build -f catalog.Dockerfile -t $(CATALOG_IMG) .
 
 # Push the catalog image.
 .PHONY: catalog-push

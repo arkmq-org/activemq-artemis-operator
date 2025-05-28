@@ -1,0 +1,10 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: activemq-artemis-operator-subscription
+  namespace: operators
+spec:
+  channel: upstream
+  name: activemq-artemis-operator
+  source: activemq-artemis-operator-source
+  sourceNamespace: operators
