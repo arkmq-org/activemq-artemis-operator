@@ -86,4 +86,4 @@ amqversion/*
 tmp
 bin
 *.log
-
+catalog/
