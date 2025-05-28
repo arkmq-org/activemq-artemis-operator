@@ -16,6 +16,9 @@ BUNDLE_ANNOTATION_PACKAGE := $(BUNDLE_PACKAGE)
 GO_MODULE := github.com/arkmq-org/activemq-artemis-operator
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
+OPM_VERSION := v1.55.0
+OPERATOR_SDK_VERSION := v1.28.0
+YQ_VERSION := v4.46.1
 
 # Check that the system's go version is compatible with the one stored in the
 # go.mod file.
@@ -31,7 +34,7 @@ DEPLOY := ./deploy
 
 # CHANNELS define the bundle channels used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g CHANNELS = "candidate,fast,stable")
-CHANNELS = "upstream"
+CHANNELS = "stable"
 # To re-generate a bundle for other specific channels without changing the standard setup, you can:
 # - use the CHANNELS as arg of the bundle target (e.g make bundle CHANNELS=candidate,fast,stable)
 # - use environment variables to overwrite this value (e.g export CHANNELS="candidate,fast,stable")
@@ -41,7 +44,7 @@ endif
 
 # DEFAULT_CHANNEL defines the default channel used in the bundle.
 # Add a new line here if you would like to change its default config. (E.g DEFAULT_CHANNEL = "stable")
-DEFAULT_CHANNEL = "upstream"
+DEFAULT_CHANNEL = "stable"
 # To re-generate a bundle for any other default channel without changing the default setup, you can:
 # - use the DEFAULT_CHANNEL as arg of the bundle target (e.g make bundle DEFAULT_CHANNEL=stable)
 # - use environment variables to overwrite this value (e.g export DEFAULT_CHANNEL="stable")
@@ -314,7 +317,7 @@ else
 HELM = $(shell which helm)
 endif
 endif
-
+	
 .PHONY: opm
 OPM = ./bin/opm
 opm: ## Download opm locally if necessary.
@@ -324,11 +327,28 @@ ifeq (,$(shell which opm 2>/dev/null))
 	set -e ;\
 	mkdir -p $(dir $(OPM)) ;\
 	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
-	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/v1.23.0/$${OS}-$${ARCH}-opm ;\
+	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/${OPM_VERSION}/$${OS}-$${ARCH}-opm ;\
 	chmod +x $(OPM) ;\
 	}
 else
 OPM = $(shell which opm)
+endif
+endif
+
+.PHONY: yq
+YQ = ./bin/yq
+yq: ##Download yq locally if necessary
+ifeq (,$(wildcard $(YQ)))
+ifeq (,$(shell which yq 2>/dev/null))
+	@{ \
+	set -e ;\
+	mkdir -p $(dir $(YQ)) ;\
+	OS=$(shell go env GOOS) && ARCH=$(shell go env GOARCH) && \
+	curl -sSLo $(YQ) https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_$${OS}_$${ARCH} ;\
+	chmod +x $(YQ) ;\
+	}
+else
+YQ = $(shell which yq)
 endif
 endif
 
@@ -340,7 +360,7 @@ ifeq (,$(shell which operator-sdk 2>/dev/null))
 	@{ \
 	set -e ;\
 	mkdir -p $(dir $(OPERATOR_SDK)) ;\
-	curl -sSLo $(OPERATOR_SDK) https://github.com/operator-framework/operator-sdk/releases/download/v1.28.0/operator-sdk_${OS}_${ARCH} ;\
+	curl -sSLo $(OPERATOR_SDK) https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK_VERSION}/operator-sdk_${OS}_${ARCH} ;\
 	chmod +x $(OPERATOR_SDK) ;\
 	}
 else
@@ -360,12 +380,29 @@ ifneq ($(origin CATALOG_BASE_IMG), undefined)
 FROM_INDEX_OPT := --from-index $(CATALOG_BASE_IMG)
 endif
 
+.PHONY: catalog-clean
+catalog-clean: ## Clean up catalog files and Dockerfile
+	rm -rf catalog
+
+.PHONY: catalog-generate 
+catalog-generate: catalog-clean opm yq ## Generate the catalog by adding bundles to stable channel. It requires BUNDLE_IMG exists before running the target"
+	mkdir -p catalog
+	cp config/catalog/basic-catalog-template.yaml catalog/basic-catalog-template.yaml
+	chmod +x ./hack/update-catalog-template.sh
+	./hack/update-catalog-template.sh catalog/basic-catalog-template.yaml $(BUNDLE_IMGS) $(YQ)
+	$(OPM) alpha render-template basic \
+		--migrate-level=bundle-object-to-csv-metadata \
+		-o yaml \
+		catalog/basic-catalog-template.yaml > catalog/operator.yaml
+	$(OPM) validate catalog
+	rm -f catalog/basic-catalog-template.yaml
+
 # Build a catalog image by adding bundle images to an empty catalog using the operator package manager tool, 'opm'.
-# This recipe invokes 'opm' in 'semver' bundle add mode. For more information on add modes, see:
-# https://github.com/operator-framework/community-operators/blob/7f1438c/docs/packaging-operator.md#updating-your-existing-operator
+# This recipe uses 'opm alpha render-template basic' to generate a catalog from a template.
+# The template defines bundle images and channel relationships in a declarative way.
 .PHONY: catalog-build
-catalog-build: opm ## Build a catalog image.
-	$(OPM) index add --container-tool docker --mode semver --tag $(CATALOG_IMG) --bundles $(BUNDLE_IMGS) $(FROM_INDEX_OPT)
+catalog-build: catalog-generate
+	docker build -f catalog.Dockerfile -t $(CATALOG_IMG) .
 
 # Push the catalog image.
 .PHONY: catalog-push

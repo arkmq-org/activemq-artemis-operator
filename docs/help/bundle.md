@@ -27,13 +27,13 @@ Create a repository that Kubernetes will uses to pull your catalog image. You ca
 ## Build a catalog image
 Set your repository in CATALOG_IMG and execute the following command:
 ```
-make CATALOG_IMG=quay.io/my-org/activemq-artemis-operator-index:latest catalog-build
+make CATALOG_IMG=quay.io/my-org/activemq-artemis-operator-catalog:latest catalog-build
 ```
 
 ## Push a catalog image
 Set your repository in CATALOG_IMG and execute the following command:
 ```
-make CATALOG_IMG=quay.io/my-org/activemq-artemis-operator-index:latest catalog-push
+make CATALOG_IMG=quay.io/my-org/activemq-artemis-operator-catalog:latest catalog-push
 ```
 
 ## Create a catalog source (e.g. catalog-source.yaml):
@@ -48,7 +48,7 @@ metadata:
   namespace: operators
 spec:
   displayName: ActiveMQ Artemis Operators
-  image: quay.io/my-org/activemq-artemis-operator-index:latest
+  image: quay.io/my-org/activemq-artemis-operator-catalog:latest
   sourceType: grpc
 ```
 
@@ -57,7 +57,7 @@ and deploy it:
 ```$xslt
 $ kubectl create -f catalog-source.yaml
 ```
-In a moment you will see the index image is up and running in namespace **operators**:
+In a moment you will see the catalog image is up and running in namespace **operators**:
 
 ```$xslt
 $ kubectl get pod -n operators
@@ -74,7 +74,7 @@ metadata:
   name: activemq-artemis-operator-subscription
   namespace: operators
 spec:
-  channel: upstream
+  channel: stable
   name: activemq-artemis-operator
   source: activemq-artemis-operator-source
   sourceNamespace: operators

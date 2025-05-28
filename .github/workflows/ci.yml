@@ -34,7 +34,24 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
     steps:
+      - name: Set up env
+        run: |
+          echo "HOSTNAME=${HOSTNAME}" >> ${GITHUB_ENV}
+
+      - name: Set up Docker
+        uses: docker/setup-docker-action@v4
+        with:
+          daemon-config: |
+            {
+              "insecure-registries" : [ "${{env.HOSTNAME}}:5000" ]
+            }
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -51,6 +68,7 @@ jobs:
           cpus: 2
           memory: 4g
           addons: ingress
+          insecure-registry: ${{env.HOSTNAME}}:5000
 
       - name: Enable minikube ingress-nginx ssl-passthrough
         run: >
@@ -139,3 +157,33 @@ jobs:
           podman push quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-bundle:$COMMIT_TAG
           podman tag $IMAGE_NAME-bundle:dev.latest quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-bundle:dev.latest
           podman push quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-bundle:dev.latest
+
+      - name: Build and push catalog image
+        run: |
+          make CATALOG_IMG=${HOSTNAME}:5000/$IMAGE_NAME-catalog:dev.latest catalog-build catalog-push
+      
+      - name: Install olm and verify pod readiness
+        run: |
+          ./bin/operator-sdk olm install
+
+           echo "Waiting for OLM pods to be ready..."
+           minikube kubectl -- wait pod -l app=catalog-operator --for=condition=Ready --namespace=olm --timeout=2m
+           minikube kubectl -- wait pod -l app=olm-operator --for=condition=Ready --namespace=olm --timeout=2m
+
+      - name: Create and verify catalog source
+        run: |
+          sed "s~image:.*~image: ${HOSTNAME}:5000/$IMAGE_NAME-catalog:dev.latest~" examples/catalog/catalog-source.yaml | minikube kubectl -- create -f -
+          minikube kubectl -- wait catalogsource activemq-artemis-operator-source --for=jsonpath='{.status.connectionState.lastObservedState}'=READY --namespace=operators --timeout=3m ||
+          minikube kubectl -- get catalogsource activemq-artemis-operator-source --namespace operators -o yaml
+          minikube kubectl -- wait pod -l olm.catalogSource=activemq-artemis-operator-source --for=condition=Ready --namespace=operators --timeout=3m ||
+          minikube kubectl -- describe pod -l olm.catalogSource=activemq-artemis-operator-source --namespace=operators
+         
+      - name: Create and verify subscription
+        run: |
+          minikube kubectl -- create -f ./examples/catalog/subscription.yaml
+          minikube kubectl -- wait subscription activemq-artemis-operator-subscription --for=jsonpath='{.status.installplan.kind}'=InstallPlan --namespace=operators --timeout=3m ||
+          minikube kubectl -- get subscription activemq-artemis-operator-subscription --namespace=operators -o yaml
+          minikube kubectl -- wait installplan -l operators.coreos.com/activemq-artemis-operator.operators='' --for=condition=Installed --namespace=operators --timeout=3m ||
+          minikube kubectl -- get installplan -l operators.coreos.com/activemq-artemis-operator.operators='' --namespace=operators -o yaml
+          minikube kubectl -- wait pod -l name=activemq-artemis-operator --for=condition=Ready --namespace=operators --timeout=3m ||
+          minikube kubectl -- get pod -l name=activemq-artemis-operator --namespace=operators -o yaml

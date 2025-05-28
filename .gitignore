@@ -87,3 +87,5 @@ tmp
 bin
 *.log
 
+# Catalog files
+catalog/
