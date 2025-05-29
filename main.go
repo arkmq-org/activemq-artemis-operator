@@ -42,7 +42,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"fmt"
 	goruntime "runtime"
@@ -221,7 +220,6 @@ func main() {
 	setupLog.Info("Manager options",
 		"Namespaces", defaultNamespaces,
 		"MetricsBindAddress", mgrOptions.Metrics.BindAddress,
-		"Port", mgrOptions.WebhookServer.(*webhook.DefaultServer).Options.Port,
 		"HealthProbeBindAddress", mgrOptions.HealthProbeBindAddress,
 		"LeaderElection", mgrOptions.LeaderElection,
 		"LeaderElectionID", mgrOptions.LeaderElectionID,
