@@ -2,6 +2,7 @@ name: CI
 
 env:
   IMAGE_NAME: activemq-artemis-operator
+  OLM_VERSION: v0.31.0
 
 on:
   push:
@@ -136,3 +137,51 @@ jobs:
           podman push quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-bundle:$COMMIT_TAG
           podman tag $IMAGE_NAME-bundle:dev.latest quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-bundle:dev.latest
           podman push quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-bundle:dev.latest
+      
+      - name: Install opm CLI
+        run: |
+          mkdir -p bin
+          curl -sSLo ./bin/opm https://github.com/operator-framework/operator-registry/releases/download/v1.54.0/linux-amd64-opm
+          chmod +x ./bin/opm
+        env:
+          OPM: ./bin/opm
+
+      - name: Generate and validate FBC catalog
+        run: make fbc-catalog-generate catalog-validate
+        
+      - name: Build the catalog image
+        run: podman build --file fbc-catalog.Dockerfile --label quay.expires-after=90d --label git-sha=$GITHUB_SHA --tag $IMAGE_NAME-catalog:dev.latest .
+
+      - name: Push the catalog image
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          COMMIT_TAG=dev.$(date +%Y%m%d).$(git rev-parse --short "$GITHUB_SHA")
+          podman login --username=${{ secrets.QUAY_USERNAME }} --password=${{ secrets.QUAY_PASSWORD }} quay.io
+          podman tag $IMAGE_NAME-catalog:dev.latest quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-catalog:$COMMIT_TAG
+          podman push quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-catalog:$COMMIT_TAG
+      
+      - name: Install operator-sdk
+        run: |
+          mkdir -p bin
+          curl -sSLo ./bin/operator-sdk https://github.com/operator-framework/operator-sdk/releases/download/v1.28.0/operator-sdk_linux_amd64
+          chmod +x ./bin/operator-sdk
+        
+      - name: Install olm
+        run: ./bin/operator-sdk olm install
+
+      - name: Check for catalog and olm operator pods status installed in the olm namespace
+        run: |
+          minikube kubectl -- wait pod -l app=catalog-operator --for=condition=Ready --namespace=olm --timeout=2m
+          minikube kubectl -- wait pod -l app=olm-operator --for=condition=Ready --namespace=olm --timeout=2m
+
+      - name: Create the catalog-sources
+        run: minikube kubectl -- create -f ./examples/catalog/catalog-source.yaml
+            
+      - name: Check for the catalog-sources pods status
+        run: minikube kubectl -- wait pod -l olm.catalogSource=activemq-artemis-operator-source --for=condition=Ready --namespace=operators --timeout=2m
+
+      - name: Create the subscription
+        run: minikube kubectl -- create -f ./examples/catalog/subscription.yaml
+
+      - name: Check for an operator will be installed into operators namespace
+        run: minikube kubectl -- wait pod -l name=activemq-artemis-operator --for=condition=Ready --namespace=operators --timeout=2m
