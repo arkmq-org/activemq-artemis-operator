@@ -128,6 +128,10 @@ jobs:
           make build && make generate-deploy && make bundle && git status
           git commit --all --message "Update related images to ${ACTIVEMQ_ARTEMIS_VERSION}" || echo "nothing to commit"
 
+      - name: Update catalog-image
+        run: |
+          sed -i "s~image:.*~image: ${CATALOG_IMG}~" ./examples/catalog/catalog-source.yaml
+          
       - name: Push commits
         run: |
           git push

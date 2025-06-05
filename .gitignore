@@ -86,4 +86,5 @@ amqversion/*
 tmp
 bin
 *.log
-
+catalog/.bundle.yaml
+catalog/operator.yaml
