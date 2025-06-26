@@ -117,6 +117,8 @@ type ActiveMQArtemisReconcilerImpl struct {
 	customResource     *brokerv1beta1.ActiveMQArtemis
 	scheme             *runtime.Scheme
 	isOnOpenShift      bool
+	jolokiaEndpoints   []*jolokia_client.JkInfo
+	cachedBrokerStatus map[string]any
 }
 
 func NewActiveMQArtemisReconcilerImpl(customResource *brokerv1beta1.ActiveMQArtemis, parent *ActiveMQArtemisReconciler) *ActiveMQArtemisReconcilerImpl {
@@ -126,6 +128,7 @@ func NewActiveMQArtemisReconcilerImpl(customResource *brokerv1beta1.ActiveMQArte
 		scheme:             parent.Scheme,
 		requestedResources: make(map[reflect.Type]map[string]rtclient.Object),
 		isOnOpenShift:      parent.isOnOpenShift,
+		cachedBrokerStatus: make(map[string]any),
 	}
 }
 
@@ -3207,14 +3210,14 @@ type applyError struct {
 func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessBrokerStatus(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, scheme *runtime.Scheme) (retry bool) {
 	var condition metav1.Condition
 
-	err := AssertBrokersAvailable(cr, client, scheme)
+	err := AssertBrokersAvailable(cr, client)
 	if err != nil {
 		condition = trapErrorAsCondition(err, brokerv1beta1.ConfigAppliedConditionType)
 		meta.SetStatusCondition(&cr.Status.Conditions, condition)
 		return err.Requeue()
 	}
 
-	err = reconciler.AssertBrokerImageVersion(cr, client, scheme)
+	err = reconciler.AssertBrokerImageVersion(cr, client)
 	if err == nil {
 		condition = metav1.Condition{
 			Type:   brokerv1beta1.BrokerVersionAlignedConditionType,
@@ -3320,7 +3323,7 @@ type propertyFile struct {
 	FileAlder32 string
 }
 
-func AssertBrokersAvailable(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, scheme *runtime.Scheme) ArtemisError {
+func AssertBrokersAvailable(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client) ArtemisError {
 	reqLogger := ctrl.Log.WithValues("ActiveMQArtemis Name", cr.Name)
 
 	// pre-condition, we must be deployed, avoid broker status roundtrip till ready
@@ -3392,13 +3395,13 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) AssertJaasPropertiesStatus(cr *
 	return statusError
 }
 
-func (reconciler *ActiveMQArtemisReconcilerImpl) AssertBrokerImageVersion(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, scheme *runtime.Scheme) ArtemisError {
+func (reconciler *ActiveMQArtemisReconcilerImpl) AssertBrokerImageVersion(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client) ArtemisError {
 	reqLogger := ctrl.Log.WithValues("ActiveMQArtemis Name", cr.Name)
 
 	// The ResolveBrokerVersionFromCR should never fail because validation succeeded
 	resolvedFullVersion, _ := common.ResolveBrokerVersionFromCR(cr)
 
-	statusError := reconciler.checkStatus(cr, client, func(brokerStatus *brokerStatus, jk *jolokia_client.JkInfo) ArtemisError {
+	statusError := reconciler.CheckStatus(cr, client, func(brokerStatus *brokerStatus, jk *jolokia_client.JkInfo) ArtemisError {
 
 		if brokerStatus.ServerStatus.Version != resolvedFullVersion {
 			err := errors.Errorf("broker version non aligned on pod %s-%s, the detected version [%s] doesn't match the spec.version [%s] resolved as [%s]",
@@ -3413,49 +3416,18 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) AssertBrokerImageVersion(cr *br
 	return statusError
 }
 
-func (reconciler *ActiveMQArtemisReconcilerImpl) checkStatus(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, checkBrokerStatus func(BrokerStatus *brokerStatus, jk *jolokia_client.JkInfo) ArtemisError) ArtemisError {
-	reqLogger := ctrl.Log.WithValues("ActiveMQArtemis Name", cr.Name)
+func (reconciler *ActiveMQArtemisReconcilerImpl) CheckStatus(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, checkBrokerStatus func(BrokerStatus *brokerStatus, jk *jolokia_client.JkInfo) ArtemisError) ArtemisError {
 
-	var jks []*jolokia_client.JkInfo
-	if common.IsRestricted(cr) {
-		jks = jolokia_client.GetMinimalJolokiaAgents(cr, client)
-	} else {
-		resource := types.NamespacedName{
-			Name:      cr.Name,
-			Namespace: cr.Namespace,
-		}
-		jks = jolokia_client.GetBrokers(resource, []ss.StatefulSetInfo{
-			{
-				NamespacedName: types.NamespacedName{Name: namer.CrToSS(cr.Name), Namespace: cr.Namespace},
-				Replicas:       cr.Status.DeploymentPlanSize,
-				Labels:         nil,
-			}}, client)
-	}
+	reconciler.resolveJolokiaEndpoints(cr, client)
 
-	if len(jks) == 0 {
-		reqLogger.V(1).Info("no Jolokia Clients available. requeing")
+	if len(reconciler.jolokiaEndpoints) == 0 {
+		reconciler.log.V(1).Info("no Jolokia Clients available. requeing")
 		return NewJolokiaClientsNotFoundError(errors.New("Waiting for Jolokia Clients to become available"))
 	}
 
-	for _, jk := range jks {
-		currentJson, err := jk.Artemis.GetStatus()
+	for _, jk := range reconciler.jolokiaEndpoints {
 
-		if err != nil {
-			reqLogger.V(1).Info("error getting broker status with Jolokia", "IP", jk.IP, "Ordinal", jk.Ordinal, "error", err)
-			return NewArtemisStatusError(err, true)
-		}
-
-		reqLogger.V(2).Info("raw json status", "IP", jk.IP, "ordinal", jk.Ordinal, "status json", currentJson)
-
-		brokerStatus, err := unmarshallStatus(currentJson)
-		if err != nil {
-			reqLogger.Error(err, "unable to unmarshall broker status", "json", currentJson)
-			return NewArtemisStatusError(err, false)
-		}
-
-		reqLogger.V(2).Info("broker status", "ordinal", jk.Ordinal, "status", brokerStatus)
-
-		artemisError := checkBrokerStatus(&brokerStatus, jk)
+		artemisError := reconciler.CheckStatusFromJolokia(jk, checkBrokerStatus)
 		if artemisError != nil {
 			return artemisError
 		}
@@ -3464,12 +3436,82 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) checkStatus(cr *brokerv1beta1.A
 	return nil
 }
 
+func (reconciler *ActiveMQArtemisReconcilerImpl) CheckStatusFromJolokia(jk *jolokia_client.JkInfo, checkBrokerStatus func(BrokerStatus *brokerStatus, jk *jolokia_client.JkInfo) ArtemisError) ArtemisError {
+
+	brokerStatus, artemisError := reconciler.GetAndCacheBrokerStatus(jk)
+	if artemisError != nil {
+		return artemisError
+	}
+
+	artemisError = checkBrokerStatus(brokerStatus, jk)
+	if artemisError != nil {
+		return artemisError
+	}
+	return nil
+}
+
+func (reconciler *ActiveMQArtemisReconcilerImpl) GetAndCacheBrokerStatus(jk *jolokia_client.JkInfo) (*brokerStatus, ArtemisError) {
+
+	if cached, exists := reconciler.cachedBrokerStatus[jk.Ordinal]; exists {
+		switch v := cached.(type) {
+		case ArtemisError:
+			return nil, v
+		case brokerStatus:
+			return &v, nil
+		}
+	}
+
+	currentJson, err := jk.Artemis.GetStatus()
+
+	if err != nil {
+		reconciler.log.V(1).Info("error getting broker status with Jolokia", "IP", jk.IP, "Ordinal", jk.Ordinal, "error", err)
+		artemisError := NewArtemisStatusError(err, true)
+		reconciler.cachedBrokerStatus[jk.Ordinal] = artemisError
+		return nil, artemisError
+	}
+
+	reconciler.log.V(2).Info("raw json status", "IP", jk.IP, "ordinal", jk.Ordinal, "status json", currentJson)
+
+	brokerStatus, err := unmarshallStatus(currentJson)
+	if err != nil {
+		reconciler.log.Error(err, "unable to unmarshall broker status", "json", currentJson)
+		artemisError := NewArtemisStatusError(err, false)
+		reconciler.cachedBrokerStatus[jk.Ordinal] = artemisError
+		return nil, artemisError
+	}
+
+	reconciler.log.V(2).Info("cached broker status", "ordinal", jk.Ordinal, "status", brokerStatus)
+	reconciler.cachedBrokerStatus[jk.Ordinal] = brokerStatus
+
+	return &brokerStatus, nil
+
+}
+
+func (reconciler *ActiveMQArtemisReconcilerImpl) resolveJolokiaEndpoints(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client) {
+	if reconciler.jolokiaEndpoints == nil {
+		if common.IsRestricted(cr) {
+			reconciler.jolokiaEndpoints = jolokia_client.GetMinimalJolokiaAgents(cr, client)
+		} else {
+			resource := types.NamespacedName{
+				Name:      cr.Name,
+				Namespace: cr.Namespace,
+			}
+			reconciler.jolokiaEndpoints = jolokia_client.GetBrokers(resource, []ss.StatefulSetInfo{
+				{
+					NamespacedName: types.NamespacedName{Name: namer.CrToSS(cr.Name), Namespace: cr.Namespace},
+					Replicas:       cr.Status.DeploymentPlanSize, // this means we wait till the pod status is good before trying the jolokia endpoint
+					Labels:         nil,
+				}}, client)
+		}
+	}
+}
+
 func (reconciler *ActiveMQArtemisReconcilerImpl) checkProjectionStatus(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, secretProjection *projection, extractStatus func(BrokerStatus *brokerStatus, FileName string) (propertiesStatus, bool)) ArtemisError {
 	reqLogger := ctrl.Log.WithValues("ActiveMQArtemis Name", cr.Name)
 
 	reqLogger.V(2).Info("in sync check", "projection", secretProjection)
 
-	checkErr := reconciler.checkStatus(cr, client, func(brokerStatus *brokerStatus, jk *jolokia_client.JkInfo) ArtemisError {
+	checkErr := reconciler.CheckStatus(cr, client, func(brokerStatus *brokerStatus, jk *jolokia_client.JkInfo) ArtemisError {
 
 		var current propertiesStatus
 		var present bool

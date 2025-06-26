@@ -51,7 +51,7 @@ type JkInfo struct {
 func GetBrokers(resource types.NamespacedName, ssInfos []ss.StatefulSetInfo, client rtclient.Client) []*JkInfo {
 	reqLogger := ctrl.Log.WithName("jolokia").WithValues("Request.Namespace", resource.Namespace, "Request.Name", resource.Name)
 
-	var artemisArray []*JkInfo = nil
+	var artemisArray []*JkInfo = []*JkInfo{} // empty slice
 
 	for _, info := range ssInfos {
 		jkInfos := GetBrokersFromDNS(namer.SSToCr(info.NamespacedName.Name), info.NamespacedName.Namespace, info.Replicas, client)
@@ -63,10 +63,9 @@ func GetBrokers(resource types.NamespacedName, ssInfos []ss.StatefulSetInfo, cli
 }
 
 func GetMinimalJolokiaAgents(cr *v1beta1.ActiveMQArtemis, client rtclient.Client) []*JkInfo {
-	var artemisArray []*JkInfo = nil
+	var artemisArray []*JkInfo = []*JkInfo{} // empty slice
 	var i int32 = 0
-
-	for i = 0; i < common.GetDeploymentSize(cr); i++ {
+	for i = 0; i < cr.Status.DeploymentPlanSize; i++ {
 
 		ordinalFqdn := common.OrdinalFQDNS(cr.Name, cr.Namespace, i)
 
@@ -87,7 +86,8 @@ func GetMinimalJolokiaAgents(cr *v1beta1.ActiveMQArtemis, client rtclient.Client
 func GetBrokersFromDNS(crName string, namespace string, size int32, client rtclient.Client) []*JkInfo {
 	reqLogger := ctrl.Log.WithName("jolokia").WithValues("Request.Namespace", namespace, "Request.Name", crName)
 
-	var artemisArray []*JkInfo = nil
+	var artemisArray []*JkInfo = []*JkInfo{} // empty slice
+
 	var i int32 = 0
 
 	for i = 0; i < size; i++ {

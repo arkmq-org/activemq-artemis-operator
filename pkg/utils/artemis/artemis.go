@@ -72,6 +72,14 @@ func GetArtemis(_client rtclient.Client, _ip string, _jolokiaPort string, _name 
 	return &artemis
 }
 
+func GetArtemisWithJolokia(j jolokia.IJolokia, name string) *Artemis {
+	artemis := Artemis{
+		jolokia: j,
+		name:    name,
+	}
+	return &artemis
+}
+
 func (artemis *Artemis) GetJolokia() jolokia.IJolokia {
 	return artemis.jolokia
 }

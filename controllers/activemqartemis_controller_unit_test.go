@@ -15,15 +15,27 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
+	"fmt"
 	"strings"
 	"testing"
 
 	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
+	artemis_client "github.com/arkmq-org/activemq-artemis-operator/pkg/utils/artemis"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/jolokia"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/jolokia_client"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/selectors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 func TestValidate(t *testing.T) {
@@ -138,4 +150,94 @@ func TestValidateBrokerPropsDuplicateOnFirstEqualsIncorrectButUnrealisticForOurB
 	condition := meta.FindStatusCondition(cr.Status.Conditions, brokerv1beta1.ValidConditionType)
 	assert.Equal(t, condition.Reason, brokerv1beta1.ValidConditionFailedDuplicateBrokerPropertiesKey)
 	assert.True(t, strings.Contains(condition.Message, "nameWith"))
+}
+
+func TestStatusPodsCheckCached(t *testing.T) {
+
+	replicas := int32(1)
+	cr := &brokerv1beta1.ActiveMQArtemis{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "broker",
+			Namespace: "some-ns",
+		},
+		Spec: brokerv1beta1.ActiveMQArtemisSpec{
+			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+				Size: &replicas,
+			},
+		},
+		Status: brokerv1beta1.ActiveMQArtemisStatus{
+			DeploymentPlanSize: replicas,
+		},
+	}
+
+	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
+	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+
+	checkOk := func(brokerStatus *brokerStatus, jk *jolokia_client.JkInfo) ArtemisError {
+		return nil
+	}
+
+	var times = 0
+	interceptorFuncs := interceptor.Funcs{
+		Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			times++
+			return apierrors.NewNotFound(schema.GroupResource{}, "")
+		},
+	}
+
+	client := fake.NewClientBuilder().WithInterceptorFuncs(interceptorFuncs).Build()
+
+	valid := ri.CheckStatus(cr, client, checkOk)
+	assert.NotNil(t, valid)
+	assert.Contains(t, valid.Error(), "Waiting for")
+	assert.Equal(t, times, 1)
+
+	// repeat to verify fake client not called again
+	valid = ri.CheckStatus(cr, client, checkOk)
+	assert.NotNil(t, valid)
+	assert.Contains(t, valid.Error(), "Waiting for")
+
+	assert.Equal(t, times, 1)
+}
+
+func TestJolokiaStatusCached(t *testing.T) {
+
+	cr := &brokerv1beta1.ActiveMQArtemis{
+		ObjectMeta: v1.ObjectMeta{Name: "a"},
+		Spec:       brokerv1beta1.ActiveMQArtemisSpec{},
+	}
+
+	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
+	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+
+	checkOk := func(brokerStatus *brokerStatus, jk *jolokia_client.JkInfo) ArtemisError {
+		return nil
+	}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	j := jolokia.NewMockIJolokia(ctrl)
+	a := artemis_client.GetArtemisWithJolokia(j, "a")
+
+	j.EXPECT().
+		Read(gomock.Eq("org.apache.activemq.artemis:broker=\"a\"/Status")).
+		DoAndReturn(func(_ string) (*jolokia.ResponseData, error) {
+			return &jolokia.ResponseData{
+				Status:    404,
+				Value:     "",
+				ErrorType: "javax.management.AttributeNotFoundException",
+				Error:     "javax.management.AttributeNotFoundException : No such attribute: Status",
+			}, fmt.Errorf("javax.management.AttributeNotFoundException")
+		}).Times(1)
+
+	valid := ri.CheckStatusFromJolokia(&jolokia_client.JkInfo{Artemis: a, IP: "IP", Ordinal: "0"}, checkOk)
+	assert.NotNil(t, valid)
+	assert.True(t, strings.Contains(valid.Error(), "AttributeNotFoundException"))
+
+	// verify status call is cached for second call
+	valid = ri.CheckStatusFromJolokia(&jolokia_client.JkInfo{Artemis: a, IP: "IP", Ordinal: "0"}, checkOk)
+	assert.NotNil(t, valid)
+	assert.True(t, strings.Contains(valid.Error(), "AttributeNotFoundException"))
+
 }
