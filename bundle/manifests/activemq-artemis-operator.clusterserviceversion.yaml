@@ -81,6 +81,37 @@ metadata:
         },
         {
           "apiVersion": "broker.amq.io/v1beta1",
+          "kind": "ActiveMQArtemisApp",
+          "metadata": {
+            "name": "wq-app"
+          },
+          "spec": {
+            "auth": [
+              "mtls"
+            ],
+            "capabilities": [
+              {
+                "producerandconsumerof": [
+                  {
+                    "queuename": "APP.JOBS"
+                  }
+                ]
+              }
+            ],
+            "selector": {
+              "matchLabels": [
+                {
+                  "forWorkQueue": true
+                }
+              ]
+            }
+          },
+          "status": {
+            "conditions": []
+          }
+        },
+        {
+          "apiVersion": "broker.amq.io/v1beta1",
           "kind": "ActiveMQArtemisScaledown",
           "metadata": {
             "name": "ex-aaoscaledown"
@@ -124,6 +155,44 @@ metadata:
                 ],
                 "name": "activemq"
               }
+            }
+          },
+          "status": {
+            "conditions": []
+          }
+        },
+        {
+          "apiVersion": "broker.amq.io/v1beta1",
+          "kind": "ActiveMQArtemisService",
+          "metadata": {
+            "labels": [
+              {
+                "forWorkQueue": true
+              }
+            ],
+            "name": "ex-as-wq",
+            "spec": {
+              "acceptors": [
+                {
+                  "name": "amqp"
+                }
+              ],
+              "auth": [
+                "mtls"
+              ],
+              "env": [
+                {
+                  "name": "JAVA_ARGS_APPEND",
+                  "value": "-Dlog4j2.level=INFO"
+                }
+              ],
+              "resources": [
+                {
+                  "limits": {
+                    "memory": "1Gi"
+                  }
+                }
+              ]
             }
           },
           "status": {
@@ -537,6 +606,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v2alpha3
+    - kind: ActiveMQArtemisApp
+      name: activemqartemisapps.broker.amq.io
+      version: v1beta1
     - description: A stateful deployment of one or more brokers
       displayName: ActiveMQ Artemis
       kind: ActiveMQArtemis
@@ -2787,6 +2859,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v1beta1
+    - kind: ActiveMQArtemisService
+      name: activemqartemisservices.broker.amq.io
+      version: v1beta1
   description: ArkMQ Operator manages ActiveMQ Artemis messaging broker in the cloud
   displayName: ArkMQ Operator
   icon:
@@ -3054,9 +3129,11 @@ spec:
           - broker.amq.io
           resources:
           - activemqartemisaddresses
+          - activemqartemisapps
           - activemqartemises
           - activemqartemisscaledowns
           - activemqartemissecurities
+          - activemqartemisservices
           verbs:
           - create
           - delete
@@ -3069,18 +3146,22 @@ spec:
           - broker.amq.io
           resources:
           - activemqartemisaddresses/finalizers
+          - activemqartemisapps/finalizers
           - activemqartemises/finalizers
           - activemqartemisscaledowns/finalizers
           - activemqartemissecurities/finalizers
+          - activemqartemisservices/finalizers
           verbs:
           - update
         - apiGroups:
           - broker.amq.io
           resources:
           - activemqartemisaddresses/status
+          - activemqartemisapps/status
           - activemqartemises/status
           - activemqartemisscaledowns/status
           - activemqartemissecurities/status
+          - activemqartemisservices/status
           verbs:
           - get
           - patch

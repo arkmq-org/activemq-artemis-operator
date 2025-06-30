@@ -22,7 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
-	utilpointer "k8s.io/utils/pointer"
+	pointer "k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -1182,7 +1182,7 @@ func TestNewPodTemplateSpecForCR_IncludesTopologySpreadConstraints(t *testing.T)
 }
 
 func TestNewPodTemplateSpecForCR_IncludesContainerSecurityContext(t *testing.T) {
-	containerSecurityContext := &v1.SecurityContext{RunAsNonRoot: utilpointer.Bool(false)}
+	containerSecurityContext := &v1.SecurityContext{RunAsNonRoot: pointer.To(false)}
 
 	cr := &brokerv1beta1.ActiveMQArtemis{
 		Spec: brokerv1beta1.ActiveMQArtemisSpec{
@@ -1201,7 +1201,7 @@ func TestNewPodTemplateSpecForCR_IncludesContainerSecurityContext(t *testing.T) 
 
 	assert.NoError(t, err)
 	assert.NotNil(t, newSpec)
-	expectedSecurityContext := &v1.SecurityContext{RunAsNonRoot: utilpointer.Bool(false)}
+	expectedSecurityContext := &v1.SecurityContext{RunAsNonRoot: pointer.To(false)}
 
 	assert.Equal(t, newSpec.Spec.Containers[0].SecurityContext, expectedSecurityContext)
 	assert.Equal(t, newSpec.Spec.InitContainers[0].SecurityContext, expectedSecurityContext)
