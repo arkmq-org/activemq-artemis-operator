@@ -1,0 +1,26 @@
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemisService
+metadata:
+  name: ex-as-wq
+  labels:
+    - forWorkQueue: true
+spec:
+  acceptors: [
+    {
+      name: amqp
+    }
+  ]
+  auth: [
+    mtls
+  ]
+  env: [
+    {
+      name: JAVA_ARGS_APPEND,
+      value: '-Dlog4j2.level=INFO'
+    }
+  ]
+  resources:
+    - limits:
+        memory: '1Gi'
+status:
+  conditions: []
