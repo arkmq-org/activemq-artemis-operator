@@ -57,10 +57,10 @@ jobs:
 
       - name: Build the docs
         run: >
-          rm -rf arkmq-org.github.io/content/en/docs &&
-          cp -r docs arkmq-org.github.io/content/en &&
-          rm -rf arkmq-org.github.io/static/docs/examples &&
-          cp -r examples arkmq-org.github.io/static/docs/examples &&
+          rm -rf arkmq-org.github.io/docs &&
+          cp -r docs arkmq-org.github.io &&
+          rm -rf arkmq-org.github.io/examples &&
+          cp -r examples arkmq-org.github.io &&
           cd arkmq-org.github.io &&
           npm install && npm run build
 
