@@ -17,7 +17,7 @@ Welcome to The arkmq-org documentation. This documentation is open source and ca
 
 ## Quick Start
 
-One page summary of how to start a new arkmq-org project. [Quick Start →]({{< relref "quick-start" >}})
+One page summary of how to start a new arkmq-org project. [Quick Start →](quick-start.md)
 
 ## How to contribute to the docs
 
@@ -26,4 +26,4 @@ Each chapter is a single markdown file found under the [docs](https://github.com
 
 ## Help
 
-Get help on arkmq-org.io. [Help →]({{< relref "operator" >}})
+Get help on arkmq-org.io. [Help →](../help/operator.md)

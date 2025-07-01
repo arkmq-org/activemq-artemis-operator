@@ -15,7 +15,7 @@ manage ActiveMQ Artemis broker resources in a cloud environment. You can get the
 
 ### Prerequisite
 Before you start, you need to have access to a running Kubernetes cluster environment. A [Minikube](https://minikube.sigs.k8s.io/docs/start/)
-instance running on your laptop will do fine. The arkmq-org Operator can also run in an Openshift cluster environment such as [CodeReady Containers](https://developers.redhat.com/products/codeready-containers/overview).
+instance running on your laptop will do fine. The arkmq-org Operator can also run in an Openshift cluster environment such as [CodeReady Containers](https://developers.redhat.com/products/openshift-local/overview).
 
 In this blog post, we assume that you have a Kubernetes cluster environment.
 

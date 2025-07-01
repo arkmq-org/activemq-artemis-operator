@@ -18,11 +18,11 @@ The [ActiveMQ Artemis](https://activemq.apache.org/components/artemis/) broker s
 This article guides you through the steps to set up a broker to run in kubernetes (Minikube). The broker will listen on a secure port 61617 (ssl over tcp). It also demonstrates sending and receiving messages over secure connections using one-way authentication.
 
 ### Prerequisite
-Before you start you need have access to a running Kubernetes cluster environment. A [Minikube](https://minikube.sigs.k8s.io/docs/start/) running on your laptop will just do fine. The arkmq-org operator also runs in a Openshift cluster environment like [CodeReady Container](https://developers.redhat.com/products/codeready-containers/overview). In this blog we assume you have Kubernetes cluster environment. (If you use CodeReady the client tool is **oc** in place of **kubectl**)
+Before you start you need have access to a running Kubernetes cluster environment. A [Minikube](https://minikube.sigs.k8s.io/docs/start/) running on your laptop will just do fine. The arkmq-org operator also runs in a Openshift cluster environment like [CodeReady Container](https://developers.redhat.com/products/openshift-local/overview). In this blog we assume you have Kubernetes cluster environment. (If you use CodeReady the client tool is **oc** in place of **kubectl**)
 
 ### Deploy Arkmq-org operator
 First you need to deploy the arkmq-org operator.
-If you are not sure how to deploy the operator take a look at [this blog]({{< relref "using_operator.md" >}}).
+If you are not sure how to deploy the operator take a look at [this blog](using_operator.md).
 
 In this blog post we assume you deployed the operator to a namespace called **myproject**.
 

@@ -14,7 +14,7 @@ With arkmq-org operator one can easily manage the broker clusters.
 Either scaling up number of nodes(pods) when workload is high, or scaling down when some is not needed -- without messages being lost or stuck.
 
 ### Prerequisite
-Before you start you need have access to a running Kubernetes cluster environment. A [Minikube](https://minikube.sigs.k8s.io/docs/start/) running on your laptop will just do fine. The arkmq-org operator also runs in a Openshift cluster environment like [CodeReady Container](https://developers.redhat.com/products/codeready-containers/overview). In this blog we assume you have Kubernetes cluster environment. (If you use CodeReady the client tool is **oc** in place of **kubectl**)
+Before you start you need have access to a running Kubernetes cluster environment. A [Minikube](https://minikube.sigs.k8s.io/docs/start/) running on your laptop will just do fine. The arkmq-org operator also runs in a Openshift cluster environment like [CodeReady Container](https://developers.redhat.com/products/openshift-local/overview). In this blog we assume you have Kubernetes cluster environment. (If you use CodeReady the client tool is **oc** in place of **kubectl**)
 
 ### Step 1 - Deploy arkmq-org Operator
 In this article we are using the [arkmq-org operator repo](https://github.com/arkmq-org/activemq-artemis-operator). In case you haven't done so, clone it to your local disk:
@@ -24,7 +24,7 @@ $ git clone https://github.com/arkmq-org/activemq-artemis-operator.git
 $ cd activemq-artemis-operator
 ```
 
-If you are not sure how to deploy the operator take a look at [this tutorial]({{< relref "using_operator.md" >}}).
+If you are not sure how to deploy the operator take a look at [this tutorial](using_operator.md).
 
 In this blog post we assume you deployed the operator to a namespace called **myproject**.
 
@@ -222,4 +222,3 @@ It shows queue TEST's message count is **200** now!
 ### More information
 
 * Check out [arkmq-org project repo](https://github.com/arkmq-org)
-* Reach the [dev team at slack](arkmq-org.slack.com) for questions/issues/help

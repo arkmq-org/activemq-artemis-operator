@@ -203,7 +203,7 @@ kubectl create secret generic ssl-acceptor-ssl-secret -n myproject \
 
 Operator will create ActiveMQ resources based on custom resources definitions (CRD).
 
-If you are not sure how to deploy the operator take a look at [here]({{< relref "using_operator.md" >}}).
+If you are not sure how to deploy the operator take a look at [here](using_operator.md).
 
 In this tutorial we assume you deployed the operator to a namespace called **activemq-artemis-operator**.
 

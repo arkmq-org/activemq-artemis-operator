@@ -61,8 +61,7 @@ deployment.apps/ingress-nginx-controller patched
 #### Make sure the domain of your cluster is resolvable
 
 If you are running your OpenShift cluster locally, you might not be able to
-resolve the urls to IPs out of the blue. Follow [this guide]({{< ref
-"/docs/help/hostname_resolution" >}} "set up dnsmasq") to configure your setup.
+resolve the urls to IPs out of the blue. Follow [this guide](../help/hostname_resolution.md) to configure your setup.
 
 This tutorial will follow the simple /etc/hosts approach, but feel free to use
 the most appropriate one for you.

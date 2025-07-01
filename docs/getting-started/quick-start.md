@@ -26,13 +26,13 @@ resource.
 ## General environment requirements
 
 Currently the operator is tested against kubernetes v1.25 and above.
-You can install a [Minikube](https://minikube.sigs.k8s.io/docs/) or a [CodeReady Containers(CRC)](https://developers.redhat.com/products/codeready-containers/overview) to deploy the operator.
+You can install a [Minikube](https://minikube.sigs.k8s.io/docs/) or a [CodeReady Containers(CRC)](https://developers.redhat.com/products/openshift-local/overview) to deploy the operator.
 
 ## Getting the code and build the image
 
 To launch the operator you will need to clone the [activemq-artemis-operator](https://github.com/arkmq-org/activemq-artemis-operator) and checkout the main branch.
 
-(Optional) Follow the [building]({{< ref "../help/building.md" >}}) instructions, tag, and push it into your project
+(Optional) Follow the [building](../help/building.md) instructions, tag, and push it into your project
 namespace.
 
 ## Deploying the operator
