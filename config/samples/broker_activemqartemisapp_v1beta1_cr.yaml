@@ -13,6 +13,6 @@ spec:
   ]
   selector:
     matchLabels:
-      - forWorkQueue: true
+      forWorkQueue: 'true'
 status:
   conditions: []

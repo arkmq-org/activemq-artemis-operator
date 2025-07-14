@@ -3,7 +3,7 @@ kind: ActiveMQArtemisService
 metadata:
   name: ex-as-wq
   labels:
-    - forWorkQueue: true
+    forWorkQueue: 'true'
 spec:
   acceptors: [
     {
@@ -20,7 +20,7 @@ spec:
     }
   ]
   resources:
-    - limits:
-        memory: '1Gi'
+    limits:
+      memory: '1Gi'
 status:
   conditions: []
