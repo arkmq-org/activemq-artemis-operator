@@ -99,11 +99,9 @@ metadata:
               }
             ],
             "selector": {
-              "matchLabels": [
-                {
-                  "forWorkQueue": true
-                }
-              ]
+              "matchLabels": {
+                "forWorkQueue": "true"
+              }
             }
           },
           "status": {
@@ -165,11 +163,9 @@ metadata:
           "apiVersion": "broker.amq.io/v1beta1",
           "kind": "ActiveMQArtemisService",
           "metadata": {
-            "labels": [
-              {
-                "forWorkQueue": true
-              }
-            ],
+            "labels": {
+              "forWorkQueue": "true"
+            },
             "name": "ex-as-wq"
           },
           "spec": {
@@ -187,13 +183,11 @@ metadata:
                 "value": "-Dlog4j2.level=INFO"
               }
             ],
-            "resources": [
-              {
-                "limits": {
-                  "memory": "1Gi"
-                }
+            "resources": {
+              "limits": {
+                "memory": "1Gi"
               }
-            ]
+            }
           },
           "status": {
             "conditions": []
