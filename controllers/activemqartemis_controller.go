@@ -200,13 +200,17 @@ func (r *ActiveMQArtemisReconciler) Reconcile(ctx context.Context, request ctrl.
 		requeueRequest = true
 	}
 
-	if requeueRequest {
+	if requeueRequest && err == nil {
 		reqLogger.V(1).Info("requeue reconcile")
 		result = ctrl.Result{RequeueAfter: common.GetReconcileResyncPeriod()}
 	}
 
 	if valid && err == nil && crStatusUpdateErr == nil {
 		reqLogger.V(1).Info("resource successfully reconciled")
+	}
+
+	if err != nil {
+		reqLogger.V(1).Error(err, "reconcile failed")
 	}
 	return result, err
 }
