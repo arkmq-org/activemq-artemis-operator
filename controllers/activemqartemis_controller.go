@@ -291,6 +291,13 @@ func (r *ActiveMQArtemisReconcilerImpl) validate(customResource *brokerv1beta1.A
 		}
 	}
 
+	if validationCondition.Status != metav1.ConditionFalse {
+		condition, retry = r.validateRestrictedRequiredSecrets(client)
+		if condition != nil {
+			validationCondition = *condition
+		}
+	}
+
 	validationCondition.ObservedGeneration = customResource.Generation
 	meta.SetStatusCondition(&customResource.Status.Conditions, validationCondition)
 
@@ -458,6 +465,38 @@ func (r *ActiveMQArtemisReconcilerImpl) validateEnvVars(customResource *brokerv1
 			Reason:  brokerv1beta1.ValidConditionInvalidInternalVarUsage,
 			Message: fmt.Sprintf("Don't use valueFrom on env vars that the operator can mutate: %v. Instead use a different var and refernece it in its value field.", invalidVars),
 		}, false
+	}
+	return nil, false
+}
+
+func (r *ActiveMQArtemisReconcilerImpl) validateRestrictedRequiredSecrets(client rtclient.Client) (*metav1.Condition, bool) {
+	if common.IsRestricted(r.customResource) {
+		retry := true
+		if _, err := common.GetOperatorClientCertSecret(client); err != nil {
+			return &metav1.Condition{
+				Type:    brokerv1beta1.ValidConditionType,
+				Status:  metav1.ConditionFalse,
+				Reason:  brokerv1beta1.ValidConditionMissingResourcesReason,
+				Message: fmt.Sprintf(".Spec.Restricted is true but operator failed to locate necessary operator client certificate secret, %v", err),
+			}, retry
+		}
+		if _, err := common.GetOperatorCASecret(client); err != nil {
+			return &metav1.Condition{
+				Type:    brokerv1beta1.ValidConditionType,
+				Status:  metav1.ConditionFalse,
+				Reason:  brokerv1beta1.ValidConditionMissingResourcesReason,
+				Message: fmt.Sprintf(".Spec.Restricted is true but operator failed to locate necessary operator ca secret, %v", err),
+			}, retry
+		}
+		operandCertSecretName := common.GetOperandCertSecretName(r.customResource, client)
+		if _, err := common.GetSecret(client, operandCertSecretName, r.customResource.Namespace); err != nil {
+			return &metav1.Condition{
+				Type:    brokerv1beta1.ValidConditionType,
+				Status:  metav1.ConditionFalse,
+				Reason:  brokerv1beta1.ValidConditionMissingResourcesReason,
+				Message: fmt.Sprintf(".Spec.Restricted is true but operator failed to locate necessary operand cert secret, %v", err),
+			}, retry
+		}
 	}
 	return nil, false
 }
