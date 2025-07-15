@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	artemis_client "github.com/arkmq-org/activemq-artemis-operator/pkg/utils/artemis"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/jolokia"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/jolokia_client"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/selectors"
@@ -240,4 +241,37 @@ func TestJolokiaStatusCached(t *testing.T) {
 	assert.NotNil(t, valid)
 	assert.True(t, strings.Contains(valid.Error(), "AttributeNotFoundException"))
 
+}
+
+func TestErrOnNotFoundSecret(t *testing.T) {
+
+	boolTrue = true
+	cr := &brokerv1beta1.ActiveMQArtemis{
+		ObjectMeta: v1.ObjectMeta{Name: "a"},
+		Spec: brokerv1beta1.ActiveMQArtemisSpec{
+			Restricted: &boolTrue,
+		},
+	}
+
+	namer := MakeNamers(cr)
+
+	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
+	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+
+	var times = 0
+	interceptorFuncs := interceptor.Funcs{
+		Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			times++
+			return apierrors.NewNotFound(schema.GroupResource{}, key.Name)
+		},
+	}
+
+	common.SetOperatorNameSpace("test")
+
+	client := fake.NewClientBuilder().WithInterceptorFuncs(interceptorFuncs).Build()
+
+	error := ri.Process(cr, *namer, client, nil)
+
+	assert.NotNil(t, error)
+	assert.ErrorContains(t, error, "not found")
 }
