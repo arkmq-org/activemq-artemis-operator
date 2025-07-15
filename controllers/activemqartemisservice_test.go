@@ -332,11 +332,11 @@ var _ = Describe("artemis-service", func() {
 
 			appClientPemcfgSecretName := "cert-pemcfg"
 			appClientPemcfgKey := types.NamespacedName{Name: appClientPemcfgSecretName, Namespace: defaultNamespace}
-			appClientPemcfgSecret := secrets.NewSecret(appClientPemcfgKey, map[string]string{
-				"tls.pemcfg": "source.key=/app/tls/client/tls.key\nsource.cert=/app/tls/client/tls.crt",
+			appClientPemcfgSecret := secrets.NewSecret(appClientPemcfgKey, map[string][]byte{
+				"tls.pemcfg": []byte("source.key=/app/tls/client/tls.key\nsource.cert=/app/tls/client/tls.crt"),
 				// TODO: using 6, but it seems it must be n+1, and not 25 etc,
 				// where n is the existing list, which I guess won't be a constant either
-				"java.security": "security.provider.6=de.dentrassi.crypto.pem.PemKeyStoreProvider",
+				"java.security": []byte("security.provider.6=de.dentrassi.crypto.pem.PemKeyStoreProvider"),
 			}, nil)
 			Expect(k8sClient.Create(ctx, appClientPemcfgSecret, &client.CreateOptions{})).Should(Succeed())
 

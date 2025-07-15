@@ -2802,7 +2802,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) brokerPropertiesConfigSystemPro
 	}
 
 	for _, extraSecretName := range reconciler.customResource.Spec.DeploymentPlan.ExtraMounts.Secrets {
-		if strings.HasSuffix(extraSecretName, brokerPropsSuffix) {
+		if strings.HasSuffix(extraSecretName, BrokerPropsSuffix) {
 			// append to ordinal path
 			result = fmt.Sprintf("%s,%s%s/,%s%s/%s${STATEFUL_SET_ORDINAL}/", result, secretPathBase, extraSecretName, secretPathBase, extraSecretName, OrdinalPrefix)
 		}
@@ -3089,7 +3089,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) addResourceForBrokerProperties(
 func (r *ActiveMQArtemisReconcilerImpl) ProcessBrokerProperties(m map[string][]byte) {
 	if condition := meta.FindStatusCondition(r.customResource.Status.Conditions, brokerv1beta1.ScaleDownPendingConditionType); condition != nil {
 		if ordinal, err := r.ordinalFromScaleDownCondition(condition); err == nil {
-			buf := newPropsWithHeader()
+			buf := NewPropsWithHeader()
 			fmt.Fprintln(buf, ScaleDownConfigTriggerOn)
 			propertyFileName := scaleDownOnSigTermPropsKey(ordinal)
 			m[propertyFileName] = buf.Bytes()
