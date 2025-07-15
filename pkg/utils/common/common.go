@@ -852,6 +852,10 @@ func GetOperatorNamespaceFromEnv() (ns string, err error) {
 	return *operatorNameSpaceFromEnv, nil
 }
 
+func SetOperatorNameSpace(ns string) {
+	operatorNameSpaceFromEnv = &ns
+}
+
 func GetOperatorCASecret(client rtclient.Client) (*corev1.Secret, error) {
 	return GetOperatorSecret(client, GetOperatorCASecretName())
 }
@@ -866,14 +870,13 @@ func GetOperatorSecret(client rtclient.Client, secretName string) (*corev1.Secre
 	var err error
 	operatorNamespace, err = GetOperatorNamespaceFromEnv()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get secret %s, failed to get operator namespace, %w", secretName, err)
 	}
 
 	secretNamespacedName := types.NamespacedName{Name: secretName, Namespace: operatorNamespace}
 	secret := corev1.Secret{}
 	if err := resources.Retrieve(secretNamespacedName, client, &secret); err != nil {
-		ctrl.Log.V(1).Info("operator secret not found", "name", secretNamespacedName, "err", err)
-		return nil, errors.Errorf("failed to get secret %s, %v", secretNamespacedName, err)
+		return nil, fmt.Errorf("failed to get operator secret %s, %w", secretNamespacedName, err)
 	}
 
 	return &secret, nil
@@ -909,7 +912,7 @@ func GetOperatorClientCertificate(client rtclient.Client, info *tls.CertificateR
 func ExtractCertFromSecret(certSecret *corev1.Secret) (*tls.Certificate, error) {
 	cert, err := tls.X509KeyPair(certSecret.Data["tls.crt"], certSecret.Data["tls.key"])
 	if err != nil {
-		return nil, errors.Errorf("invalid key pair in secret %v, %v", certSecret.Name, err)
+		return nil, fmt.Errorf("invalid key pair in secret %v, %w", certSecret.Name, err)
 	}
 	return &cert, nil
 }
@@ -918,11 +921,11 @@ func ExtractCertSubjectFromSecret(certSecretName string, namespace string, clien
 
 	secret, err := GetOperatorSecret(client, certSecretName)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to extract subject, no secret, %w", err)
 	}
 	cert, err := ExtractCertFromSecret(secret)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to extract subject from secret %s, %w", secret.GetName(), err)
 	}
 	return ExtractCertSubject(cert)
 }

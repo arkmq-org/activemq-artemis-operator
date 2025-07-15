@@ -161,8 +161,8 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) Process(customResource *brokerv
 	// comparisons should not be necessary, leave that to process resources
 	desiredStatefulSet, err := reconciler.ProcessStatefulSet(customResource, namer, client)
 	if err != nil {
-		reconciler.log.Error(err, "Error processing stafulset")
-		return err
+		//reconciler.log.Error(err, "Error processing stafulset")
+		return fmt.Errorf("failed to process stateful set, %w", err)
 	}
 
 	reconciler.ProcessDeploymentPlan(customResource, namer, client, scheme, desiredStatefulSet)
@@ -274,8 +274,8 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessStatefulSet(customResour
 	reqLogger.V(2).Info("Reconciling desired statefulset", "name", ssNamespacedName, "current", currentStatefulSet)
 	currentStatefulSet, err = reconciler.StatefulSetForCR(customResource, namer, currentStatefulSet, client)
 	if err != nil {
-		reqLogger.Error(err, "Error creating new stafulset")
-		return nil, err
+		//reqLogger.Error(err, "Error creating new stafulset")
+		return nil, fmt.Errorf("error creating stateful set, %w", err)
 	}
 
 	var headlessServiceDefinition *corev1.Service
@@ -2006,27 +2006,27 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		operandCertSecretName := common.GetOperandCertSecretName(customResource, client)
 		operandCertSubject, err := common.ExtractCertSubjectFromSecret(operandCertSecretName, customResource.Namespace, client)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to extract operand subject from certificate, %w", err)
 		}
 
 		var caCertSecret *corev1.Secret
 		if caCertSecret, err = common.GetOperatorCASecret(client); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get operator ca secret, %w", err)
 		}
 
 		caSecretKey, err := common.GetOperatorCASecretKey(client, caCertSecret)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get operator ca secret key, %w", err)
 		}
 
 		var operatorCert *tls.Certificate
 		if operatorCert, err = common.GetOperatorClientCertificate(client, nil); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get operator client cert, %w", err)
 		}
 
 		var operatorCertSubject *pkix.Name
 		if operatorCertSubject, err = common.ExtractCertSubject(operatorCert); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to extract operator subject from client cert, %w", err)
 		}
 
 		// TODO - make configuable
@@ -2187,7 +2187,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 	}
 	extraVolumes, extraVolumeMounts, err := reconciler.createExtraConfigmapsAndSecretsVolumeMounts(configMapsToMount, secretsToMount, brokerPropertiesResourceName, brokerPropertiesMapData, client)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to createExtraConfigmapsAndSecretsVolumeMounts, %w", err)
 	}
 
 	reqLogger.V(2).Info("Extra volumes", "volumes", extraVolumes)
@@ -2195,7 +2195,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 
 	container.VolumeMounts, err = reconciler.MakeVolumeMounts(customResource, namer)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to make volume mounts, %w", err)
 	}
 	if len(extraVolumeMounts) > 0 {
 		container.VolumeMounts = append(container.VolumeMounts, extraVolumeMounts...)
@@ -2223,7 +2223,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 	podSpec.Containers = append(newContainersArray, *container)
 	brokerVolumes, err := reconciler.MakeVolumes(customResource, namer)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to make volumes, %w", err)
 	}
 	if len(extraVolumes) > 0 {
 		brokerVolumes = append(brokerVolumes, extraVolumes...)
@@ -3042,7 +3042,7 @@ func ParseBrokerPropertyWithOrdinal(property string) []string {
 
 func (reconciler *ActiveMQArtemisReconcilerImpl) StatefulSetForCR(customResource *brokerv1beta1.ActiveMQArtemis, namer common.Namers, currentStateFullSet *appsv1.StatefulSet, client rtclient.Client) (*appsv1.StatefulSet, error) {
 
-	reqLogger := reconciler.log.WithName(customResource.Name)
+	//	reqLogger := reconciler.log.WithName(customResource.Name)
 
 	namespacedName := types.NamespacedName{
 		Name:      customResource.Name,
@@ -3053,8 +3053,8 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) StatefulSetForCR(customResource
 
 	podTemplateSpec, err := reconciler.PodTemplateSpecForCR(customResource, namer, &currentStateFullSet.Spec.Template, client)
 	if err != nil {
-		reqLogger.Error(err, "error creating pod template")
-		return nil, err
+		//reqLogger.Error(err, "error creating pod template")
+		return nil, fmt.Errorf("error creating pod template, %w", err)
 	}
 	currentStateFullSet.Spec.Template = *podTemplateSpec
 
