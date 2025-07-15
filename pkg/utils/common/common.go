@@ -873,10 +873,15 @@ func GetOperatorSecret(client rtclient.Client, secretName string) (*corev1.Secre
 		return nil, fmt.Errorf("failed to get secret %s, failed to get operator namespace, %w", secretName, err)
 	}
 
-	secretNamespacedName := types.NamespacedName{Name: secretName, Namespace: operatorNamespace}
+	return GetSecret(client, secretName, operatorNamespace)
+}
+
+func GetSecret(client rtclient.Client, secretName string, namespace string) (*corev1.Secret, error) {
+
+	secretNamespacedName := types.NamespacedName{Name: secretName, Namespace: namespace}
 	secret := corev1.Secret{}
 	if err := resources.Retrieve(secretNamespacedName, client, &secret); err != nil {
-		return nil, fmt.Errorf("failed to get operator secret %s, %w", secretNamespacedName, err)
+		return nil, fmt.Errorf("failed to get secret %s, %w", secretNamespacedName, err)
 	}
 
 	return &secret, nil
@@ -919,7 +924,7 @@ func ExtractCertFromSecret(certSecret *corev1.Secret) (*tls.Certificate, error) 
 
 func ExtractCertSubjectFromSecret(certSecretName string, namespace string, client rtclient.Client) (*pkix.Name, error) {
 
-	secret, err := GetOperatorSecret(client, certSecretName)
+	secret, err := GetSecret(client, certSecretName, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract subject, no secret, %w", err)
 	}
