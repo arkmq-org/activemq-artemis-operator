@@ -2,6 +2,9 @@ name: Release
 
 env:
   IMAGE_NAME: activemq-artemis-operator
+  OPM_VERSION: v1.54.0
+  OPERATOR_SDK_VERSION: v1.28.0
+  YQ_VERSION: v4.46.1
 
 on:
   workflow_dispatch:
@@ -98,6 +101,34 @@ jobs:
           docker tag $IMAGE_NAME-bundle:latest quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-bundle:latest &&
           docker push quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-bundle:latest
 
+      - name: Install opm CLI
+        run: |
+          mkdir -p bin
+          curl -sSLo ./bin/opm https://github.com/operator-framework/operator-registry/releases/download/${OPM_VERSION}/linux-amd64-opm
+          chmod +x ./bin/opm
+        env:
+          OPM: ./bin/opm
+
+      - name: Install yq
+        run: |
+          mkdir -p bin
+          curl -sSLo ./bin/yq https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64
+          chmod +x ./bin/yq
+        env:
+          OPM: ./bin/yq
+
+      - name: Build the catalog image
+        run: export CATALOG_IMG=$IMAGE_NAME-catalog:latest && make catalog-build
+
+      - name: Push the catalog image
+        run: >
+          RELEASE_TAG="$(git describe --exact-match --tags)" && IMAGE_TAG=${RELEASE_TAG#v} &&
+          docker login --username=${{ secrets.QUAY_USERNAME }} --password=${{ secrets.QUAY_PASSWORD }} quay.io &&
+          docker tag $IMAGE_NAME-catalog:latest quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-catalog:$IMAGE_TAG &&
+          docker push quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-catalog:$IMAGE_TAG &&
+          docker tag $IMAGE_NAME-catalog:latest quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-catalog:latest &&
+          docker push quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-catalog:latest
+
       - name: Create GitHub release
         run: |
           RELEASE_TAG="$(git describe --exact-match --tags)"
@@ -130,3 +161,33 @@ jobs:
           curl -v -L -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ secrets.BOT_TOKEN }}" \
             -H "X-GitHub-Api-Version: 2022-11-28" -H "Content-Type: text/plain" \
             "https://uploads.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets?name=${INSTALL_YAML}" --data-binary "@/tmp/${RELEASE_PACKAGE}/${INSTALL_YAML}"
+
+      - name: Install operator-sdk
+        run: |
+          mkdir -p bin
+          curl -sSLo ./bin/operator-sdk https://github.com/operator-framework/operator-sdk/releases/download/${OPERATOR_SDK_VERSION}/operator-sdk_linux_amd64
+          chmod +x ./bin/operator-sdk
+        
+      - name: Install olm
+        run: ./bin/operator-sdk olm install
+
+      - name: Check for catalog and olm operator pods status installed in the olm namespace
+        run: |
+          minikube kubectl -- wait pod -l app=catalog-operator --for=condition=Ready --namespace=olm --timeout=2m
+          minikube kubectl -- wait pod -l app=olm-operator --for=condition=Ready --namespace=olm --timeout=2m
+
+      - name: Create the catalog-sources
+        run: minikube kubectl -- create -f ./example/catalog/catalog-source.yaml
+            
+      - name: Check for CatalogSource pod to be created and become Ready
+        run: |
+          sleep 60
+          minikube kubectl -- wait pod -l olm.catalogSource=activemq-artemis-operator-source --for=condition=Ready --namespace=operators --timeout=2m
+ 
+      - name: Create the subscription
+        run: minikube kubectl -- create -f ./example/catalog/subscription.yaml
+
+      - name: Check for an operator will be installed into operators namespace
+        run: |
+          sleep 60
+          minikube kubectl -- wait pod -l name=activemq-artemis-operator --for=condition=Ready --namespace=operators --timeout=2m
