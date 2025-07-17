@@ -464,13 +464,14 @@ func testWatchNamespace(kind string, g Gomega, testFunc func(g Gomega)) {
 	g.Expect(createNamespace(namespace3, nil)).To(Succeed())
 	g.Expect(createNamespace(restrictedNamespace, &restrictedSecurityPolicy)).To(Succeed())
 
-	if kind == "single" {
+	switch kind {
+	case "single":
 		createControllerManager(true, defaultNamespace)
-	} else if kind == "restricted" {
+	case "restricted":
 		createControllerManager(true, restrictedNamespace)
-	} else if kind == "all" {
+	case "all":
 		createControllerManager(true, "")
-	} else {
+	default:
 		createControllerManager(true, namespace2+","+namespace3)
 	}
 

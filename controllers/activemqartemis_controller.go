@@ -200,13 +200,17 @@ func (r *ActiveMQArtemisReconciler) Reconcile(ctx context.Context, request ctrl.
 		requeueRequest = true
 	}
 
-	if requeueRequest {
+	if requeueRequest && err == nil {
 		reqLogger.V(1).Info("requeue reconcile")
 		result = ctrl.Result{RequeueAfter: common.GetReconcileResyncPeriod()}
 	}
 
 	if valid && err == nil && crStatusUpdateErr == nil {
 		reqLogger.V(1).Info("resource successfully reconciled")
+	}
+
+	if err != nil {
+		reqLogger.V(1).Error(err, "reconcile failed")
 	}
 	return result, err
 }
@@ -282,6 +286,13 @@ func (r *ActiveMQArtemisReconcilerImpl) validate(customResource *brokerv1beta1.A
 
 	if validationCondition.Status != metav1.ConditionFalse {
 		condition, retry = r.validateEnvVars(customResource)
+		if condition != nil {
+			validationCondition = *condition
+		}
+	}
+
+	if validationCondition.Status != metav1.ConditionFalse {
+		condition, retry = r.validateRestrictedRequiredSecrets(client)
 		if condition != nil {
 			validationCondition = *condition
 		}
@@ -458,6 +469,38 @@ func (r *ActiveMQArtemisReconcilerImpl) validateEnvVars(customResource *brokerv1
 	return nil, false
 }
 
+func (r *ActiveMQArtemisReconcilerImpl) validateRestrictedRequiredSecrets(client rtclient.Client) (*metav1.Condition, bool) {
+	if common.IsRestricted(r.customResource) {
+		retry := true
+		if _, err := common.GetOperatorClientCertSecret(client); err != nil {
+			return &metav1.Condition{
+				Type:    brokerv1beta1.ValidConditionType,
+				Status:  metav1.ConditionFalse,
+				Reason:  brokerv1beta1.ValidConditionMissingResourcesReason,
+				Message: fmt.Sprintf(".Spec.Restricted is true but operator failed to locate necessary operator client certificate secret, %v", err),
+			}, retry
+		}
+		if _, err := common.GetOperatorCASecret(client); err != nil {
+			return &metav1.Condition{
+				Type:    brokerv1beta1.ValidConditionType,
+				Status:  metav1.ConditionFalse,
+				Reason:  brokerv1beta1.ValidConditionMissingResourcesReason,
+				Message: fmt.Sprintf(".Spec.Restricted is true but operator failed to locate necessary operator ca secret, %v", err),
+			}, retry
+		}
+		operandCertSecretName := common.GetOperandCertSecretName(r.customResource, client)
+		if _, err := common.GetSecret(client, operandCertSecretName, r.customResource.Namespace); err != nil {
+			return &metav1.Condition{
+				Type:    brokerv1beta1.ValidConditionType,
+				Status:  metav1.ConditionFalse,
+				Reason:  brokerv1beta1.ValidConditionMissingResourcesReason,
+				Message: fmt.Sprintf(".Spec.Restricted is true but operator failed to locate necessary operand cert secret, %v", err),
+			}, retry
+		}
+	}
+	return nil, false
+}
+
 func (r *ActiveMQArtemisReconcilerImpl) validateStorage() (*metav1.Condition, bool) {
 
 	if r.customResource.Spec.DeploymentPlan.PersistenceEnabled {
@@ -593,7 +636,7 @@ func validateExtraMounts(customResource *brokerv1beta1.ActiveMQArtemis, client r
 				Condition = AssertSyntaxOkOnLoginConfigData(secret.Data[JaasConfigKey], s, ContextMessage)
 			}
 			instanceCounts[jaasConfigSuffix]++
-		} else if strings.HasSuffix(s, brokerPropsSuffix) {
+		} else if strings.HasSuffix(s, BrokerPropsSuffix) {
 			Condition = AssertNoDupKeyInProperties(secret, ContextMessage)
 		}
 		if Condition != nil {
