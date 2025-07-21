@@ -849,10 +849,10 @@ Reference: [define-interdependent-environment-variables](https://kubernetes.io/d
 
 ## Configuring brokerProperties
 
-The CRD brokerProperties attribute allows the direct configuration of the Artemis internal configuration Bean of a broker via key value pairs. It is usefull to override or augment elements of the CR, or to configure broker features that are not exposed via CRD attributes. In cases where the init container is used to augment xml configuration, broker properties can provide an in CR alternative. As a general 'bag of configration' it is very powerful but it must be treated with due respect to all other sources of configuration. For details of what can be configured see the [Artemis configuraton documentation](https://activemq.apache.org/components/artemis/documentation/latest/configuration-index.html#broker-properties).
+The CRD brokerProperties attribute allows the direct configuration of the Artemis internal configuration Bean of a broker via key value pairs. It is useful to override or augment elements of the CR, or to configure broker features that are not exposed via CRD attributes. In cases where the init container is used to augment xml configuration, broker properties can provide an in CR alternative. As a general 'bag of configuration' it is very powerful but it must be treated with due respect to all other sources of configuration. For details of what can be configured see the [Artemis configuraton documentation](https://activemq.apache.org/components/artemis/documentation/latest/configuration-index.html#broker-properties).
 
 The format is an array of strings of the form `key=value` where the key identifies a (potentially nested) property of the configuration bean.
-Note: the array of strings ends up in a java properties file, where the following list of characters are significant: (space)`' '`, (colon)`':'`, (equals)`'='`. If these need to be present in your keys or values, they need to be escaped with a leading back slash `'\'`.
+Note: the array of strings ends up in a java properties file, where the following list of characters are significant: (space)`' '`, (colon)`':'`, (equals)`'='`. If these need to be present in your keys or values, they need to be escaped with a leading backslash `'\'`.
 
 The CR Status contains a Condition reflecting the application of the brokerProperties volume mount projection.
 For advanced use cases, with a broker version >= 2.27.1, it is possible to use a `broker-N.` prefix to provide configuration to a specific instance(0-N) of your deployment plan.
@@ -867,8 +867,20 @@ spec:
     - globalMaxSize=512m
 ```
 
+### Acceptors fine-tuning
+
+Acceptor options can be fine-tuned by setting the broker property  `acceptorConfigurations.${acceptorName}.extraParams.${key}=${value}`.
+For example:
+```
+  ...
+  brokerProperties:
+    - "acceptorConfigurations.artemis.extraParams.defaultMqttSessionExpiryInterval=86400"
+```
+
+**Note: the broker pods must be restarted to apply the acceptor broker properties!**
+
 ## Providing additional brokerProperties configuration from a secret
-In order to provide a way to split or orgainse these properties by file or by secret, an extra mount can be used to provide a secret that will be treated as an additional source of broker properties configuration.
+In order to provide a way to split or organise these properties by file or by secret, an extra mount can be used to provide a secret that will be treated as an additional source of broker properties configuration.
 
 Using an **extraMounts** secret with a suffix "-bp" will cause the operator to auto mount the secret and make the broker aware of it's location. In addition the CR.Status.Condition[BrokerPropertiesApplied] will reflect the content of this secret.
 
