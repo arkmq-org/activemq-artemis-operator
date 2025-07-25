@@ -135,7 +135,6 @@ var _ = Describe("artemis-service", func() {
 			})
 
 			jvmRemoteDebug := false
-
 			crd := brokerv1beta1.ActiveMQArtemisService{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "ActiveMQArtemisService",
@@ -151,7 +150,7 @@ var _ = Describe("artemis-service", func() {
 					Env: []corev1.EnvVar{
 						{
 							Name:  "JAVA_ARGS_APPEND",
-							Value: "-Dlog4j2.level=INFO",
+							Value: "-Dlog4j2.level=DEBUG",
 						},
 					},
 					Auth:      []brokerv1beta1.AppAuthType{brokerv1beta1.MTLS},
@@ -168,7 +167,7 @@ var _ = Describe("artemis-service", func() {
 			if jvmRemoteDebug {
 				crd.Spec.Env = append(crd.Spec.Env,
 					corev1.EnvVar{
-						Name:  "JDK_JAVA_ARGS",
+						Name:  "JDK_JAVA_OPTIONS",
 						Value: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005",
 					})
 			}
@@ -322,6 +321,7 @@ var _ = Describe("artemis-service", func() {
 				g.Expect(appPropsRvUpdated).ShouldNot(BeEmpty())
 
 				g.Expect(appPropsRvUpdated).ShouldNot(Equal(appPropsRv))
+				appPropsRv = appPropsRvUpdated // reset
 
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
@@ -463,13 +463,47 @@ var _ = Describe("artemis-service", func() {
 			By("Verifying stats...")
 			// TODO
 
+			By("updating app")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, appKey, createdApp)).Should(Succeed())
+				createdApp.Spec.Capabilities = append(createdApp.Spec.Capabilities, brokerv1beta1.AppCapabilityType{
+					ProducerOf: []brokerv1beta1.AppAddressType{
+						{
+							QueueName: "brian",
+						},
+					},
+				})
+				g.Expect(k8sClient.Update(ctx, createdApp)).Should(Succeed())
+
+			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+			By("checking broker cr status insync after update")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, brokerKey, brokerCrd)).Should(Succeed())
+
+				if verbose {
+					fmt.Printf("Broker STATUS: %v\n\n", brokerCrd.Status)
+				}
+
+				for _, externalConfig := range brokerCrd.Status.ExternalConfigs {
+					if externalConfig.Name == AppPropertiesSecretName(brokerCrd.Name) {
+						appPropsRvUpdated = externalConfig.ResourceVersion
+					}
+				}
+				g.Expect(appPropsRvUpdated).ShouldNot(BeEmpty())
+
+				g.Expect(appPropsRvUpdated).ShouldNot(Equal(appPropsRv))
+
+			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+			By("removing app")
+			Expect(k8sClient.Delete(ctx, createdApp)).Should(Succeed())
+
 			By("tidy up")
 			cascade_foreground_policy := metav1.DeletePropagationForeground
 			Expect(k8sClient.Delete(ctx, producerJob, &client.DeleteOptions{PropagationPolicy: &cascade_foreground_policy})).Should(Succeed())
 			Expect(k8sClient.Delete(ctx, consumerJob, &client.DeleteOptions{PropagationPolicy: &cascade_foreground_policy})).Should(Succeed())
-
 			Expect(k8sClient.Delete(ctx, appClientPemcfgSecret)).Should(Succeed())
-			Expect(k8sClient.Delete(ctx, createdApp)).Should(Succeed())
 			Expect(k8sClient.Delete(ctx, createdCrd)).Should(Succeed())
 
 			if jvmRemoteDebug {

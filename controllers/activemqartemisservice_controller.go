@@ -40,6 +40,7 @@ import (
 
 const (
 	DefaultServicePort int32 = 61616
+	EmptyBrokerXml           = "empty-broker-xml"
 )
 
 type ActiveMQArtemisServiceReconciler struct {
@@ -154,8 +155,28 @@ func (reconciler *ActiveMQArtemisServiceInstanceReconciler) processBroker() erro
 		reconciler.appPropertiesSecretName(),
 		reconciler.propertiesSecretName(),
 		reconciler.jaasConfigSecretName(),
+		EmptyBrokerXml,
 	}
 
+	// the broker needs am xml to do config reload - fix and revisit
+	reconciler.processXmlSecret()
+
+	desired.Spec.DeploymentPlan.ExtraVolumeMounts = []corev1.VolumeMount{
+		{
+			Name:      EmptyBrokerXml,
+			MountPath: "/app/etc",
+		},
+	}
+	desired.Spec.DeploymentPlan.ExtraVolumes = []corev1.Volume{
+		{
+			Name: EmptyBrokerXml,
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: EmptyBrokerXml,
+				},
+			},
+		},
+	}
 	reconciler.processJaas()
 
 	// a place the app controller can modify
@@ -236,6 +257,37 @@ func JaasConfigSecretName(name string) string {
 
 func certSecretName(cr *broker.ActiveMQArtemisService) string {
 	return fmt.Sprintf("%s-%s", cr.Name, common.DefaultOperandCertSecretName)
+}
+
+func (reconciler *ActiveMQArtemisServiceInstanceReconciler) processXmlSecret() *corev1.Secret {
+	resourceName := types.NamespacedName{
+		Namespace: reconciler.instance.Namespace,
+		Name:      EmptyBrokerXml,
+	}
+
+	var desired *corev1.Secret
+
+	obj := reconciler.CloneOfDeployed(reflect.TypeOf(corev1.Secret{}), resourceName.Name)
+	if obj != nil {
+		desired = obj.(*corev1.Secret)
+	} else {
+		desired = secrets.NewSecret(resourceName, nil, nil)
+		desired.Data = map[string][]byte{}
+
+	}
+	minimalConfig := `<configuration xmlns="urn:activemq"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xmlns:xi="http://www.w3.org/2001/XInclude"
+               xsi:schemaLocation="urn:activemq /schema/artemis-configuration.xsd">
+
+   <core xmlns="urn:activemq:core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="urn:activemq:core ">
+   </core>
+</configuration>
+`
+	desired.Data["broker.xml"] = []byte(minimalConfig)
+	reconciler.TrackDesired(desired)
+	return desired
 }
 
 func (reconciler *ActiveMQArtemisServiceInstanceReconciler) processPropertiesSecrets() *corev1.Secret {
