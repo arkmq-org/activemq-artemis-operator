@@ -269,6 +269,31 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v2alpha1
+    - description: Describes the messaging requirements of an application
+      displayName: Active MQArtemis App
+      kind: ActiveMQArtemisApp
+      name: activemqartemisapps.broker.amq.io
+      resources:
+      - kind: Secret
+        name: ""
+        version: v1
+      specDescriptors:
+      - displayName: Authentication Types
+        path: auth
+      - displayName: Messaging Capabilities
+        path: capabilities
+      - displayName: Resources
+        path: resources
+      - displayName: Selector
+        path: selector
+      statusDescriptors:
+      - description: Current state of the resource Conditions represent the latest
+          available observations of an object's state
+        displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      version: v1beta1
     - description: A stateful deployment of one or more brokers
       displayName: ActiveMQ Artemis
       kind: ActiveMQArtemis
@@ -2519,6 +2544,37 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v1alpha1
+    - description: Provides a broker service
+      displayName: ActiveMQ Artemis Service
+      kind: ActiveMQArtemisService
+      name: activemqartemisservices.broker.amq.io
+      resources:
+      - kind: ActiveMQArtemis
+        name: ""
+        version: v1beta1
+      - kind: Secret
+        name: ""
+        version: v1
+      - kind: Service
+        name: ""
+        version: v1
+      specDescriptors:
+      - displayName: Acceptors
+        path: acceptors
+      - displayName: Auth
+        path: auth
+      - displayName: Environment
+        path: env
+      - displayName: Resources
+        path: resources
+      statusDescriptors:
+      - description: Current state of the resource Conditions represent the latest
+          available observations of an object's state
+        displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      version: v1beta1
   description: ArkMQ Operator manages ActiveMQ Artemis messaging broker in the cloud
   displayName: ArkMQ Operator
   icon:
