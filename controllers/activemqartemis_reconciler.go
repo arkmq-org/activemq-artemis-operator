@@ -2485,26 +2485,11 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 	if common.IsRestricted(customResource) {
 		pts.Spec.InitContainers = nil
 
-		// restricted env
-		currentEnv := environments.Retrieve(pts.Spec.Containers, jdkJavaOptionsEnvVarName)
-		pts.Spec.Containers[0].Env = nil
-
-		var commandLineString string = ""
-		if currentEnv != nil {
-			commandLineString += currentEnv.Value
-		}
-		for _, v := range additionalSystemPropsForRestricted {
-			commandLineString += " " + v
-		}
-
-		// env from CR can override
-		pts.Spec.Containers[0].Env = append(pts.Spec.Containers[0].Env, customResource.Spec.Env...)
-
 		reEvalJdkOpts := generateReEvalOrdinaEnvReplacement(customResource.Spec.Env)
 
 		pts.Spec.Containers[0].Command = []string{
 			"/bin/bash", "-c",
-			fmt.Sprintf("export STATEFUL_SET_ORDINAL=${HOSTNAME##*-}; %s exec java %s $JAVA_ARGS_APPEND org.apache.activemq.artemis.core.server.embedded.Main", reEvalJdkOpts, commandLineString),
+			fmt.Sprintf("export STATEFUL_SET_ORDINAL=${HOSTNAME##*-}; %s exec java %s $JAVA_ARGS_APPEND org.apache.activemq.artemis.core.server.embedded.Main", reEvalJdkOpts, strings.Join(additionalSystemPropsForRestricted, " ")),
 		}
 	}
 

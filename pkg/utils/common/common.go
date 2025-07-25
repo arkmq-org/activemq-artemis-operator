@@ -74,9 +74,8 @@ const (
 	CertRolesKeySuffix            = "cert-roles"
 	JaasRealm                     = "activemq"
 	HttpAuthenticatorRealm        = "http_server_authenticator"
-	AppServiceAnnotation          = "amq.io/app-service"
-
-	BlockReconcileAnnotation = "arkmq.org/block-reconcile"
+	AppServiceAnnotation          = "arkmq.org/app-service"
+	BlockReconcileAnnotation      = "arkmq.org/block-reconcile"
 )
 
 var lastStatusMap map[types.NamespacedName]olm.DeploymentStatus = make(map[types.NamespacedName]olm.DeploymentStatus)
