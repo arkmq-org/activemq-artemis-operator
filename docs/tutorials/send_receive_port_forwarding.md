@@ -22,7 +22,7 @@ running on your laptop will do fine.
 minikube start --profile tutorialtester
 minikube profile tutorialtester
 ```
-```shell tutorial_tester
+```shell markdown_runner
 * [tutorialtester] minikube v1.32.0 on Fedora 40
 * Automatically selected the docker driver. Other choices: kvm2, qemu2, ssh
 * Using Docker driver with root privileges
@@ -47,7 +47,7 @@ minikube profile tutorialtester
 minikube addons enable ingress
 minikube kubectl -- patch deployment -n ingress-nginx ingress-nginx-controller --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value":"--enable-ssl-passthrough"}]'
 ```
-```shell tutorial_tester
+```shell markdown_runner
 * ingress is an addon maintained by Kubernetes. For any concerns contact minikube on GitHub.
 You can view the list of minikube maintainers at: https://github.com/kubernetes/minikube/blob/master/OWNERS
   - Using image registry.k8s.io/ingress-nginx/controller:v1.9.4
@@ -74,17 +74,17 @@ the most appropriate one for you.
 kubectl create namespace send-receive-project
 kubectl config set-context --current --namespace=send-receive-project
 ```
-```shell tutorial_tester
+```shell markdown_runner
 namespace/send-receive-project created
 Context "tutorialtester" modified.
 ```
 
 Go to the root of the operator repo and install it:
 
-```{"stage":"init", "rootdir":"$operator"}
+```{"stage":"init", "rootdir":"$initial_dir"}
 ./deploy/install_opr.sh
 ```
-```shell tutorial_tester
+```shell markdown_runner
 Deploying operator to watch single namespace
 Client Version: 4.15.0-0.okd-2024-01-27-070424
 Kustomize Version: v5.0.4-0.20230601165947-6ce0bf390ce3
@@ -106,7 +106,7 @@ Wait for the Operator to start (status: `running`).
 ```bash {"stage":"init", "runtime":"bash", "label":"wait for the operator to be running"}
 kubectl wait pod --all --for=condition=Ready --namespace=send-receive-project --timeout=600s
 ```
-```shell tutorial_tester
+```shell markdown_runner
 pod/activemq-artemis-controller-manager-55b8c479df-2nxqd condition met
 ```
 
@@ -121,7 +121,7 @@ For this tutorial we need to:
   properties. Two queues are setup, one called `APP.JOBS` that is of type
   `ANYCAST` and one called `APP.COMMANDS` that is of type `MULTICAST`.
 
-```bash {"stage":"deploy", "HereTag":"EOF", "runtime":"bash", "label":"deploy the broker"}
+```bash {"stage":"deploy", "runtime":"bash", "label":"deploy the broker"}
 kubectl apply -f - <<EOF
 apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
@@ -139,7 +139,7 @@ spec:
     - addressConfigurations."APP.COMMANDS".routingTypes=MULTICAST
 EOF
 ```
-```shell tutorial_tester
+```shell markdown_runner
 activemqartemis.broker.amq.io/send-receive created
 ```
 
@@ -148,7 +148,7 @@ Wait for the Broker to be ready:
 ```{"stage":"deploy"}
 kubectl wait ActiveMQArtemis send-receive --for=condition=Ready --namespace=send-receive-project --timeout=240s
 ```
-```shell tutorial_tester
+```shell markdown_runner
 activemqartemis.broker.amq.io/send-receive condition met
 ```
 
@@ -164,7 +164,7 @@ wget --quiet https://archive.apache.org/dist/activemq/activemq-artemis/2.36.0/ap
 tar -zxf apache-artemis-2.36.0-bin.tar.gz apache-artemis-2.36.0/
 ```
 
-```bash {"stage":"test", "rootdir":"$tmpdir.1/apache-artemis-2.36.0/bin/", "parallel":true, "runtime":"bash", "label":"anycast: produce & consume 1000 messages"}
+```bash {"stage":"test", "rootdir":"$tmpdir.1/apache-artemis-2.36.0/bin/", "parallel":true, "runtime":"bash", "label":"anycast: produce and consume 1000 messages"}
 # First we need to start port forwarding
 kubectl port-forward send-receive-ss-0 62626 -n send-receive-project &
 
@@ -175,7 +175,7 @@ kubectl port-forward send-receive-ss-0 62626 -n send-receive-project &
 # Finally we need to kill the port forwarding
 pkill kubectl -9
 ```
-```shell tutorial_tester
+```shell markdown_runner
 Forwarding from 127.0.0.1:62626 -> 62626
 Forwarding from [::1]:62626 -> 62626
 Connection brokerURL = tcp://localhost:62626
@@ -207,7 +207,7 @@ delete the minikube cluster.
 ```{"stage":"teardown", "requires":"init/minikube_start"}
 minikube delete --profile tutorialtester
 ```
-```shell tutorial_tester
+```shell markdown_runner
 * Deleting "tutorialtester" in docker ...
 * Deleting container "tutorialtester" ...
 * Removing /home/tlavocat/.minikube/machines/tutorialtester ...

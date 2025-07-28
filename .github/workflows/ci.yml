@@ -23,11 +23,6 @@ on:
         required: false
         default: false
         type: boolean
-      skipTutorials:
-        description: 'Skip Tutorials'
-        required: false
-        default: false
-        type: boolean
 
 jobs:
 
@@ -86,27 +81,30 @@ jobs:
 
       - name: Push the image into minikube
         run: |
-          export SHELL=/bin/bash
-          eval $(minikube -p minikube docker-env)
-          docker image list
-          podman save --output activemq-artemis-operator-image.tar --format docker-archive $IMAGE_NAME:dev.latest
-          docker image load --input activemq-artemis-operator-image.tar
-          docker image list
+          podman tag $IMAGE_NAME:dev.latest ${HOSTNAME}:5000/$IMAGE_NAME:dev.latest
+          podman push --tls-verify=false ${HOSTNAME}:5000/$IMAGE_NAME:dev.latest
 
       - name: Execute tests
         if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' && !inputs.skipTests }}
-        run: IMG="localhost/$IMAGE_NAME:dev.latest" make test-mk-v
+        run: IMG="${HOSTNAME}:5000/$IMAGE_NAME:dev.latest" make test-mk-v
 
       - name: Execute do tests
         if: ${{ github.event_name != 'workflow_dispatch' || !inputs.skipDOTests }}
-        run: IMG="localhost/$IMAGE_NAME:dev.latest" make test-mk-do-v
+        run: IMG="${HOSTNAME}:5000/$IMAGE_NAME:dev.latest" make test-mk-do-v
 
       - name: Run scorecard tests
         run: make scorecard | tee scorecard.log && ! grep 'Suggestions' scorecard.log
 
-      - name: Run the tutorials
-        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' && !inputs.skipTutorials }}
-        run: minikube delete && minikube start && go run test/utils/tutorials/tester.go
+      - name: Install markdown-runner
+        run: go install github.com/arkmq-org/markdown-runner@latest
+
+      - name: run the tutorials on the image
+        run: |
+          find docs/tutorials -type f -exec sed -i "s|^minikube start|minikube start --insecure-registry=$HOSTNAME:5000|" {} +
+          sed -i "s|image: quay.io/arkmq-org/activemq-artemis-operator:.*|image: ${HOSTNAME}:5000/$IMAGE_NAME:dev.latest|" deploy/operator.yaml
+          minikube delete
+          markdown-runner docs/tutorials --view ci
+          minikube start --insecure-registry=$HOSTNAME:5000
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -187,3 +185,4 @@ jobs:
           minikube kubectl -- get installplan -l operators.coreos.com/activemq-artemis-operator.operators='' --namespace=operators -o yaml
           minikube kubectl -- wait pod -l name=activemq-artemis-operator --for=condition=Ready --namespace=operators --timeout=3m ||
           minikube kubectl -- get pod -l name=activemq-artemis-operator --namespace=operators -o yaml
+
