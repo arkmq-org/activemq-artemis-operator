@@ -558,6 +558,26 @@ func createControllerManager(disableMetrics bool, watchNamespace string) {
 	err = scaleDownRconciler.SetupWithManager(k8Manager)
 	Expect(err).ShouldNot(HaveOccurred(), "failed to create scale down reconciler")
 
+	serviceReconciler := NewActiveMQArtemisServiceReconciler(
+		k8Manager.GetClient(),
+		k8Manager.GetScheme(),
+		k8Manager.GetConfig(),
+		ctrl.Log,
+	)
+
+	err = serviceReconciler.SetupWithManager(k8Manager)
+	Expect(err).ShouldNot(HaveOccurred(), "failed to create service reconciler")
+
+	appReconciler := NewActiveMQArtemisAppReconciler(
+		k8Manager.GetClient(),
+		k8Manager.GetScheme(),
+		k8Manager.GetConfig(),
+		ctrl.Log,
+	)
+
+	err = appReconciler.SetupWithManager(k8Manager)
+	Expect(err).ShouldNot(HaveOccurred(), "failed to create app reconciler")
+
 	managerChannel = make(chan struct{}, 1)
 	go func() {
 		defer GinkgoRecover()
