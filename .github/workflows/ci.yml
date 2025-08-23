@@ -54,7 +54,7 @@ jobs:
           cache: true
 
       - name: Checkout the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Start minikube
         id: minikube
@@ -112,7 +112,7 @@ jobs:
           node-version: 18.x
 
       - name: Checkout arkmq-org.github.io
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: arkmq-org/arkmq-org.github.io
           path: arkmq-org.github.io
