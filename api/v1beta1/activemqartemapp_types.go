@@ -44,7 +44,7 @@ type ActiveMQArtemisAppSpec struct {
 type AppAddressType struct {
 	// one of Name or QueueName is required
 	Name      string `json:"name,omitempty"`
-	QueueName string `json:"queuename,omitempty"`
+	QueueName string `json:"queueName,omitempty"`
 }
 
 type AppCapabilityType struct {
@@ -52,11 +52,11 @@ type AppCapabilityType struct {
 	Role string `json:"role,omitempty"`
 
 	// only apps that split producer/consumer across roles will be able to shard for elastic queue
-	ProducerOf []AppAddressType `json:"producerof,omitempty"` // ProducerTo
+	ProducerOf []AppAddressType `json:"producerOf,omitempty"`
 
-	ConsumerOf []AppAddressType `json:"consumerof,omitempty"` // ConsumerFrom/ConsumerOf
+	ConsumerOf []AppAddressType `json:"consumerOf,omitempty"`
 
-	ProducerAndConsumerOf []AppAddressType `json:"producerandconsumerof,omitempty"`
+	ProducerAndConsumerOf []AppAddressType `json:"producerAndConsumerOf,omitempty"`
 }
 
 type ActiveMQArtemisAppStatus struct {
