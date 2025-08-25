@@ -61,7 +61,7 @@ helm upgrade trust-manager jetstack/trust-manager --install --namespace cert-man
 
 #### Install the Operator
 
-```bash {"stage":"init", "rootdir":"$operator", "runtime":"bash"}
+```{"stage":"init", "rootdir":"$initial_dir"}
 ./deploy/install_opr.sh
 ```
 
@@ -78,7 +78,7 @@ We'll set up a CA and issue certificates for the operator, the service, and the 
 
 First the root issuer.
 
-```bash {"stage":"deploy_certs", "label":"create root issuer", "HereTag":"EOF", "runtime":"bash"}
+```bash {"stage":"deploy_certs", "label":"create root issuer", "runtime":"bash"}
 kubectl apply -f - <<EOF
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -95,7 +95,7 @@ kubectl wait clusterissuer root-issuer --for=condition=Ready --timeout=300s
 
 Then the root certificate.
 
-```bash {"stage":"deploy_certs", "label":"create root cert", "HereTag":"EOF", "runtime":"bash"}
+```bash {"stage":"deploy_certs", "label":"create root cert", "runtime":"bash"}
 kubectl apply -f - <<EOF
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -118,7 +118,7 @@ kubectl wait certificate root-cert --for=condition=Ready -n cert-manager --timeo
 
 Then a signing issuer that uses the root certificate.
 
-```bash {"stage":"deploy_certs", "label":"create signing issuer", "HereTag":"EOF", "runtime":"bash"}
+```bash {"stage":"deploy_certs", "label":"create signing issuer", "runtime":"bash"}
 kubectl apply -f - <<EOF
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -138,7 +138,7 @@ kubectl wait clusterissuer broker-ca-issuer --for=condition=Ready --timeout=300s
 
 ##### Install the CA Bundle in the `cert-manager` namespace
 
-```bash {"stage":"deploy_certs", "label":"create ca bundle", "HereTag":"EOF", "runtime":"bash"}
+```bash {"stage":"deploy_certs", "label":"create ca bundle", "runtime":"bash"}
 kubectl apply -f - <<EOF
 apiVersion: trust.cert-manager.io/v1alpha1
 kind: Bundle
@@ -162,7 +162,7 @@ kubectl wait bundle activemq-artemis-manager-ca -n cert-manager --for=condition=
 
 ##### Create the certificate for the operator
 
-```bash {"stage":"deploy_certs", "label":"create operator cert", "HereTag":"EOF", "runtime":"bash"}
+```bash {"stage":"deploy_certs", "label":"create operator cert", "runtime":"bash"}
 kubectl apply -f - <<EOF
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -189,7 +189,7 @@ kubectl wait certificate activemq-artemis-manager-cert -n service-app-project --
 The service needs a certificate customized with a matching common name to enable
 mTLS communication.
 
-```bash {"stage":"deploy_service", "label":"create broker cert", "HereTag":"EOF", "runtime":"bash"}
+```bash {"stage":"deploy_service", "label":"create broker cert", "runtime":"bash"}
 kubectl apply -f - <<EOF
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -214,7 +214,7 @@ kubectl wait certificate messaging-service-broker-cert -n service-app-project --
 
 #### Deploy `ActiveMQArtemisService`
 
-```bash {"stage":"deploy_service", "label":"deploy service crd", "HereTag":"EOF", "runtime":"bash"}
+```bash {"stage":"deploy_service", "label":"deploy service crd", "runtime":"bash"}
 kubectl apply -f - <<EOF
 apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemisService
@@ -245,7 +245,7 @@ kubectl wait ActiveMQArtemisService messaging-service -n service-app-project --f
 
 #### Create Service Certificate
 
-```bash {"stage":"deploy_app", "label":"create app cert", "HereTag":"EOF", "runtime":"bash"}
+```bash {"stage":"deploy_app", "label":"create app cert", "runtime":"bash"}
 kubectl apply -f - <<EOF
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -263,7 +263,7 @@ EOF
 
 #### Deploy `ActiveMQArtemisApp`
 
-```bash {"stage":"deploy_app", "label":"deploy app crd", "HereTag":"EOF", "runtime":"bash"}
+```bash {"stage":"deploy_app", "label":"deploy app crd", "runtime":"bash"}
 kubectl apply -f - <<EOF
 apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemisApp
@@ -277,8 +277,8 @@ spec:
   auth:
   - mtls
   capabilities:
-  - producerandconsumerof:
-    - queuename: "APP.JOBS"
+  - producerAndConsumerOf:
+    - queueName: "APP.JOBS"
 EOF
 ```
 
@@ -314,7 +314,7 @@ until kubectl get secret cert-pemcfg -n service-app-project &> /dev/null; do ech
 
 #### Run Producer Job
 
-```bash {"stage":"test_messaging", "label":"run producer", "HereTag":"EOF", "runtime":"bash"}
+```bash {"stage":"test_messaging", "label":"run producer", "runtime":"bash"}
 cat <<'EOT' | kubectl apply -f -
 apiVersion: batch/v1
 kind: Job
@@ -357,7 +357,7 @@ EOT
 
 #### Run Consumer Job
 
-```bash {"stage":"test_messaging", "label":"run consumer", "HereTag":"EOF", "runtime":"bash"}
+```bash {"stage":"test_messaging", "label":"run consumer", "runtime":"bash"}
 cat <<'EOT' | kubectl apply -f -
 apiVersion: batch/v1
 kind: Job

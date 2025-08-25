@@ -698,34 +698,34 @@ spec:
               capabilities:
                 items:
                   properties:
-                    consumerof:
+                    consumerOf:
                       items:
                         properties:
                           name:
                             description: one of Name or QueueName is required
                             type: string
-                          queuename:
+                          queueName:
                             type: string
                         type: object
                       type: array
-                    producerandconsumerof:
+                    producerAndConsumerOf:
                       items:
                         properties:
                           name:
                             description: one of Name or QueueName is required
                             type: string
-                          queuename:
+                          queueName:
                             type: string
                         type: object
                       type: array
-                    producerof:
+                    producerOf:
                       description: only apps that split producer/consumer across roles will be able to shard for elastic queue
                       items:
                         properties:
                           name:
                             description: one of Name or QueueName is required
                             type: string
-                          queuename:
+                          queueName:
                             type: string
                         type: object
                       type: array

@@ -7,7 +7,7 @@ spec:
     mtls
   ]
   capabilities: [
-    producerandconsumerof: [
+    producerAndConsumerOf: [
       queuename: APP.JOBS
     ]
   ]
