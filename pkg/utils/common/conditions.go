@@ -30,7 +30,7 @@ const (
 )
 
 func SetReadyCondition(conditions *[]metav1.Condition) {
-	condition := newReadyCondition()
+	condition := NewReadyCondition()
 	ready := true
 	for _, c := range *conditions {
 		if c.Type != brokerv1beta1.ReadyConditionType && c.Status == metav1.ConditionFalse {
@@ -68,7 +68,7 @@ func IsConditionPresentAndEqualIgnoringMessage(conditions []metav1.Condition, co
 	return false
 }
 
-func newReadyCondition() metav1.Condition {
+func NewReadyCondition() metav1.Condition {
 	return metav1.Condition{
 		Type:   brokerv1beta1.ReadyConditionType,
 		Reason: brokerv1beta1.ReadyConditionReason,
