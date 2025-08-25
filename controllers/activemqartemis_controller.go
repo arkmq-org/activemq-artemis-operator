@@ -728,17 +728,27 @@ func DuplicateKeyIn(keyValues []string) string {
 	keysMap := map[string]string{}
 
 	for _, keyAndValue := range keyValues {
-		if key, _, found := strings.Cut(keyAndValue, "="); found {
-			_, duplicate := keysMap[key]
-			if !(duplicate) {
-				keysMap[key] = key
-			} else {
-				return key
-			}
+		key := extractPropertyKey(keyAndValue)
+		_, duplicate := keysMap[key]
+		if !(duplicate) {
+			keysMap[key] = key
+		} else {
+			return key
 		}
+
 	}
 
 	return ""
+}
+
+func extractPropertyKey(keyAndValue string) string {
+	// key is terminated by first = that is not escaped
+	for index, c := range keyAndValue {
+		if c == '=' && index > 0 && keyAndValue[index-1] != '\\' {
+			return keyAndValue[0:index]
+		}
+	}
+	return keyAndValue
 }
 
 func AssertSecretContainsKey(secret corev1.Secret, key string, contextMessage string) *metav1.Condition {
