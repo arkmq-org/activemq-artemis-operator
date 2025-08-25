@@ -4052,7 +4052,33 @@ func KeyValuePairsFromMap(parentKey string, dataMap map[string]interface{}, pair
 }
 
 func alder32FromData(data []byte) string {
-	return alder32StringValue(alder32Of(KeyValuePairs(data)))
+	return alder32StringValue(alder32Of(ReadReplaceEscapes(KeyValuePairs(data))))
+}
+
+func ReadReplaceEscapes(values []string) []string {
+	result := []string{}
+	for _, keyAndValue := range values {
+
+		// need to trim space arround the '=' in x = y to match properties loader check sum
+
+		// need to ignore \=
+		equalsSeparator := "="
+		keyAndValueTokens := strings.SplitN(keyAndValue, equalsSeparator, 2)
+		numTokens := len(keyAndValueTokens)
+		if numTokens == 2 {
+			keyAndValue =
+				strings.TrimRightFunc(keyAndValueTokens[0], unicode.IsSpace) +
+					equalsSeparator +
+					strings.TrimLeftFunc(keyAndValueTokens[1], unicode.IsSpace)
+		}
+		// escaped x will converted on read, need to replace for check sum
+		keyAndValue = strings.ReplaceAll(keyAndValue, `\ `, ` `)
+		keyAndValue = strings.ReplaceAll(keyAndValue, `\:`, `:`)
+		keyAndValue = strings.ReplaceAll(keyAndValue, `\=`, `=`)
+		keyAndValue = strings.ReplaceAll(keyAndValue, `\"`, `"`)
+		result = append(result, keyAndValue)
+	}
+	return result
 }
 
 func KeyValuePairs(data []byte) []string {
@@ -4074,24 +4100,7 @@ func KeyValuePairs(data []byte) []string {
 func appendNonEmpty(propsKvs []string, data string) []string {
 	keyAndValue := strings.TrimSpace(string(data))
 	if keyAndValue != "" {
-		// need to trim space arround the '=' in x = y to match properties loader check sum
-		equalsSeparator := "="
-		keyAndValueTokens := strings.SplitN(keyAndValue, equalsSeparator, 2)
-		numTokens := len(keyAndValueTokens)
-		if numTokens == 2 {
-			keyAndValue =
-				strings.TrimRightFunc(keyAndValueTokens[0], unicode.IsSpace) +
-					equalsSeparator +
-					strings.TrimLeftFunc(keyAndValueTokens[1], unicode.IsSpace)
-		}
-		// escaped x will converted on read, need to replace for check sum
-		keyAndValue = strings.ReplaceAll(keyAndValue, `\ `, ` `)
-		keyAndValue = strings.ReplaceAll(keyAndValue, `\:`, `:`)
-		keyAndValue = strings.ReplaceAll(keyAndValue, `\=`, `=`)
-		keyAndValue = strings.ReplaceAll(keyAndValue, `\"`, `"`)
-		if keyAndValue != "" {
-			propsKvs = append(propsKvs, keyAndValue)
-		}
+		propsKvs = append(propsKvs, keyAndValue)
 	}
 	return propsKvs
 }

@@ -126,7 +126,7 @@ func TestValidateBrokerPropsDuplicateOnFirstEquals(t *testing.T) {
 	assert.True(t, strings.Contains(condition.Message, "nameWith"))
 }
 
-func TestValidateBrokerPropsDuplicateOnFirstEqualsIncorrectButUnrealisticForOurBrokerConfigUsecase(t *testing.T) {
+func TestValidateBrokerPropsDuplicateOnFirstEqualsCorrect(t *testing.T) {
 
 	cr := &brokerv1beta1.ActiveMQArtemis{
 		Spec: brokerv1beta1.ActiveMQArtemisSpec{
@@ -144,14 +144,10 @@ func TestValidateBrokerPropsDuplicateOnFirstEqualsIncorrectButUnrealisticForOurB
 
 	valid, retry := ri.validate(cr, k8sClient, *namer)
 
-	assert.False(t, valid)
+	assert.True(t, valid)
 	assert.False(t, retry)
 
-	assert.True(t, meta.IsStatusConditionFalse(cr.Status.Conditions, brokerv1beta1.ValidConditionType))
-
-	condition := meta.FindStatusCondition(cr.Status.Conditions, brokerv1beta1.ValidConditionType)
-	assert.Equal(t, condition.Reason, brokerv1beta1.ValidConditionFailedDuplicateBrokerPropertiesKey)
-	assert.True(t, strings.Contains(condition.Message, "nameWith"))
+	assert.True(t, meta.IsStatusConditionTrue(cr.Status.Conditions, brokerv1beta1.ValidConditionType))
 }
 
 func TestStatusPodsCheckCached(t *testing.T) {

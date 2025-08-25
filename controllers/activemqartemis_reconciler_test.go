@@ -1751,3 +1751,17 @@ func TestBrokerPropertiesDataWithAndWithoutOrdinal(t *testing.T) {
 	assert.True(t, strings.Contains(string(data[broker999BrokerPropertiesName]), "maxDiskUsage=99"))
 	assert.True(t, strings.Contains(string(data[broker999BrokerPropertiesName]), "minDiskFree=7"))
 }
+
+func TestDuplicateKeyIn(t *testing.T) {
+
+	data := []byte("aa\\=a=VAL\naa\\=b=VAL")
+
+	kv := KeyValuePairs(data)
+
+	assert.Equal(t, len(kv), 2)
+	assert.True(t, strings.HasPrefix(kv[0], "aa"))
+	assert.True(t, strings.HasPrefix(kv[1], "aa"))
+
+	assert.Equal(t, "", DuplicateKeyIn(kv))
+
+}

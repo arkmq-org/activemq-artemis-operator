@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 
 	broker "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources"
@@ -115,7 +116,7 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processSpec(cr *broker.A
 
 	// find the matching service to find the matching brokers
 	var list = &broker.ActiveMQArtemisServiceList{}
-	var opts, err = metav1.LabelSelectorAsSelector(cr.Spec.Selector)
+	var opts, err = metav1.LabelSelectorAsSelector(cr.Spec.ServiceSelector)
 	if err != nil {
 		err = fmt.Errorf("failed to evaluate Spec.Selector %v", err)
 		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
@@ -212,12 +213,11 @@ type AddressConfig struct {
 }
 
 type AddressTracker struct {
-	multiCast map[string]AddressConfig
-	anyCast   map[string]AddressConfig
+	names map[string]AddressConfig
 }
 
 func newAddressTracker() *AddressTracker {
-	return &AddressTracker{multiCast: map[string]AddressConfig{}, anyCast: map[string]AddressConfig{}}
+	return &AddressTracker{names: map[string]AddressConfig{}}
 }
 
 func (t *AddressTracker) newAddressConfig() AddressConfig {
@@ -226,21 +226,11 @@ func (t *AddressTracker) newAddressConfig() AddressConfig {
 
 func (t *AddressTracker) track(address *broker.AppAddressType) *AddressConfig {
 
-	var trackerMap map[string]AddressConfig
-	var name string
-	if address.QueueName != "" {
-		trackerMap = t.anyCast
-		name = address.QueueName
-	} else {
-		trackerMap = t.multiCast
-		name = address.Name
-	}
-
 	var present bool
 	var entry AddressConfig
-	if entry, present = trackerMap[name]; !present {
+	if entry, present = t.names[address.Address]; !present {
 		entry = t.newAddressConfig()
-		trackerMap[name] = entry
+		t.names[address.Address] = entry
 	}
 	return &entry
 }
@@ -259,8 +249,6 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(serv
 
 	secret, err := secrets.RetriveSecret(key, nil, reconciler.Client)
 	if err == nil {
-
-		buf := NewPropsWithHeader()
 
 		addressTracker := newAddressTracker()
 
@@ -282,34 +270,41 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(serv
 				entry.consumerRoles[role] = role
 			}
 
-			for _, address := range capability.ProducerAndConsumerOf {
+			for _, address := range capability.SubscriberOf {
 				entry = addressTracker.track(&address)
 				entry.consumerRoles[role] = role
-				entry.senderRoles[role] = role
 			}
 		}
 
-		for name, addr := range addressTracker.anyCast {
-			fmt.Fprintf(buf, "addressConfigurations.\"%s\".routingTypes=ANYCAST\n", name)
-			fmt.Fprintf(buf, "addressConfigurations.\"%s\".queueConfigs.\"%s\".routingType=ANYCAST\n", name, name)
+		props := map[string]string{} // need to dedup
+		for addressName, addr := range addressTracker.names {
+			fqqn := strings.SplitN(addressName, "::", 2)
+			if len(fqqn) > 1 {
+				address := escapeForProperties(fqqn[0])
+				queueName := escapeForProperties(fqqn[1])
+				props[fmt.Sprintf("addressConfigurations.\"%s\".routingTypes=ANYCAST,MULTICAST\n", address)] = ""
+				props[fmt.Sprintf("addressConfigurations.\"%s\".queueConfigs.\"%s\".routingType=MULTICAST\n", address, queueName)] = ""
+				props[fmt.Sprintf("addressConfigurations.\"%s\".queueConfigs.\"%s\".address=%s\n", address, queueName, address)] = ""
+			} else {
+				props[fmt.Sprintf("addressConfigurations.\"%s\".routingTypes=ANYCAST,MULTICAST\n", addressName)] = ""
+				props[fmt.Sprintf("addressConfigurations.\"%s\".queueConfigs.\"%s\".routingType=ANYCAST\n", addressName, addressName)] = ""
+			}
+
+			// use fqqn as is for RBAC
+			addressName = escapeForProperties(addressName)
 
 			for _, role := range addr.senderRoles {
-				fmt.Fprintf(buf, "securityRoles.\"%s\".\"%s\".send=true\n", name, producerRole(role))
+				props[fmt.Sprintf("securityRoles.\"%s\".\"%s\".send=true\n", addressName, producerRole(role))] = ""
+
 			}
 			for _, role := range addr.consumerRoles {
-				fmt.Fprintf(buf, "securityRoles.\"%s\".\"%s\".consume=true\n", name, consumerRole(role))
+				props[fmt.Sprintf("securityRoles.\"%s\".\"%s\".consume=true\n", addressName, consumerRole(role))] = ""
 			}
 		}
 
-		for name, addr := range addressTracker.multiCast {
-			fmt.Fprintf(buf, "addressConfigurations.\"%s\".routingTypes=MULTICAST\n", name)
-
-			for _, role := range addr.senderRoles {
-				fmt.Fprintf(buf, "securityRoles.\"%s\".\"%s\".send=true\n", name, producerRole(role))
-			}
-			for _, role := range addr.consumerRoles {
-				fmt.Fprintf(buf, "securityRoles.\"%s\".\"%s\".consume=true\n", name, consumerRole(role))
-			}
+		buf := NewPropsWithHeader()
+		for _, k := range sortedKeys(props) {
+			fmt.Fprint(buf, k)
 		}
 
 		secret.Data = map[string][]byte{
@@ -318,6 +313,13 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(serv
 		err = resources.Update(reconciler.Client, secret)
 	}
 	return err
+}
+
+func escapeForProperties(s string) string {
+	s = strings.Replace(s, "::", "\\:\\:", 1)
+	s = strings.Replace(s, "=", "\\=", -1)
+	s = strings.Replace(s, " ", "\\ ", -1)
+	return s
 }
 
 func (reconciler *ActiveMQArtemisAppInstanceReconciler) AppIdentity() string {
@@ -348,30 +350,10 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) checkAuthMatch(service *
 func (reconciler *ActiveMQArtemisAppInstanceReconciler) verifyCapabilityAddressType() (err error) {
 
 	for _, capability := range reconciler.instance.Spec.Capabilities {
-
-		for index, address := range capability.ProducerOf {
-
-			if address.Name == "" && address.QueueName == "" {
-				err = fmt.Errorf("Spec.Capability.ProducerOf[%d] address must specify name or queue name %v", index, err)
+		for index, address := range capability.SubscriberOf {
+			if !strings.Contains(address.Address, "::") {
+				err = fmt.Errorf("Spec.Capability.SubscriptionOf[%d] address must specify a FQQN, %v", index, err)
 				break
-			}
-		}
-		if err == nil {
-			for index, address := range capability.ConsumerOf {
-
-				if address.Name == "" && address.QueueName == "" {
-					err = fmt.Errorf("Spec.Capability.ConsumerOf[%d] address must specify name or queue name %v", index, err)
-					break
-				}
-			}
-		}
-		if err == nil {
-			for index, address := range capability.ProducerAndConsumerOf {
-
-				if address.Name == "" && address.QueueName == "" {
-					err = fmt.Errorf("Spec.Capability.ProducerAndConsumerOf[%d] address must specify name or queue name %v", index, err)
-					break
-				}
 			}
 		}
 	}
@@ -406,10 +388,10 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) verifyNoRoleInCapabiliti
 func (reconciler *ActiveMQArtemisAppInstanceReconciler) processAuth(service *broker.ActiveMQArtemisService) (err error) {
 
 	if contains(service.Spec.Auth, broker.MTLS) {
-		err = reconciler.verifyNoRoleInCapabilitiesForMtls()
-		if err == nil {
-			err = reconciler.doMtlsAuthN(service)
-		}
+		//err = reconciler.verifyNoRoleInCapabilitiesForMtls()
+		//if err == nil {
+		err = reconciler.doMtlsAuthN(service)
+		//}
 	}
 	return err
 }
@@ -469,7 +451,8 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) doMtlsAuthN(service *bro
 		})
 
 		usersBuf := NewPropsWithHeader()
-		rolesBuf := NewPropsWithHeader()
+
+		dedupMap := map[string]string{}
 
 		for _, candidate := range deployedApps {
 
@@ -479,21 +462,26 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) doMtlsAuthN(service *bro
 
 			for _, capability := range candidate.Spec.Capabilities {
 
-				// single identity role (userName) for mtls
-				if len(capability.ConsumerOf) > 0 {
-					fmt.Fprintf(rolesBuf, "%s=%s\n", consumerRole(userName), userName)
+				roleName := capability.Role
+				if roleName == "" {
+					roleName = userName
+				}
+
+				if len(capability.ConsumerOf) > 0 || len(capability.SubscriberOf) > 0 {
+					dedupMap[fmt.Sprintf("%s=%s\n", consumerRole(roleName), userName)] = ""
 				}
 				if len(capability.ProducerOf) > 0 {
-					fmt.Fprintf(rolesBuf, "%s=%s\n", producerRole(userName), userName)
-				}
-				if len(capability.ProducerAndConsumerOf) > 0 {
-					fmt.Fprintf(rolesBuf, "%s=%s\n", consumerRole(userName), userName)
-					fmt.Fprintf(rolesBuf, "%s=%s\n", producerRole(userName), userName)
+					dedupMap[fmt.Sprintf("%s=%s\n", producerRole(roleName), userName)] = ""
 				}
 			}
 		}
 
 		secret.Data[common.GetCertUsersKey(common.JaasRealm)] = usersBuf.Bytes()
+
+		rolesBuf := NewPropsWithHeader()
+		for _, k := range sortedKeys(dedupMap) {
+			fmt.Fprint(rolesBuf, k)
+		}
 		secret.Data[common.GetCertRolesKey(common.JaasRealm)] = rolesBuf.Bytes()
 
 		err = resources.Update(reconciler.Client, secret)

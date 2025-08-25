@@ -28,8 +28,8 @@ type ActiveMQArtemisAppSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Selector"
-	Selector *metav1.LabelSelector `json:"selector,omitempty"`
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="ServiceSelector"
+	ServiceSelector *metav1.LabelSelector `json:"selector,omitempty"`
 
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Authentication Types"
 	Auth []AppAuthType `json:"auth,omitempty"`
@@ -42,26 +42,23 @@ type ActiveMQArtemisAppSpec struct {
 }
 
 type AppAddressType struct {
-	// one of Name or QueueName is required
-	Name      string `json:"name,omitempty"`
-	QueueName string `json:"queuename,omitempty"`
+	Address string `json:"address"`
+
+	// with only a name it can be a string
+	// Filter string `json:"filter,omitempty"`
 }
 
 type AppCapabilityType struct {
-	// defaults to cr.Name
 	Role string `json:"role,omitempty"`
 
-	// only apps that split producer/consumer across roles will be able to shard for elastic queue
-	ProducerOf []AppAddressType `json:"producerof,omitempty"` // ProducerTo
+	ProducerOf []AppAddressType `json:"producerOf,omitempty"`
 
-	ConsumerOf []AppAddressType `json:"consumerof,omitempty"` // ConsumerFrom/ConsumerOf
+	ConsumerOf []AppAddressType `json:"consumerOf,omitempty"`
 
-	ProducerAndConsumerOf []AppAddressType `json:"producerandconsumerof,omitempty"`
+	SubscriberOf []AppAddressType `json:"subscriberOf,omitempty"`
 }
 
 type ActiveMQArtemisAppStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 
 	// Current state of the resource
 	// Conditions represent the latest available observations of an object's state

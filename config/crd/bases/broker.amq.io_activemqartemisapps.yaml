@@ -47,41 +47,35 @@ spec:
               capabilities:
                 items:
                   properties:
-                    consumerof:
+                    consumerOf:
                       items:
                         properties:
-                          name:
-                            description: one of Name or QueueName is required
+                          address:
                             type: string
-                          queuename:
-                            type: string
+                        required:
+                        - address
                         type: object
                       type: array
-                    producerandconsumerof:
+                    producerOf:
                       items:
                         properties:
-                          name:
-                            description: one of Name or QueueName is required
+                          address:
                             type: string
-                          queuename:
-                            type: string
-                        type: object
-                      type: array
-                    producerof:
-                      description: only apps that split producer/consumer across roles
-                        will be able to shard for elastic queue
-                      items:
-                        properties:
-                          name:
-                            description: one of Name or QueueName is required
-                            type: string
-                          queuename:
-                            type: string
+                        required:
+                        - address
                         type: object
                       type: array
                     role:
-                      description: defaults to cr.Name
                       type: string
+                    subscriberOf:
+                      items:
+                        properties:
+                          address:
+                            type: string
+                        required:
+                        - address
+                        type: object
+                      type: array
                   type: object
                 type: array
               resources:

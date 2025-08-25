@@ -945,6 +945,8 @@ func uninstallCRDs() {
 		"activemqartemisaddresses.broker.amq.io",
 		"activemqartemisscaledowns.broker.amq.io",
 		"activemqartemissecurities.broker.amq.io",
+		"activemqartemisapps.broker.amq.io",
+		"activemqartemisservices.broker.amq.io",
 	}
 
 	for _, crdName := range crdNames {

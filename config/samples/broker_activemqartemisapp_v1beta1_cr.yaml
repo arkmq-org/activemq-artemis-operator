@@ -7,8 +7,8 @@ spec:
     mtls
   ]
   capabilities: [
-    producerandconsumerof: [
-      queuename: APP.JOBS
+    producerOf: [
+      address: APP.JOBS
     ]
   ]
   selector:

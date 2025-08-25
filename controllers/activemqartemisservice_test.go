@@ -134,6 +134,17 @@ var _ = Describe("artemis-service", func() {
 				}
 			})
 
+			prometheusCertName := common.DefaultPrometheusCertSecretName
+			By("installing prometheus cert")
+			InstallCert(prometheusCertName, defaultNamespace, func(candidate *cmv1.Certificate) {
+				candidate.Spec.SecretName = prometheusCertName
+				candidate.Spec.CommonName = "prometheus"
+				candidate.Spec.IssuerRef = cmmetav1.ObjectReference{
+					Name: caIssuer.Name,
+					Kind: "ClusterIssuer",
+				}
+			})
+
 			jvmRemoteDebug := false
 			crd := brokerv1beta1.ActiveMQArtemisService{
 				TypeMeta: metav1.TypeMeta{
@@ -143,7 +154,7 @@ var _ = Describe("artemis-service", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      serviceName,
 					Namespace: defaultNamespace,
-					Labels:    map[string]string{"forWorkQueue": "true"},
+					Labels:    map[string]string{"env": "production"},
 				},
 				Spec: brokerv1beta1.ActiveMQArtemisServiceSpec{
 
@@ -254,9 +265,9 @@ var _ = Describe("artemis-service", func() {
 				},
 				Spec: brokerv1beta1.ActiveMQArtemisAppSpec{
 
-					Selector: &metav1.LabelSelector{
+					ServiceSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{
-							"forWorkQueue": "true",
+							"env": "production",
 						}},
 
 					Auth: []brokerv1beta1.AppAuthType{
@@ -265,8 +276,20 @@ var _ = Describe("artemis-service", func() {
 
 					Capabilities: []brokerv1beta1.AppCapabilityType{
 						{
-							// Role: appName, TODO respect role for mtls
-							ProducerAndConsumerOf: []brokerv1beta1.AppAddressType{{QueueName: "APP.JOBS"}},
+							Role:       "workQueue",
+							ProducerOf: []brokerv1beta1.AppAddressType{{Address: "APP.JOBS"}},
+							ConsumerOf: []brokerv1beta1.AppAddressType{{Address: "APP.JOBS"}},
+						},
+						{
+							Role:       "pubSub",
+							ProducerOf: []brokerv1beta1.AppAddressType{{Address: "APP.COMMANDS"}},
+							SubscriberOf: []brokerv1beta1.AppAddressType{
+
+								// artemis producer uses the subscriber-name from the current thread name!
+								// client-1.Consumer APP.COMMANDS, thread=0
+								{Address: `APP.COMMANDS::client-1.Consumer APP.COMMANDS, thread=0`},
+								{Address: `APP.COMMANDS::client-2.Consumer APP.COMMANDS, thread=0`},
+							},
 						},
 					},
 
@@ -460,6 +483,34 @@ var _ = Describe("artemis-service", func() {
 
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
+			By("verifying pub sub")
+
+			By("deploying durable subscribers")
+			clientId := "client-1"
+			subscriber1 := jobTemplate(
+				clientId,
+				1,
+				[]string{"/bin/sh", "-c", "exec java -classpath /opt/amq/lib/*:/opt/amq/lib/extra/* org.apache.activemq.artemis.cli.Artemis consumer --protocol=AMQP --url " + serviceUrl + " --message-count=1 --durable --clientID=" + clientId + " --destination topic://APP.COMMANDS;"},
+			)
+			Expect(k8sClient.Create(ctx, &subscriber1)).Should(Succeed())
+
+			clientId = "client-2"
+			subscriber2 := jobTemplate(
+				clientId,
+				1,
+				[]string{"/bin/sh", "-c", "exec java -classpath /opt/amq/lib/*:/opt/amq/lib/extra/* org.apache.activemq.artemis.cli.Artemis consumer --protocol=AMQP --url " + serviceUrl + " --message-count=1 --durable --clientID=" + clientId + " --destination topic://APP.COMMANDS;"},
+			)
+			Expect(k8sClient.Create(ctx, &subscriber2)).Should(Succeed())
+
+			// may need a delay or check stats to see active subs
+
+			publisher := jobTemplate(
+				"publisher",
+				1,
+				[]string{"/bin/sh", "-c", "exec java -classpath /opt/amq/lib/*:/opt/amq/lib/extra/* org.apache.activemq.artemis.cli.Artemis producer --protocol=AMQP --url " + serviceUrl + " --message-count 1 --destination topic://APP.COMMANDS;exit $?"},
+			)
+			Expect(k8sClient.Create(ctx, &publisher)).Should(Succeed())
+
 			By("Verifying stats...")
 			// TODO
 
@@ -469,7 +520,7 @@ var _ = Describe("artemis-service", func() {
 				createdApp.Spec.Capabilities = append(createdApp.Spec.Capabilities, brokerv1beta1.AppCapabilityType{
 					ProducerOf: []brokerv1beta1.AppAddressType{
 						{
-							QueueName: "brian",
+							Address: "brian",
 						},
 					},
 				})
@@ -503,6 +554,10 @@ var _ = Describe("artemis-service", func() {
 			cascade_foreground_policy := metav1.DeletePropagationForeground
 			Expect(k8sClient.Delete(ctx, producerJob, &client.DeleteOptions{PropagationPolicy: &cascade_foreground_policy})).Should(Succeed())
 			Expect(k8sClient.Delete(ctx, consumerJob, &client.DeleteOptions{PropagationPolicy: &cascade_foreground_policy})).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, &subscriber1, &client.DeleteOptions{PropagationPolicy: &cascade_foreground_policy})).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, &subscriber2, &client.DeleteOptions{PropagationPolicy: &cascade_foreground_policy})).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, &publisher, &client.DeleteOptions{PropagationPolicy: &cascade_foreground_policy})).Should(Succeed())
+
 			Expect(k8sClient.Delete(ctx, appClientPemcfgSecret)).Should(Succeed())
 			Expect(k8sClient.Delete(ctx, createdCrd)).Should(Succeed())
 
