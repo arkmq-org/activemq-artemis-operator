@@ -91,7 +91,7 @@ metadata:
             ],
             "capabilities": [
               {
-                "producerandconsumerof": [
+                "producerAndConsumerOf": [
                   {
                     "queuename": "APP.JOBS"
                   }

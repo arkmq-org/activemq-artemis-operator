@@ -277,7 +277,7 @@ spec:
   auth:
   - mtls
   capabilities:
-  - producerandconsumerof:
+  - producerAndConsumerOf:
     - queuename: "APP.JOBS"
 EOF
 ```
