@@ -91,9 +91,9 @@ metadata:
             ],
             "capabilities": [
               {
-                "producerandconsumerof": [
+                "producerOf": [
                   {
-                    "queuename": "APP.JOBS"
+                    "address": "APP.JOBS"
                   }
                 ]
               }
@@ -822,7 +822,7 @@ spec:
         path: capabilities
       - displayName: Resources
         path: resources
-      - displayName: Selector
+      - displayName: ServiceSelector
         path: selector
       statusDescriptors:
       - description: Current state of the resource Conditions represent the latest
