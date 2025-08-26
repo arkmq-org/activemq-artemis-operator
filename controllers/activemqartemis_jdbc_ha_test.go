@@ -177,7 +177,9 @@ var _ = Describe("jdbc fast failover", func() {
 					"HAPolicyConfiguration=SHARED_STORE_PRIMARY",
 					"storeConfiguration=DATABASE",
 					"storeConfiguration.jdbcDriverClassName=org.postgresql.Driver",
-					"storeConfiguration.jdbcConnectionUrl=jdbc:postgresql://" + dbName + ".default" + ":" + fmt.Sprintf("%d", dbPort) + "/postgres?user=postgres&password=postgres",
+					"storeConfiguration.jdbcConnectionUrl=jdbc:postgresql://" + dbName + ".default" + ":" + fmt.Sprintf("%d", dbPort) + "/postgres",
+					"storeConfiguration.dataSourceProperties.username=postgres",
+					"storeConfiguration.dataSourceProperties.password=postgres", // not in url to get logging redaction
 					"storeConfiguration.jdbcLockRenewPeriodMillis=2000",
 					"storeConfiguration.jdbcLockExpirationMillis=6000",
 				}
