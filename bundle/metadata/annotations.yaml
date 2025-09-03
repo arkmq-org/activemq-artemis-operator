@@ -18,3 +18,4 @@ annotations:
   description: "ActiveMQ Artemis Broker Operator Bundle"
   maintainer: "arkmq-org <info@arkmq.org>"
   version: "2.0.5"
+  com.redhat.openshift.versions: "v4.12"
