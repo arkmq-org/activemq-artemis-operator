@@ -23,6 +23,11 @@ on:
         required: false
         default: false
         type: boolean
+      runTutorials:
+        description: 'Run tutorials'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
 
@@ -95,10 +100,19 @@ jobs:
       - name: Run scorecard tests
         run: make scorecard | tee scorecard.log && ! grep 'Suggestions' scorecard.log
 
+      - name: Get changed files in tutorials
+        id: changed-tutorial-files
+        if: github.event_name == 'pull_request'
+        uses: tj-actions/changed-files@v41
+        with:
+          files: docs/tutorials/**
+
       - name: Install markdown-runner
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.runTutorials) || (github.event_name == 'pull_request' && steps.changed-tutorial-files.outputs.any_changed == 'true')
         run: go install github.com/arkmq-org/markdown-runner@latest
 
       - name: run the tutorials on the image
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.runTutorials) || (github.event_name == 'pull_request' && steps.changed-tutorial-files.outputs.any_changed == 'true')
         run: |
           find docs/tutorials -type f -exec sed -i "s|^minikube start|minikube start --insecure-registry=$HOSTNAME:5000|" {} +
           sed -i "s|image: quay.io/arkmq-org/activemq-artemis-operator:.*|image: ${HOSTNAME}:5000/$IMAGE_NAME:dev.latest|" deploy/operator.yaml
