@@ -69,8 +69,13 @@ const (
 	DefaultOperatorCertSecretName = "activemq-artemis-manager-cert"
 	DefaultOperatorCASecretName   = "activemq-artemis-manager-ca"
 	DefaultOperandCertSecretName  = "broker-cert" // or can be prefixed with `cr.Name-`
-
-	BlockReconcileAnnotation = "arkmq.org/block-reconcile"
+	AppCertSecretSuffix           = "-app-cert"
+	CertUsersKeySuffix            = "cert-users"
+	CertRolesKeySuffix            = "cert-roles"
+	JaasRealm                     = "activemq"
+	HttpAuthenticatorRealm        = "http_server_authenticator"
+	AppServiceAnnotation          = "arkmq.org/app-service"
+	BlockReconcileAnnotation      = "arkmq.org/block-reconcile"
 )
 
 var lastStatusMap map[types.NamespacedName]olm.DeploymentStatus = make(map[types.NamespacedName]olm.DeploymentStatus)
@@ -117,6 +122,14 @@ func init() {
 	} else {
 		jaasConfigSyntaxMatchRegEx = JaasConfigSyntaxMatchRegExDefault
 	}
+}
+
+func GetCertUsersKey(realm string) string {
+	return fmt.Sprintf("%s-%s", realm, CertUsersKeySuffix)
+}
+
+func GetCertRolesKey(realm string) string {
+	return fmt.Sprintf("%s-%s", realm, CertRolesKeySuffix)
 }
 
 func GetJaasConfigSyntaxMatchRegEx() string {
@@ -838,6 +851,10 @@ func GetOperatorNamespaceFromEnv() (ns string, err error) {
 	return *operatorNameSpaceFromEnv, nil
 }
 
+func SetOperatorNameSpace(ns string) {
+	operatorNameSpaceFromEnv = &ns
+}
+
 func GetOperatorCASecret(client rtclient.Client) (*corev1.Secret, error) {
 	return GetOperatorSecret(client, GetOperatorCASecretName())
 }
@@ -852,14 +869,18 @@ func GetOperatorSecret(client rtclient.Client, secretName string) (*corev1.Secre
 	var err error
 	operatorNamespace, err = GetOperatorNamespaceFromEnv()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get secret %s, failed to get operator namespace, %w", secretName, err)
 	}
 
-	secretNamespacedName := types.NamespacedName{Name: secretName, Namespace: operatorNamespace}
+	return GetSecret(client, secretName, operatorNamespace)
+}
+
+func GetSecret(client rtclient.Client, secretName string, namespace string) (*corev1.Secret, error) {
+
+	secretNamespacedName := types.NamespacedName{Name: secretName, Namespace: namespace}
 	secret := corev1.Secret{}
 	if err := resources.Retrieve(secretNamespacedName, client, &secret); err != nil {
-		ctrl.Log.V(1).Info("operator secret not found", "name", secretNamespacedName, "err", err)
-		return nil, errors.Errorf("failed to get secret %s, %v", secretNamespacedName, err)
+		return nil, fmt.Errorf("failed to get secret %s, %w", secretNamespacedName, err)
 	}
 
 	return &secret, nil
@@ -895,20 +916,20 @@ func GetOperatorClientCertificate(client rtclient.Client, info *tls.CertificateR
 func ExtractCertFromSecret(certSecret *corev1.Secret) (*tls.Certificate, error) {
 	cert, err := tls.X509KeyPair(certSecret.Data["tls.crt"], certSecret.Data["tls.key"])
 	if err != nil {
-		return nil, errors.Errorf("invalid key pair in secret %v, %v", certSecret.Name, err)
+		return nil, fmt.Errorf("invalid key pair in secret %v, %w", certSecret.Name, err)
 	}
 	return &cert, nil
 }
 
 func ExtractCertSubjectFromSecret(certSecretName string, namespace string, client rtclient.Client) (*pkix.Name, error) {
 
-	secret, err := GetOperatorSecret(client, certSecretName)
+	secret, err := GetSecret(client, certSecretName, namespace)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to extract subject, no secret, %w", err)
 	}
 	cert, err := ExtractCertFromSecret(secret)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to extract subject from secret %s, %w", secret.GetName(), err)
 	}
 	return ExtractCertSubject(cert)
 }
