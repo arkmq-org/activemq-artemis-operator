@@ -1,0 +1,1105 @@
+{
+  "terms": [
+    {
+      "name": "ActiveMQArtemis",
+      "definition": "The primary Custom Resource (CR) for deploying and managing ActiveMQ Artemis broker instances. Defines the desired state of a broker deployment including size, configuration, persistence, and networking.",
+      "searchPatterns": [
+        "ActiveMQArtemis",
+        "activemqartemis"
+      ],
+      "category": "Operator Core Concepts"
+    },
+    {
+      "name": "Reconciler",
+      "definition": "The core component that watches Custom Resources and ensures the actual cluster state matches the desired state. The reconciler responds to CR changes by creating, updating, or deleting Kubernetes resources.",
+      "searchPatterns": [
+        "Reconciler",
+        "reconciler",
+        "ActiveMQArtemisReconciler"
+      ],
+      "category": "Operator Core Concepts"
+    },
+    {
+      "name": "Reconciliation Loop",
+      "definition": "The continuous process where the operator compares desired state (from CRs) with actual state (in the cluster) and takes corrective actions. Triggered by CR changes, resource events, or periodic resyncs.",
+      "searchPatterns": [
+        "Reconciliation Loop",
+        "reconciliation loop",
+        "reconciliation flow",
+        "Reconcile"
+      ],
+      "category": "Operator Core Concepts"
+    },
+    {
+      "name": "Custom Resource (CR)",
+      "definition": "A Kubernetes API extension that stores configuration as declarative YAML. Users create CRs to request broker deployments, and the operator watches for CR changes to maintain the desired state.",
+      "searchPatterns": [
+        "Custom Resource",
+        "CR",
+        "custom resource"
+      ],
+      "category": "Operator Core Concepts"
+    },
+    {
+      "name": "CRD",
+      "definition": "CustomResourceDefinition - The schema that defines the structure and validation rules for a Custom Resource type. Installed cluster-wide to enable the Kubernetes API to recognize and validate broker CRs.",
+      "searchPatterns": [
+        "CRD",
+        "CustomResourceDefinition",
+        "custom resource definition"
+      ],
+      "category": "Operator Core Concepts"
+    },
+    {
+      "name": "Controller",
+      "definition": "A component that watches specific resource types and runs reconciliation logic when changes occur. The operator implements multiple controllers for different CR types (broker, address, security, scaledown).",
+      "searchPatterns": [
+        "Controller",
+        "controller"
+      ],
+      "category": "Operator Core Concepts"
+    },
+    {
+      "name": "Controller Manager",
+      "definition": "The runtime that hosts and coordinates multiple controllers, managing their lifecycle, caching, and event delivery. Implemented using controller-runtime from the Kubernetes community.",
+      "searchPatterns": [
+        "Controller Manager",
+        "controller manager",
+        "manager"
+      ],
+      "category": "Operator Core Concepts"
+    },
+    {
+      "name": "Operator",
+      "definition": "A Kubernetes extension that encodes operational knowledge to automate application management. The ActiveMQ Artemis Operator manages the complete lifecycle of broker deployments.",
+      "searchPatterns": [
+        "Operator",
+        "operator"
+      ],
+      "category": "Operator Core Concepts"
+    },
+    {
+      "name": "Managed Resources",
+      "definition": "Kubernetes resources (StatefulSets, Services, Secrets, etc.) created and maintained by the operator to implement the broker deployment. The operator tracks these with owner references and labels.",
+      "searchPatterns": [
+        "Managed Resources",
+        "managed resources"
+      ],
+      "category": "Operator Core Concepts"
+    },
+    {
+      "name": "Watch",
+      "definition": "The mechanism by which the operator monitors Kubernetes resources for changes. The controller manager maintains watches on CRs and managed resources to trigger reconciliation.",
+      "searchPatterns": [
+        "Watch",
+        "watch",
+        "watching"
+      ],
+      "category": "Operator Core Concepts"
+    },
+    {
+      "name": "Event",
+      "definition": "A notification of a resource change (Create, Update, Delete) that triggers reconciliation. Events are queued and processed sequentially by the reconciler.",
+      "searchPatterns": [
+        "Event",
+        "event"
+      ],
+      "category": "Operator Core Concepts"
+    },
+    {
+      "name": "Owner Reference",
+      "definition": "A Kubernetes metadata field linking managed resources to their CR owner. Enables automatic garbage collection and resource tracking by the operator.",
+      "searchPatterns": [
+        "Owner Reference",
+        "owner reference",
+        "ownerReference"
+      ],
+      "category": "Operator Core Concepts"
+    },
+    {
+      "name": "Finalizer",
+      "definition": "A marker preventing CR deletion until cleanup is complete. The operator uses finalizers to ensure graceful broker shutdown and resource cleanup before CR removal.",
+      "searchPatterns": [
+        "Finalizer",
+        "finalizer"
+      ],
+      "category": "Operator Core Concepts"
+    },
+    {
+      "name": "Status Subresource",
+      "definition": "A separate API endpoint for updating CR status without triggering validation of spec fields. The operator uses this to report deployment state, conditions, and pod status.",
+      "searchPatterns": [
+        "Status",
+        "status",
+        "status subresource"
+      ],
+      "category": "Operator Core Concepts"
+    },
+    {
+      "name": "Requeue",
+      "definition": "The action of scheduling a reconciliation request for future execution. Used for retry logic, periodic checks, and handling transient errors.",
+      "searchPatterns": [
+        "Requeue",
+        "requeue"
+      ],
+      "category": "Operator Core Concepts"
+    },
+    {
+      "name": "brokerProperties",
+      "definition": "A flexible configuration mechanism allowing direct specification of broker.xml properties through CR fields or ConfigMaps. Supports global, ordinal-specific, and JSON formats.",
+      "searchPatterns": [
+        "brokerProperties",
+        "broker properties",
+        "broker-properties"
+      ],
+      "category": "Configuration Concepts"
+    },
+    {
+      "name": "Ordinal-Specific Properties",
+      "definition": "Configuration targeting individual broker pods using the `broker-N.` prefix (where N is the pod ordinal). Enables per-pod customization within a StatefulSet.",
+      "searchPatterns": [
+        "ordinal-specific",
+        "ordinal specific",
+        "broker-N",
+        "broker-0",
+        "broker-1"
+      ],
+      "category": "Configuration Concepts"
+    },
+    {
+      "name": "ExtraMounts",
+      "definition": "A CR field for mounting additional Secrets or ConfigMaps into broker containers. Supports magic suffixes (-bp, -logging-config, -jaas-config) for automatic configuration injection.",
+      "searchPatterns": [
+        "ExtraMounts",
+        "extraMounts",
+        "extra mounts"
+      ],
+      "category": "Configuration Concepts"
+    },
+    {
+      "name": "Magic Suffixes",
+      "definition": "Special suffixes on ExtraMount names that trigger automatic processing: `-bp` for broker properties, `-logging-config` for logging, `-jaas-config` for authentication. Enables convention-based configuration.",
+      "searchPatterns": [
+        "magic suffix",
+        "magic suffixes",
+        "-bp",
+        "-logging-config",
+        "-jaas-config"
+      ],
+      "category": "Configuration Concepts"
+    },
+    {
+      "name": "resourceTemplates",
+      "definition": "A CR field containing Strategic Merge Patches applied to generated resources. Allows fine-grained customization of StatefulSets, Services, Routes, and Ingresses.",
+      "searchPatterns": [
+        "resourceTemplates",
+        "resource templates",
+        "resourceTemplate"
+      ],
+      "category": "Configuration Concepts"
+    },
+    {
+      "name": "Strategic Merge Patch",
+      "definition": "A Kubernetes patching strategy that intelligently merges user-provided YAML with operator-generated resources. Preserves arrays, merges maps, and respects special directives.",
+      "searchPatterns": [
+        "Strategic Merge Patch",
+        "strategic merge patch",
+        "strategic merge"
+      ],
+      "category": "Configuration Concepts"
+    },
+    {
+      "name": "deploymentPlan",
+      "definition": "The CR section defining deployment topology: replica count, image, persistence, resource requests/limits, affinity, and tolerations. Core deployment configuration.",
+      "searchPatterns": [
+        "deploymentPlan",
+        "deployment plan",
+        "DeploymentPlanType"
+      ],
+      "category": "Configuration Concepts"
+    },
+    {
+      "name": "addressSettings",
+      "definition": "Broker-level configuration for address/queue behaviors: message expiry, redelivery, paging, routing. Applied using wildcard patterns to match addresses.",
+      "searchPatterns": [
+        "addressSettings",
+        "address settings",
+        "AddressSettingType"
+      ],
+      "category": "Configuration Concepts"
+    },
+    {
+      "name": "acceptorConfigurations",
+      "definition": "Definitions of broker endpoints accepting client connections. Each acceptor specifies protocol (CORE, AMQP, MQTT, STOMP), port, SSL settings, and expose mode.",
+      "searchPatterns": [
+        "acceptorConfigurations",
+        "acceptor configurations",
+        "acceptors"
+      ],
+      "category": "Configuration Concepts"
+    },
+    {
+      "name": "connectorConfigurations",
+      "definition": "Definitions of outbound connections to other brokers or systems. Used for clustering, federation, and message bridging.",
+      "searchPatterns": [
+        "connectorConfigurations",
+        "connector configurations",
+        "connectors"
+      ],
+      "category": "Configuration Concepts"
+    },
+    {
+      "name": "brokerPropertiesValueFrom",
+      "definition": "CR field referencing external ConfigMaps containing broker properties. Enables separation of configuration from CR definition.",
+      "searchPatterns": [
+        "brokerPropertiesValueFrom",
+        "valueFrom"
+      ],
+      "category": "Configuration Concepts"
+    },
+    {
+      "name": "Configuration Precedence",
+      "definition": "The order in which configuration sources override each other: CR fields > ExtraMounts > defaults. Ordinal-specific properties override global properties.",
+      "searchPatterns": [
+        "precedence",
+        "configuration precedence",
+        "override"
+      ],
+      "category": "Configuration Concepts"
+    },
+    {
+      "name": "Restricted Mode",
+      "definition": "A security-hardened deployment mode with reduced container privileges, no JAVA_OPTS manipulation, and JMX Exporter instead of Artemis Metrics Plugin. Enabled via `deploymentPlan.restricted: true`.",
+      "searchPatterns": [
+        "Restricted Mode",
+        "restricted mode",
+        "restricted: true"
+      ],
+      "category": "Deployment Modes"
+    },
+    {
+      "name": "Locked-Down Mode",
+      "definition": "Synonym for Restricted Mode. Emphasizes the security posture with minimal permissions and locked configuration.",
+      "searchPatterns": [
+        "Locked-Down Mode",
+        "locked-down",
+        "locked down"
+      ],
+      "category": "Deployment Modes"
+    },
+    {
+      "name": "Legacy Mode",
+      "definition": "The default deployment mode with broader permissions, JAVA_OPTS customization, and Artemis Metrics Plugin. Used when restricted mode is not enabled.",
+      "searchPatterns": [
+        "Legacy Mode",
+        "legacy mode",
+        "restricted: false"
+      ],
+      "category": "Deployment Modes"
+    },
+    {
+      "name": "JVM Arguments",
+      "definition": "Java Virtual Machine startup parameters controlling memory, GC, debugging, and system properties. In legacy mode, customizable via JAVA_ARGS environment variable.",
+      "searchPatterns": [
+        "JVM Arguments",
+        "JAVA_ARGS",
+        "JAVA_OPTS"
+      ],
+      "category": "Deployment Modes"
+    },
+    {
+      "name": "Environment Variables",
+      "definition": "Container-level configuration injected as env vars. Used for credentials (AMQ_USER, AMQ_PASSWORD), JVM settings, and operator behavior flags.",
+      "searchPatterns": [
+        "Environment Variables",
+        "env vars",
+        "environment variable"
+      ],
+      "category": "Deployment Modes"
+    },
+    {
+      "name": "StatefulSet",
+      "definition": "A Kubernetes workload type for stateful applications with stable pod identities, ordered deployment, and persistent storage. The operator uses StatefulSets to manage broker pods.",
+      "searchPatterns": [
+        "StatefulSet",
+        "statefulset",
+        "StatefulSets"
+      ],
+      "category": "Kubernetes Resources"
+    },
+    {
+      "name": "PodDisruptionBudget",
+      "definition": "A Kubernetes resource limiting concurrent pod disruptions during voluntary operations (node drains, upgrades). Ensures minimum broker availability during maintenance.",
+      "searchPatterns": [
+        "PodDisruptionBudget",
+        "PDB",
+        "pod disruption budget"
+      ],
+      "category": "Kubernetes Resources"
+    },
+    {
+      "name": "PersistentVolumeClaim",
+      "definition": "A request for storage that binds to a PersistentVolume. The operator creates PVCs for broker data directories to ensure message persistence across pod restarts.",
+      "searchPatterns": [
+        "PersistentVolumeClaim",
+        "PVC",
+        "persistent volume claim"
+      ],
+      "category": "Kubernetes Resources"
+    },
+    {
+      "name": "Secret",
+      "definition": "A Kubernetes resource storing sensitive data (credentials, certificates). The operator creates secrets for broker credentials, TLS certificates, and configuration.",
+      "searchPatterns": [
+        "Secret",
+        "secret",
+        "Secrets"
+      ],
+      "category": "Kubernetes Resources"
+    },
+    {
+      "name": "Service",
+      "definition": "A Kubernetes resource providing stable networking endpoints for pods. The operator creates headless services for StatefulSet DNS, ping services for clustering, and acceptor services for client access.",
+      "searchPatterns": [
+        "Service",
+        "service",
+        "Services"
+      ],
+      "category": "Kubernetes Resources"
+    },
+    {
+      "name": "Route",
+      "definition": "An OpenShift resource exposing services externally via the cluster router. The operator creates Routes for acceptors and console when running on OpenShift.",
+      "searchPatterns": [
+        "Route",
+        "route",
+        "Routes"
+      ],
+      "category": "Kubernetes Resources"
+    },
+    {
+      "name": "Ingress",
+      "definition": "A Kubernetes resource exposing HTTP/HTTPS services externally via an ingress controller. The operator creates Ingresses for acceptors and console when running on vanilla Kubernetes.",
+      "searchPatterns": [
+        "Ingress",
+        "ingress",
+        "Ingresses"
+      ],
+      "category": "Kubernetes Resources"
+    },
+    {
+      "name": "ConfigMap",
+      "definition": "A Kubernetes resource storing non-sensitive configuration data. Users can provide broker properties, logging config, or JAAS config via ConfigMaps referenced in ExtraMounts.",
+      "searchPatterns": [
+        "ConfigMap",
+        "configmap",
+        "ConfigMaps"
+      ],
+      "category": "Kubernetes Resources"
+    },
+    {
+      "name": "Pod",
+      "definition": "The smallest deployable unit in Kubernetes, running one or more containers. Each broker instance runs as a pod in the StatefulSet.",
+      "searchPatterns": [
+        "Pod",
+        "pod",
+        "Pods"
+      ],
+      "category": "Kubernetes Resources"
+    },
+    {
+      "name": "Namespace",
+      "definition": "A Kubernetes isolation boundary for resources. The operator can watch a single namespace, multiple namespaces, or all namespaces based on WATCH_NAMESPACE configuration.",
+      "searchPatterns": [
+        "Namespace",
+        "namespace",
+        "Namespaces"
+      ],
+      "category": "Kubernetes Resources"
+    },
+    {
+      "name": "ServiceAccount",
+      "definition": "A Kubernetes identity for pods. The operator runs with a ServiceAccount granting RBAC permissions to manage broker resources.",
+      "searchPatterns": [
+        "ServiceAccount",
+        "service account",
+        "serviceAccount"
+      ],
+      "category": "Kubernetes Resources"
+    },
+    {
+      "name": "RBAC",
+      "definition": "Role-Based Access Control - Kubernetes authorization system using Roles, ClusterRoles, RoleBindings, and ClusterRoleBindings. Defines what actions the operator can perform.",
+      "searchPatterns": [
+        "RBAC",
+        "Role",
+        "ClusterRole",
+        "RoleBinding"
+      ],
+      "category": "Kubernetes Resources"
+    },
+    {
+      "name": "Acceptor",
+      "definition": "A broker endpoint accepting inbound client connections. Configured with protocol, port, SSL settings, and parameters. Each acceptor can be exposed via Service/Route/Ingress.",
+      "searchPatterns": [
+        "Acceptor",
+        "acceptor",
+        "Acceptors"
+      ],
+      "category": "Broker Components"
+    },
+    {
+      "name": "Connector",
+      "definition": "A broker component defining outbound connections to other brokers or systems. Used for clustering, bridges, and federation.",
+      "searchPatterns": [
+        "Connector",
+        "connector",
+        "Connectors"
+      ],
+      "category": "Broker Components"
+    },
+    {
+      "name": "Console",
+      "definition": "The Hawtio-based web management interface for the broker. Accessible on port 8161 (legacy) or 8161 (restricted), with optional SSL and ingress/route exposure.",
+      "searchPatterns": [
+        "Console",
+        "console",
+        "Hawtio",
+        "hawtio"
+      ],
+      "category": "Broker Components"
+    },
+    {
+      "name": "Jolokia",
+      "definition": "A JMX-over-HTTP bridge providing JSON access to JMX beans. Used by the console and Artemis Metrics Plugin for metrics collection.",
+      "searchPatterns": [
+        "Jolokia",
+        "jolokia"
+      ],
+      "category": "Broker Components"
+    },
+    {
+      "name": "Address",
+      "definition": "A routing entity in the broker where messages are sent. Supports multicast (pub/sub) and anycast (point-to-point) routing types.",
+      "searchPatterns": [
+        "Address",
+        "address",
+        "Addresses"
+      ],
+      "category": "Broker Components"
+    },
+    {
+      "name": "Queue",
+      "definition": "A message storage entity bound to an address. Holds messages for consumption by clients. Automatically created or explicitly defined.",
+      "searchPatterns": [
+        "Queue",
+        "queue",
+        "Queues"
+      ],
+      "category": "Broker Components"
+    },
+    {
+      "name": "Journal",
+      "definition": "The broker's transaction log storing messages and transaction state. Provides durability and crash recovery for persistent messages.",
+      "searchPatterns": [
+        "Journal",
+        "journal"
+      ],
+      "category": "Broker Components"
+    },
+    {
+      "name": "Persistence",
+      "definition": "The broker's ability to store messages durably to disk. Requires PVCs in the operator. Messages survive pod restarts when persistence is enabled.",
+      "searchPatterns": [
+        "Persistence",
+        "persistence",
+        "persistent"
+      ],
+      "category": "Broker Components"
+    },
+    {
+      "name": "Broker",
+      "definition": "The ActiveMQ Artemis message broker instance. Each pod in the StatefulSet runs a broker process handling message routing, storage, and delivery.",
+      "searchPatterns": [
+        "Broker",
+        "broker"
+      ],
+      "category": "Broker Components"
+    },
+    {
+      "name": "Cluster",
+      "definition": "Multiple broker instances configured to share load and provide high availability. Uses connectors and cluster connections for message distribution.",
+      "searchPatterns": [
+        "Cluster",
+        "cluster",
+        "clustering"
+      ],
+      "category": "Broker Components"
+    },
+    {
+      "name": "Artemis Metrics Plugin",
+      "definition": "A broker plugin exposing metrics via Jolokia. Used in legacy mode. Requires Prometheus to scrape metrics from the web console port.",
+      "searchPatterns": [
+        "Artemis Metrics Plugin",
+        "artemis-prometheus-metrics-plugin",
+        "metrics plugin"
+      ],
+      "category": "Metrics & Monitoring"
+    },
+    {
+      "name": "JMX Exporter",
+      "definition": "A Java agent exposing JMX beans as Prometheus metrics on a dedicated port (8888). Used in restricted mode for secure metrics collection.",
+      "searchPatterns": [
+        "JMX Exporter",
+        "jmx_exporter",
+        "jmx-exporter"
+      ],
+      "category": "Metrics & Monitoring"
+    },
+    {
+      "name": "Prometheus",
+      "definition": "An open-source monitoring system and time-series database. Scrapes metrics from brokers using the Artemis Metrics Plugin or JMX Exporter.",
+      "searchPatterns": [
+        "Prometheus",
+        "prometheus"
+      ],
+      "category": "Metrics & Monitoring"
+    },
+    {
+      "name": "ServiceMonitor",
+      "definition": "A Prometheus Operator custom resource defining scrape targets. Users create ServiceMonitors pointing to broker services to enable metrics collection.",
+      "searchPatterns": [
+        "ServiceMonitor",
+        "service monitor"
+      ],
+      "category": "Metrics & Monitoring"
+    },
+    {
+      "name": "Metrics Port",
+      "definition": "The port exposing Prometheus-format metrics. Port 8888 for JMX Exporter (restricted mode) or embedded in console port 8161 (legacy mode).",
+      "searchPatterns": [
+        "metrics port",
+        "port 8888"
+      ],
+      "category": "Metrics & Monitoring"
+    },
+    {
+      "name": "Jolokia Port",
+      "definition": "The HTTP port providing JMX access via Jolokia. Embedded in the console port (8161) in legacy mode.",
+      "searchPatterns": [
+        "jolokia port",
+        "Jolokia port"
+      ],
+      "category": "Metrics & Monitoring"
+    },
+    {
+      "name": "JMX",
+      "definition": "Java Management Extensions - A Java technology for monitoring and managing applications. Artemis exposes management operations and metrics via JMX beans.",
+      "searchPatterns": [
+        "JMX",
+        "jmx"
+      ],
+      "category": "Metrics & Monitoring"
+    },
+    {
+      "name": "Monitoring",
+      "definition": "The practice of observing broker health, performance, and behavior using metrics, logs, and health checks. Essential for production operations.",
+      "searchPatterns": [
+        "Monitoring",
+        "monitoring"
+      ],
+      "category": "Metrics & Monitoring"
+    },
+    {
+      "name": "Affinity",
+      "definition": "Kubernetes scheduling rules attracting pods to specific nodes. Used to co-locate brokers with their data or spread them across zones.",
+      "searchPatterns": [
+        "Affinity",
+        "affinity",
+        "nodeAffinity",
+        "podAffinity"
+      ],
+      "category": "High Availability"
+    },
+    {
+      "name": "Anti-Affinity",
+      "definition": "Kubernetes scheduling rules repelling pods from nodes. Used to spread broker pods across nodes or zones for fault tolerance.",
+      "searchPatterns": [
+        "Anti-Affinity",
+        "anti-affinity",
+        "podAntiAffinity"
+      ],
+      "category": "High Availability"
+    },
+    {
+      "name": "Tolerations",
+      "definition": "Kubernetes scheduling rules allowing pods on tainted nodes. Used to dedicate nodes to brokers or handle special node conditions.",
+      "searchPatterns": [
+        "Tolerations",
+        "tolerations",
+        "toleration"
+      ],
+      "category": "High Availability"
+    },
+    {
+      "name": "TopologySpreadConstraints",
+      "definition": "Kubernetes scheduling rules distributing pods across topology domains (zones, regions, nodes). Provides more flexible spreading than anti-affinity.",
+      "searchPatterns": [
+        "TopologySpreadConstraints",
+        "topology spread",
+        "topologySpreadConstraints"
+      ],
+      "category": "High Availability"
+    },
+    {
+      "name": "Message Migration",
+      "definition": "The process of moving messages from a scaled-down broker to remaining brokers. Ensures no message loss during cluster scale-down operations.",
+      "searchPatterns": [
+        "Message Migration",
+        "message migration",
+        "migration"
+      ],
+      "category": "High Availability"
+    },
+    {
+      "name": "Scale-Down",
+      "definition": "Reducing the number of broker replicas. Triggers message migration to preserve messages. Managed by the ActiveMQArtemisScaledown CR (deprecated).",
+      "searchPatterns": [
+        "Scale-Down",
+        "scale-down",
+        "scaledown",
+        "scale down"
+      ],
+      "category": "High Availability"
+    },
+    {
+      "name": "Replica",
+      "definition": "A pod instance in the StatefulSet. The number of replicas determines cluster size. Specified via `deploymentPlan.size`.",
+      "searchPatterns": [
+        "Replica",
+        "replica",
+        "replicas"
+      ],
+      "category": "High Availability"
+    },
+    {
+      "name": "HA",
+      "definition": "High Availability - The ability of the broker cluster to continue operating despite failures. Achieved through replication, persistence, and fault-tolerant configuration.",
+      "searchPatterns": [
+        "HA",
+        "high availability",
+        "High Availability"
+      ],
+      "category": "High Availability"
+    },
+    {
+      "name": "Liveness Probe",
+      "definition": "A health check determining if a container should be restarted. Failure triggers pod restart. Configured with exec command, HTTP check, or TCP socket check.",
+      "searchPatterns": [
+        "Liveness Probe",
+        "liveness probe",
+        "livenessProbe"
+      ],
+      "category": "Probes"
+    },
+    {
+      "name": "Readiness Probe",
+      "definition": "A health check determining if a pod should receive traffic. Failure removes the pod from service endpoints until it recovers.",
+      "searchPatterns": [
+        "Readiness Probe",
+        "readiness probe",
+        "readinessProbe"
+      ],
+      "category": "Probes"
+    },
+    {
+      "name": "Startup Probe",
+      "definition": "A health check protecting slow-starting containers from liveness probe termination. Delays liveness checks until the startup probe succeeds.",
+      "searchPatterns": [
+        "Startup Probe",
+        "startup probe",
+        "startupProbe"
+      ],
+      "category": "Probes"
+    },
+    {
+      "name": "Health Check",
+      "definition": "Any probe monitoring container health. Includes liveness, readiness, and startup probes. Essential for reliable deployments.",
+      "searchPatterns": [
+        "Health Check",
+        "health check",
+        "healthcheck"
+      ],
+      "category": "Probes"
+    },
+    {
+      "name": "Validation Chain",
+      "definition": "A sequence of validation functions executed during reconciliation. Each validator checks a specific aspect of the CR and returns errors or warnings.",
+      "searchPatterns": [
+        "Validation Chain",
+        "validation chain"
+      ],
+      "category": "Validation"
+    },
+    {
+      "name": "Validator",
+      "definition": "A function that checks CR configuration for correctness, security, or compatibility. Returns validation errors that block deployment or warnings that allow it.",
+      "searchPatterns": [
+        "Validator",
+        "validator",
+        "validation function"
+      ],
+      "category": "Validation"
+    },
+    {
+      "name": "Validation Error",
+      "definition": "An error condition detected during CR validation. Sets the Valid status condition to False and prevents broker deployment until resolved.",
+      "searchPatterns": [
+        "Validation Error",
+        "validation error",
+        "validation errors"
+      ],
+      "category": "Validation"
+    },
+    {
+      "name": "Status Condition",
+      "definition": "A structured field in CR status reporting a specific aspect of deployment state. Includes type, status (True/False/Unknown), reason, and message.",
+      "searchPatterns": [
+        "Status Condition",
+        "status condition",
+        "condition"
+      ],
+      "category": "Validation"
+    },
+    {
+      "name": "Validation Function",
+      "definition": "A specific validator implementation checking one aspect: version compatibility, resource references, storage configuration, etc.",
+      "searchPatterns": [
+        "validation function",
+        "validation functions"
+      ],
+      "category": "Validation"
+    },
+    {
+      "name": "cert-manager",
+      "definition": "A Kubernetes add-on for automated certificate lifecycle management. The operator integrates via resourceTemplates to configure Certificate resources for TLS.",
+      "searchPatterns": [
+        "cert-manager",
+        "certmanager"
+      ],
+      "category": "Certificate Management"
+    },
+    {
+      "name": "TLS",
+      "definition": "Transport Layer Security - Encryption protocol for secure network communication. Configured on acceptors, connectors, and console for encrypted connections.",
+      "searchPatterns": [
+        "TLS",
+        "tls"
+      ],
+      "category": "Certificate Management"
+    },
+    {
+      "name": "SSL",
+      "definition": "Secure Sockets Layer (deprecated term, now TLS). Often used interchangeably with TLS in broker configuration and documentation.",
+      "searchPatterns": [
+        "SSL",
+        "ssl"
+      ],
+      "category": "Certificate Management"
+    },
+    {
+      "name": "Certificate",
+      "definition": "A digital document binding a public key to an identity. Used for TLS encryption and authentication. Stored in Kubernetes Secrets.",
+      "searchPatterns": [
+        "Certificate",
+        "certificate",
+        "cert"
+      ],
+      "category": "Certificate Management"
+    },
+    {
+      "name": "Keystore",
+      "definition": "A Java repository storing private keys and certificates. Required for TLS endpoints (acceptors, console). Provided as a secret.",
+      "searchPatterns": [
+        "Keystore",
+        "keystore",
+        "keyStore"
+      ],
+      "category": "Certificate Management"
+    },
+    {
+      "name": "Truststore",
+      "definition": "A Java repository storing trusted CA certificates. Used to validate client certificates in mutual TLS. Provided as a secret.",
+      "searchPatterns": [
+        "Truststore",
+        "truststore",
+        "trustStore"
+      ],
+      "category": "Certificate Management"
+    },
+    {
+      "name": "Version Resolution",
+      "definition": "The algorithm determining which broker container image to deploy. Considers CR version field, compact version, and environment variables.",
+      "searchPatterns": [
+        "Version Resolution",
+        "version resolution"
+      ],
+      "category": "Version Management"
+    },
+    {
+      "name": "Image Selection",
+      "definition": "The process of choosing a container image based on version, platform, and configuration. Follows a precedence order: CR image > CR version > compact version.",
+      "searchPatterns": [
+        "Image Selection",
+        "image selection"
+      ],
+      "category": "Version Management"
+    },
+    {
+      "name": "Upgrade Policy",
+      "definition": "Rules controlling broker version changes. Minor upgrades allowed automatically, major upgrades require explicit approval to prevent accidental breaking changes.",
+      "searchPatterns": [
+        "Upgrade Policy",
+        "upgrade policy",
+        "upgrades"
+      ],
+      "category": "Version Management"
+    },
+    {
+      "name": "Compact Version",
+      "definition": "A short version identifier (e.g., '7.11') mapped to a specific full version. Defined in the operator's version map for convenience.",
+      "searchPatterns": [
+        "Compact Version",
+        "compact version"
+      ],
+      "category": "Version Management"
+    },
+    {
+      "name": "Semantic Version",
+      "definition": "A version format (MAJOR.MINOR.PATCH) used for broker versions. Enables version comparison and upgrade policy enforcement.",
+      "searchPatterns": [
+        "Semantic Version",
+        "semantic version",
+        "semver"
+      ],
+      "category": "Version Management"
+    },
+    {
+      "name": "Block Reconcile Annotation",
+      "definition": "An annotation (`operator.activeqartemis.io/block-reconcile: \"true\"`) preventing the operator from reconciling a CR. Used for manual intervention or maintenance.",
+      "searchPatterns": [
+        "Block Reconcile",
+        "block reconcile",
+        "block-reconcile"
+      ],
+      "category": "Operational Controls"
+    },
+    {
+      "name": "Resource Tracking",
+      "definition": "The operator's system for identifying and managing resources it created. Uses owner references, labels, and internal state tracking.",
+      "searchPatterns": [
+        "Resource Tracking",
+        "resource tracking"
+      ],
+      "category": "Operational Controls"
+    },
+    {
+      "name": "Namespace Watching",
+      "definition": "The operator's ability to monitor one, multiple, or all namespaces for CRs. Configured via WATCH_NAMESPACE environment variable.",
+      "searchPatterns": [
+        "Namespace Watching",
+        "namespace watching",
+        "watch namespace"
+      ],
+      "category": "Operational Controls"
+    },
+    {
+      "name": "WATCH_NAMESPACE",
+      "definition": "An environment variable controlling which namespaces the operator monitors. Empty = all, single value = one, comma-separated = multiple.",
+      "searchPatterns": [
+        "WATCH_NAMESPACE",
+        "watch namespace"
+      ],
+      "category": "Operational Controls"
+    },
+    {
+      "name": "Annotation",
+      "definition": "Non-identifying metadata attached to Kubernetes resources. Used for operator directives (block-reconcile) and user-defined information.",
+      "searchPatterns": [
+        "Annotation",
+        "annotation",
+        "annotations"
+      ],
+      "category": "Operational Controls"
+    },
+    {
+      "name": "Label",
+      "definition": "Identifying metadata for selecting and grouping resources. The operator applies standard labels for resource association and uses label selectors for queries.",
+      "searchPatterns": [
+        "Label",
+        "label",
+        "labels"
+      ],
+      "category": "Operational Controls"
+    },
+    {
+      "name": "PVC Retention",
+      "definition": "The behavior of PVCs when a broker is scaled down or deleted. PVCs persist by default (no owner references) to prevent data loss.",
+      "searchPatterns": [
+        "PVC Retention",
+        "PVC retention",
+        "pvc retention"
+      ],
+      "category": "Storage & Persistence"
+    },
+    {
+      "name": "PVC Adoption",
+      "definition": "The process of reattaching existing PVCs when a broker is recreated or upgraded. Prevents data loss by reusing persistent storage.",
+      "searchPatterns": [
+        "PVC Adoption",
+        "PVC adoption",
+        "pvc adoption"
+      ],
+      "category": "Storage & Persistence"
+    },
+    {
+      "name": "Storage Class",
+      "definition": "A Kubernetes abstraction defining storage types (SSD, HDD, networked). Specified in `deploymentPlan.persistenceEnabled.storageClassName`.",
+      "searchPatterns": [
+        "Storage Class",
+        "storage class",
+        "storageClass"
+      ],
+      "category": "Storage & Persistence"
+    },
+    {
+      "name": "Volume",
+      "definition": "A Kubernetes abstraction for storage accessible to containers. Includes PVCs, Secrets, ConfigMaps, emptyDir, and other types.",
+      "searchPatterns": [
+        "Volume",
+        "volume",
+        "volumes"
+      ],
+      "category": "Storage & Persistence"
+    },
+    {
+      "name": "VolumeMount",
+      "definition": "A mapping of a volume into a container's filesystem at a specific path. The operator mounts data directories, configuration, and certificates.",
+      "searchPatterns": [
+        "VolumeMount",
+        "volume mount",
+        "volumeMount"
+      ],
+      "category": "Storage & Persistence"
+    },
+    {
+      "name": "Data Directory",
+      "definition": "The filesystem path (/opt/amq/data or /home/jboss/amq-broker/data) where the broker stores messages, journal, and bindings. Backed by a PVC when persistence is enabled.",
+      "searchPatterns": [
+        "data directory",
+        "Data Directory",
+        "/opt/amq/data"
+      ],
+      "category": "Storage & Persistence"
+    },
+    {
+      "name": "Status Conditions",
+      "definition": "An array of structured status fields reporting deployment state. Includes Valid, Deployed, Ready, and ConfigApplied conditions.",
+      "searchPatterns": [
+        "Status Conditions",
+        "status conditions",
+        "conditions"
+      ],
+      "category": "Status & Reporting"
+    },
+    {
+      "name": "Pod Status",
+      "definition": "Per-pod status information reported in the CR. Includes pod name, IP address, and ready state for observability.",
+      "searchPatterns": [
+        "Pod Status",
+        "pod status",
+        "PodStatus"
+      ],
+      "category": "Status & Reporting"
+    },
+    {
+      "name": "Digest Message",
+      "definition": "A summary message in the CR status describing current deployment state. Includes replica counts, version, and key configuration.",
+      "searchPatterns": [
+        "Digest",
+        "digest",
+        "status message"
+      ],
+      "category": "Status & Reporting"
+    },
+    {
+      "name": "Ready Condition",
+      "definition": "A status condition reporting overall broker readiness. True when all pods are ready and services are available.",
+      "searchPatterns": [
+        "Ready Condition",
+        "ready condition",
+        "Ready"
+      ],
+      "category": "Status & Reporting"
+    },
+    {
+      "name": "Deployed Condition",
+      "definition": "A status condition reporting StatefulSet deployment state. True when the StatefulSet is created and replicas match desired count.",
+      "searchPatterns": [
+        "Deployed Condition",
+        "deployed condition",
+        "Deployed"
+      ],
+      "category": "Status & Reporting"
+    },
+    {
+      "name": "Convention Over Configuration",
+      "definition": "A design philosophy providing sensible defaults for everything while allowing customization. Minimizes required configuration for common use cases.",
+      "searchPatterns": [
+        "Convention Over Configuration",
+        "convention over configuration"
+      ],
+      "category": "Conventions"
+    },
+    {
+      "name": "Magic Values",
+      "definition": "Special strings with semantic meaning: `-` to remove config, magic suffixes on ExtraMounts, ordinal prefixes, file extensions. Enable convention-based automation.",
+      "searchPatterns": [
+        "Magic Values",
+        "magic values",
+        "magic value"
+      ],
+      "category": "Conventions"
+    },
+    {
+      "name": "Namer",
+      "definition": "The utility package generating consistent names for managed resources. Implements naming conventions for StatefulSets, Services, Secrets, and Routes.",
+      "searchPatterns": [
+        "Namer",
+        "namer",
+        "naming"
+      ],
+      "category": "Conventions"
+    },
+    {
+      "name": "Hash-Based Management",
+      "definition": "Using content hashes to detect configuration changes and trigger updates. The operator hashes broker properties and configuration to identify when updates are needed.",
+      "searchPatterns": [
+        "Hash-Based",
+        "hash-based",
+        "hash"
+      ],
+      "category": "Conventions"
+    },
+    {
+      "name": "Platform Detection",
+      "definition": "Automatic identification of Kubernetes vs OpenShift. The operator detects the platform and adapts behavior (Route vs Ingress, SecurityContextConstraints).",
+      "searchPatterns": [
+        "Platform Detection",
+        "platform detection",
+        "platform"
+      ],
+      "category": "Conventions"
+    }
+  ]
+}

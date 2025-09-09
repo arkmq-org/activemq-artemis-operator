@@ -1,0 +1,91 @@
+# ActiveMQ Artemis Operator - AI Assistant Configuration
+
+## Documentation Location
+
+This project has comprehensive AI-optimized documentation in `AI_documentation/`:
+- 7,000+ lines of detailed documentation
+- 120+ concepts with definitions and code locations
+- 1,352+ GitHub permalinks to source code
+- 396+ test scenarios cataloged
+
+## Essential Context Files
+
+**Primary Index** (always check first):
+- `AI_documentation/AI_KNOWLEDGE_INDEX.yaml`
+  - Master concept index with 120+ entries
+  - 55+ common questions mapped to answers
+  - Code entry points for all major features
+  - Test area mappings
+
+**Main Documentation**:
+- `AI_documentation/operator_architecture.md` - Complete architecture (2,223 lines, 481 code links)
+- `AI_documentation/tdd_index.md` - Test catalog (3,230 lines, 396 scenarios)
+- `AI_documentation/operator_conventions.md` - Conventions and defaults
+- `AI_documentation/contribution_guide.md` - Development workflow
+
+## How to Answer Questions
+
+1. **Check AI_KNOWLEDGE_INDEX.yaml first** for concept definitions and locations
+2. **Follow related_concepts** for comprehensive understanding
+3. **Use code_entry_points** to link documentation to implementation
+4. **Reference test_areas** for test coverage information
+5. **Cite specific sections** with file and anchor references
+
+## Question Routing
+
+For architecture questions:
+→ Check `concepts` in AI_KNOWLEDGE_INDEX.yaml
+→ Follow to `operator_architecture.md` section
+
+For "how do I" questions:
+→ Check `common_questions` in AI_KNOWLEDGE_INDEX.yaml
+→ Direct to exact documentation section
+
+For test coverage:
+→ Check `test_areas` in AI_KNOWLEDGE_INDEX.yaml
+→ Reference `tdd_index.md` for scenarios
+
+For conventions/defaults:
+→ `operator_conventions.md` for patterns
+→ `operator_defaults_reference.md` for values
+
+## Code Links
+
+All documentation uses GitHub permalinks to commit `4acadb95`:
+- Links are precise and permanent
+- To see current code, replace `/blob/4acadb95/` with `/blob/main/`
+- Function names in links help locate code if moved
+
+## Project Context
+
+- **Type**: Kubernetes operator for Apache ActiveMQ Artemis
+- **Language**: Go
+- **Architecture**: Controller pattern with reconciliation loop
+- **Testing**: Test-Driven Development (TDD) approach
+- **Documentation**: AI-optimized with semantic structure
+
+## Response Guidelines
+
+When providing answers:
+- ✓ Start with concept lookup in knowledge index
+- ✓ Cite specific documentation sections
+- ✓ Include relevant code links
+- ✓ Reference related concepts for context
+- ✓ Point to test coverage when available
+- ✗ Don't guess - check documentation first
+- ✗ Don't provide outdated information - use permalinks
+
+## Link Formatting (IMPORTANT)
+
+When citing documentation:
+- ✓ Provide FILE PATH ONLY for clickable links: `AI_documentation/operator_architecture.md`
+- ✓ Mention section separately: "See section 1: High-Level Architecture"
+- ✓ Use line numbers for code: `controllers/activemqartemis_controller.go:156-180`
+- ✗ DON'T use anchor syntax in file paths: `operator_architecture.md#section` (won't open in IDE)
+- ✗ DON'T combine file and anchor in a single path
+
+Example Response Format:
+"The reconciliation loop is documented in `AI_documentation/operator_architecture.md` 
+(section 1: High-Level Architecture). The main entry point is in 
+`controllers/activemqartemis_controller.go:156-180`"
+
