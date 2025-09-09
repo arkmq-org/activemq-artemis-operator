@@ -1,0 +1,14 @@
+{
+  "cursor.chat.defaultModel": "claude-3.5-sonnet",
+  "cursor.chat.contextFiles": [
+    "AI_documentation/AI_KNOWLEDGE_INDEX.yaml",
+    ".cursorrules"
+  ],
+  "cursor.chat.alwaysIncludeContext": true,
+  "cursor.indexing.include": [
+    ".cursorrules",
+    "AI_documentation/**/*.md"
+  ],
+  "cursor.codeSearch.includeIgnored": false
+}
+
