@@ -89,3 +89,7 @@ bin
 
 # Catalog files
 catalog/
+
+# AI Tools
+.cursor/
+.copilot/

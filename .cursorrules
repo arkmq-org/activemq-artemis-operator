@@ -1,0 +1,204 @@
+# ActiveMQ Artemis Operator - AI Assistant Configuration
+
+## Project Overview
+
+This is a Kubernetes operator for Apache ActiveMQ Artemis, written in Go using the controller-runtime framework.
+
+## Core Principle
+
+**Documentation is FOR AI assistants, not BY AI assistants** — unless specified directly by the user.
+
+- ✓ USE the documentation to answer questions and understand the codebase
+- ✗ NEVER create new .md files, summaries, or implementation notes
+- ✗ NEVER add to AI_documentation/ directory
+- ✓ Exception: Only create documentation when explicitly requested by the user
+
+## Documentation
+
+AI documentation is in `AI_documentation/`:
+
+### Key Files
+
+1. **AI_KNOWLEDGE_INDEX.yaml** - Quick concept lookup with code locations
+   - Core concepts with code entry points
+   - Common questions with guidance
+   - Use as starting point for navigation
+
+2. **contribution_guide.md** - Development workflow, TDD, and testing
+   - How to add features and API fields
+   - Testing and debugging guide
+   - E2E test setup instructions
+
+## When Writing Code
+
+Follow the `AI_documentation/contribution_guide.md`
+
+**Discover Patterns**:
+- Use `codebase_search` to find similar implementations
+- Check existing tests for patterns
+- Follow TDD approach from contribution_guide.md
+
+**Follow Patterns**:
+- Controller pattern with reconciliation loop
+- StatefulSet-based broker management
+- Validation chain for CRs
+- Status condition management
+
+**Test Coverage**:
+- Use `codebase_search` to find similar test patterns
+- Follow TDD approach
+- Every feature must have tests
+
+## Code Guidelines
+
+1. **Naming**: Follow naming conventions (search codebase for patterns)
+   - Resources: `{cr-name}-{resource-type}-{ordinal}`
+   - Functions: Clear, descriptive names
+   - Constants: ALL_CAPS with descriptive names
+
+2. **Structure**: Follow controller pattern
+   - Reconcile functions in `controllers/`
+   - Resource generation in `pkg/resources/`
+   - Utilities in `pkg/utils/`
+
+3. **Validation**: Use validation chain pattern
+   - Search for validate functions in controllers/activemqartemis_reconciler.go
+   - Chain validators together
+   - Return early on errors
+
+4. **Status**: Update status conditions
+   - Valid, Deployed, Ready, ConfigApplied
+   - See api/v1beta1/activemqartemis_types.go for status definitions
+
+5. When producing code:
+- ✓ always create tests for the functionalities you're adding
+- ✓ run the tests after implementing a functionality
+- ✓ always run E2E tests related to your addition, how to do it is in the `contribution_guide.md`
+- ✓ if required start minikube to run the E2E tests
+- ✗ DON'T assume that your code is functional until tests are executed and green
+
+## Test Execution Workflow (MANDATORY)
+
+**Every code change MUST follow this workflow:**
+
+1. **Write Code** → Implement the feature
+2. **Write Tests** → Create unit and E2E tests
+3. **Setup Environment** → AUTOMATICALLY:
+   - Check if minikube/cluster is running
+   - Start minikube if needed (don't ask permission)
+   - Verify cert-manager installed and ready
+4. **Run Tests** → Execute tests AUTOMATICALLY:
+   - Unit tests: `go test ./controllers -run <TestName>`
+   - E2E tests: `USE_EXISTING_CLUSTER=true go test -v ./controllers -ginkgo.focus="<pattern>" -timeout 10m`
+5. **Fix Issues** → If tests fail, fix and re-run
+6. **Complete** → Only mark done when ALL tests pass
+
+**Definition of Done:**
+- ✅ Code compiles with no errors
+- ✅ Tests written for new functionality
+- ✅ E2E tests executed and passing
+- ✅ Documentation updated
+- ✅ No trailing spaces in the generated code
+- ❌ Code is NOT done if tests haven't run
+- ❌ Code is NOT done if tests are failing
+
+**Infrastructure Management:**
+- Automatically check cluster status before E2E tests
+- Use minikube profile "cursor" to avoid interfering with existing clusters
+- Automatically start minikube if needed (4GB RAM, 2 CPUs minimum)
+- **CRITICAL**: Configure ingress with SSL passthrough BEFORE running restricted mode tests
+- Refer to contribution_guide.md (lines 850-889) for complete setup details
+- Only ask user if setup fails
+- Clean up test resources after test completion
+
+**Complete Minikube Setup (REQUIRED for E2E tests):**
+```bash
+# 1. Start minikube with dedicated profile and set as active
+minikube start --profile cursor --memory=4096 --cpus=2
+minikube profile cursor
+kubectl config use-context cursor
+
+# 2. Enable ingress addon (REQUIRED for restricted mode tests)
+minikube addons enable ingress
+
+# 3. Wait for ingress controller to be ready
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=120s
+
+# 4. Enable SSL passthrough (CRITICAL for mTLS in restricted mode)
+kubectl patch deployment ingress-nginx-controller -n ingress-nginx \
+  --type='json' \
+  -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value":"--enable-ssl-passthrough"}]'
+
+# 5. Wait for controller to restart with new config
+kubectl rollout status deployment/ingress-nginx-controller -n ingress-nginx
+
+# 6. Verify cert-manager is ready (auto-installed by tests if missing)
+kubectl wait --for=condition=ready pod \
+  -l app.kubernetes.io/instance=cert-manager \
+  -n cert-manager --timeout=120s 2>/dev/null || echo "cert-manager will be auto-installed by tests"
+```
+
+**Run E2E Tests:**
+```bash
+# Control plane/restricted mode tests
+USE_EXISTING_CLUSTER=true go test -v ./controllers \
+  -ginkgo.focus="minimal restricted" -timeout 10m
+
+# Specific feature test
+USE_EXISTING_CLUSTER=true go test -v ./controllers \
+  -ginkgo.focus="<your-test-name>" -timeout 10m
+```
+
+**Cleanup After Testing:**
+```bash
+# Stop and clean up test environment
+minikube stop --profile cursor
+minikube delete --profile cursor
+```
+
+## Key Concepts (Quick Reference)
+
+From AI_KNOWLEDGE_INDEX.yaml:
+
+- **reconciliation_loop**: Core control loop (controllers/activemqartemis_controller.go)
+- **statefulset_management**: Pod lifecycle (pkg/resources/statefulsets/)
+- **validation_chain**: CR validation (controllers/activemqartemis_reconciler.go)
+- **broker_properties**: Configuration mechanism (use codebase_search)
+- **persistence**: PVC management and storage
+- **metrics_implementation**: Prometheus integration (Jolokia/JMX Exporter)
+
+## Finding Information
+
+**Use the knowledge index for concept lookup:**
+- Start with `AI_KNOWLEDGE_INDEX.yaml` for quick concept navigation
+- Use `codebase_search` to find code by meaning and discover patterns
+- Use `grep` to find exact symbols or strings in code
+
+**Code references format:**
+- Knowledge index uses `file::symbol` format: `controllers/activemqartemis_reconciler.go::ProcessStatefulSet`
+- This points you to the right file and function/type name
+- Use `codebase_search` or `grep` to locate the actual code
+
+## Getting Context
+
+For detailed context, reference these files:
+- `AI_documentation/AI_KNOWLEDGE_INDEX.yaml` - Concept lookup and navigation
+- `AI_documentation/contribution_guide.md` - Development workflow and testing
+
+## Documentation Structure
+
+Simplified structure optimized for AI:
+- **Concepts**: Core operator concepts mapped to files and symbols
+- **Questions**: Common questions mapped to documentation sections
+- **Code locations**: Key code entry points organized by area
+- No auto-generated content - all manually curated
+
+## Link Formatting for IDE Compatibility
+
+When citing documentation or code:
+- ✓ Use FILE PATH ONLY for clickable links: `AI_documentation/contribution_guide.md`
+- ✓ Use file::symbol for code: `controllers/activemqartemis_controller.go::Reconcile`
+- ✗ DON'T use anchor syntax: `file.md#anchor` (won't open in IDE)
