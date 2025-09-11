@@ -23,21 +23,22 @@ minikube start --profile tutorialtester
 minikube profile tutorialtester
 ```
 ```shell markdown_runner
-* [tutorialtester] minikube v1.32.0 on Fedora 40
-* Automatically selected the docker driver. Other choices: kvm2, qemu2, ssh
-* Using Docker driver with root privileges
-* Starting control plane node tutorialtester in cluster tutorialtester
-* Pulling base image ...
-* Creating docker container (CPUs=2, Memory=15900MB) ...
-* Preparing Kubernetes v1.28.3 on Docker 24.0.7 ...
+* [tutorialtester] minikube v1.35.0 on Fedora 42
+* Using the podman driver based on user configuration
+* Using Podman driver with root privileges
+* Starting "tutorialtester" primary control-plane node in "tutorialtester" cluster
+* Pulling base image v0.0.46 ...
+* Creating podman container (CPUs=2, Memory=15900MB) ...
+* Preparing Kubernetes v1.32.0 on Docker 27.4.1 ...
   - Generating certificates and keys ...
   - Booting up control plane ...
   - Configuring RBAC rules ...
 * Configuring bridge CNI (Container Networking Interface) ...
-  - Using image gcr.io/k8s-minikube/storage-provisioner:v5
 * Verifying Kubernetes components...
+  - Using image gcr.io/k8s-minikube/storage-provisioner:v5
 * Enabled addons: storage-provisioner, default-storageclass
 * Done! kubectl is now configured to use "tutorialtester" cluster and "default" namespace by default
+E0911 18:37:24.542165  295607 cache.go:222] Error downloading kic artifacts:  not yet implemented, see issue #8426
 * minikube profile was successfully set to tutorialtester
 ```
 
@@ -50,9 +51,9 @@ minikube kubectl -- patch deployment -n ingress-nginx ingress-nginx-controller -
 ```shell markdown_runner
 * ingress is an addon maintained by Kubernetes. For any concerns contact minikube on GitHub.
 You can view the list of minikube maintainers at: https://github.com/kubernetes/minikube/blob/master/OWNERS
-  - Using image registry.k8s.io/ingress-nginx/controller:v1.9.4
-  - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v20231011-8b53cabe0
-  - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v20231011-8b53cabe0
+  - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.4.4
+  - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.4.4
+  - Using image registry.k8s.io/ingress-nginx/controller:v1.11.3
 * Verifying ingress addon...
 * The 'ingress' addon is enabled
 deployment.apps/ingress-nginx-controller patched
@@ -86,9 +87,9 @@ Go to the root of the operator repo and install it:
 ```
 ```shell markdown_runner
 Deploying operator to watch single namespace
-Client Version: 4.15.0-0.okd-2024-01-27-070424
-Kustomize Version: v5.0.4-0.20230601165947-6ce0bf390ce3
-Kubernetes Version: v1.28.3
+Client Version: 4.18.14
+Kustomize Version: v5.4.2
+Kubernetes Version: v1.32.0
 customresourcedefinition.apiextensions.k8s.io/activemqartemises.broker.amq.io created
 customresourcedefinition.apiextensions.k8s.io/activemqartemisaddresses.broker.amq.io created
 customresourcedefinition.apiextensions.k8s.io/activemqartemisscaledowns.broker.amq.io created
@@ -107,7 +108,7 @@ Wait for the Operator to start (status: `running`).
 kubectl wait pod --all --for=condition=Ready --namespace=send-receive-project --timeout=600s
 ```
 ```shell markdown_runner
-pod/activemq-artemis-controller-manager-55b8c479df-2nxqd condition met
+pod/activemq-artemis-controller-manager-6f4f5f699f-czl6v condition met
 ```
 
 ### Deploying the ActiveMQ Artemis Broker
@@ -155,16 +156,28 @@ activemqartemis.broker.amq.io/send-receive condition met
 
 ### Exchanging messages between a producer and a consumer
 
-Download the [latest
-release](https://activemq.apache.org/components/artemis/download/) of ActiveMQ
-Artemis, decompress the tarball and locate the artemis executable.
+#### Get the actual broker version
 
-```bash {"stage":"test_setup", "rootdir":"$tmpdir.1", "runtime":"bash", "label":"download artemis"}
-wget --quiet https://archive.apache.org/dist/activemq/activemq-artemis/2.36.0/apache-artemis-2.36.0-bin.tar.gz
-tar -zxf apache-artemis-2.36.0-bin.tar.gz apache-artemis-2.36.0/
+```{"stage":"test_setup", "runtime":"bash", "label":"get latest broker version"}
+export BROKER_VERSION=$(kubectl get ActiveMQArtemis send-receive --namespace=send-receive-project -o json | jq .status.version.brokerVersion -r)
+echo broker version: $BROKER_VERSION
+```
+```shell markdown_runner
+broker version: 2.42.0
 ```
 
-```bash {"stage":"test", "rootdir":"$tmpdir.1/apache-artemis-2.36.0/bin/", "parallel":true, "runtime":"bash", "label":"anycast: produce and consume 1000 messages"}
+#### Download the broker
+
+```{"stage":"test_setup", "rootdir":"$tmpdir.1", "runtime":"bash", "label":"download artemis"}
+wget --quiet https://repo1.maven.org/maven2/org/apache/activemq/apache-artemis/${BROKER_VERSION}/apache-artemis-${BROKER_VERSION}-bin.tar.gz
+tar -zxf apache-artemis-${BROKER_VERSION}-bin.tar.gz apache-artemis-${BROKER_VERSION}/
+# make the rest of commands version agnostic
+mv apache-artemis-${BROKER_VERSION}/ apache-artemis/
+```
+
+#### Produce and consume messages
+
+```bash {"stage":"test", "rootdir":"$tmpdir.1/apache-artemis/bin/", "parallel":true, "runtime":"bash", "label":"anycast: produce and consume 1000 messages"}
 # First we need to start port forwarding
 kubectl port-forward send-receive-ss-0 62626 -n send-receive-project &
 
@@ -184,17 +197,17 @@ Handling connection for 62626
 Producer ActiveMQQueue[APP.JOBS], thread=0 Started to calculate elapsed time ...
 
 Producer ActiveMQQueue[APP.JOBS], thread=0 Produced: 1000 messages
-Producer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in second : 8 s
-Producer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in milli second : 8766 milli seconds
+Producer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in second : 6 s
+Producer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in milli second : 6481 milli seconds
 Connection brokerURL = tcp://localhost:62626
 Consumer:: filter = null
 Handling connection for 62626
 Handling connection for 62626
-Consumer ActiveMQQueue[APP.JOBS], thread=0 wait until 1000 messages are consumed
+Consumer ActiveMQQueue[APP.JOBS], thread=0 wait 3000ms until 1000 messages are consumed
 Received 1000
 Consumer ActiveMQQueue[APP.JOBS], thread=0 Consumed: 1000 messages
 Consumer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in second : 0 s
-Consumer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in milli second : 68 milli seconds
+Consumer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in milli second : 48 milli seconds
 Consumer ActiveMQQueue[APP.JOBS], thread=0 Consumed: 1000 messages
 Consumer ActiveMQQueue[APP.JOBS], thread=0 Consumer thread finished
 ```
@@ -208,8 +221,8 @@ delete the minikube cluster.
 minikube delete --profile tutorialtester
 ```
 ```shell markdown_runner
-* Deleting "tutorialtester" in docker ...
+* Deleting "tutorialtester" in podman ...
 * Deleting container "tutorialtester" ...
-* Removing /home/tlavocat/.minikube/machines/tutorialtester ...
+* Removing /home/dbruscin/.minikube/machines/tutorialtester ...
 * Removed all traces of the "tutorialtester" cluster.
 ```
