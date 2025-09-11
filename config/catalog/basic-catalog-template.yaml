@@ -1,9 +1,9 @@
 schema: olm.template.basic
 entries:
   - schema: olm.package
-    name: activemq-artemis-operator
+    name: arkmq-org-activemq-artemis-operator
     defaultChannel: stable
   - schema: olm.channel
-    package: activemq-artemis-operator
+    package: arkmq-org-activemq-artemis-operator
     name: stable
     entries: []
