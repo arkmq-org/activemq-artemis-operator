@@ -135,7 +135,7 @@ jobs:
 
       - name: Trigger release
         if: ${{ inputs.trigger_release }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.BOT_TOKEN }}
           script: |
