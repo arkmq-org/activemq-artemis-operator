@@ -103,7 +103,7 @@ jobs:
       - name: Get changed files in tutorials
         id: changed-tutorial-files
         if: github.event_name == 'pull_request'
-        uses: tj-actions/changed-files@v46
+        uses: tj-actions/changed-files@v47
         with:
           files: docs/tutorials/**
 
