@@ -424,4 +424,5 @@ $(HELMIFY): $(LOCALBIN)
 
 helm-chart: manifests kustomize helmify yq
 	$(KUSTOMIZE) build config/default | $(HELMIFY) -crd-dir -original-name -image-pull-secrets helm/$(HELM_CHART_NAME)
+	chmod +x ./hack/fix_helm_chart.sh
 	./hack/fix_helm_chart.sh $(VERSION) helm/$(HELM_CHART_NAME) $(YQ)
