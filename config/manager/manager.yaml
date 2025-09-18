@@ -91,5 +91,14 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 10
         terminationMessagePolicy: FallbackToLogsOnError
+        resources:
+          requests:
+            cpu: 150m
+            memory: 128Mi
+            ephemeral-storage: 50Mi
+          limits:
+            cpu: 150m
+            memory: 128Mi
+            ephemeral-storage: 2Gi
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10

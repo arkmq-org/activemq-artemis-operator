@@ -20,6 +20,9 @@ OPM_VERSION := v1.55.0
 OPERATOR_SDK_VERSION := v1.28.0
 YQ_VERSION := v4.46.1
 
+HELM_CHART_NAME := $(OPERATOR_NAMESPACE)
+HELMIFY ?= $(LOCALBIN)/helmify
+
 # Check that the system's go version is compatible with the one stored in the
 # go.mod file.
 RUNTIME_GO_VERSION := $(shell go version)
@@ -414,3 +417,11 @@ catalog-push: ## Push a catalog image.
 scorecard: bundle ## Run scorecard
 	$(OPERATOR_SDK) scorecard ./bundle
 
+.PHONY: helmify
+helmify: $(HELMIFY) ## Download helmify locally if necessary.
+$(HELMIFY): $(LOCALBIN)
+	test -s $(LOCALBIN)/helmify || GOBIN=$(LOCALBIN) go install github.com/arttor/helmify/cmd/helmify@latest
+
+helm-chart: manifests kustomize helmify yq
+	$(KUSTOMIZE) build config/default | $(HELMIFY) -crd-dir -original-name -image-pull-secrets helm/$(HELM_CHART_NAME)
+	./hack/fix_helm_chart.sh $(VERSION) helm/$(HELM_CHART_NAME) $(YQ)

@@ -82,7 +82,7 @@ For example, if you want to create a cluster of two brokers with persistent stor
 in your Custom Resource), you need to have two PVs available. By default, each broker instance requires storage of 2 GiB.
 
 If you specify persistenceEnabled=false in your Custom Resource, the deployed brokers uses ephemeral storage. Ephemeral 
-storage means that that every time you restart the broker Pods, any existing data is lost.
+storage means that every time you restart the broker Pods, any existing data is lost.
 
 ## Configuring logging for the Operator
 
