@@ -71,7 +71,7 @@ jobs:
           VERSION="${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
           sed -i "s~^VERSION ?=.*~VERSION ?= ${VERSION}~" Makefile
           sed -i "s~^OPERATOR_VERSION :=.*~OPERATOR_VERSION := ${VERSION}~" Makefile
-          make build && make generate-deploy && make bundle && git status
+          make build && make generate-deploy && make bundle  && make helm-charts && git status
           git commit --all --message "Update version to ${VERSION}" || echo "nothing to commit"
 
       - name: Update base image
@@ -126,7 +126,7 @@ jobs:
               sed -i "/RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_${ACTIVEMQ_ARTEMIS_COMPACT_VERSION}/,/value:/ s~value:.*~value: quay.io/arkmq-org/activemq-artemis-broker-kubernetes@${ACTIVEMQ_ARTEMIS_BROKER_KUBERNETES_DIGEST}~" ${RELATED_IMAGES_FILE}
             fi
           done
-          make build && make generate-deploy && make bundle && git status
+          make build && make generate-deploy && make bundle && make helm-charts && git status
           git commit --all --message "Update related images to ${ACTIVEMQ_ARTEMIS_VERSION}" || echo "nothing to commit"
 
       - name: Push commits

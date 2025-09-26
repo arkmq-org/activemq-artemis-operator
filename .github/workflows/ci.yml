@@ -78,7 +78,7 @@ jobs:
         run: go mod tidy && git status && git diff-index --quiet HEAD --
 
       - name: Check generate files
-        run: make build && make generate-deploy && make bundle && git status && git diff-index --quiet HEAD --
+        run: make build && make generate-deploy && make bundle && make helm-charts && git status && git diff-index --quiet HEAD --
 
       - name: Build the image
         run: |

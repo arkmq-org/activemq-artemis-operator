@@ -1,0 +1,160 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: {{ if .Values.clusterScoped }}Cluster{{ end }}Role
+metadata:
+  name: activemq-artemis-operator-role
+  labels:
+  {{- include "arkmq-org-activemq-artemis-operator.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - endpoints
+  - events
+  - persistentvolumeclaims
+  - pods
+  - routes
+  - secrets
+  - serviceaccounts
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  - deployments
+  - replicasets
+  - statefulsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - broker.amq.io
+  resources:
+  - activemqartemisaddresses
+  - activemqartemises
+  - activemqartemisscaledowns
+  - activemqartemissecurities
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - broker.amq.io
+  resources:
+  - activemqartemisaddresses/finalizers
+  - activemqartemises/finalizers
+  - activemqartemisscaledowns/finalizers
+  - activemqartemissecurities/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - broker.amq.io
+  resources:
+  - activemqartemisaddresses/status
+  - activemqartemises/status
+  - activemqartemisscaledowns/status
+  - activemqartemissecurities/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - broker.amq.io
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - servicemonitors
+  verbs:
+  - create
+  - get
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - ingresses
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  - roles
+  verbs:
+  - create
+  - delete
+  - get
+- apiGroups:
+  - route.openshift.io
+  resources:
+  - routes
+  - routes/custom-host
+  - routes/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: {{ if .Values.clusterScoped }}Cluster{{ end }}RoleBinding
+metadata:
+  name: activemq-artemis-operator-rolebinding
+  labels:
+  {{- include "arkmq-org-activemq-artemis-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: {{ if .Values.clusterScoped }}Cluster{{ end }}Role
+  name: activemq-artemis-operator-role
+subjects:
+- kind: ServiceAccount
+  name: activemq-artemis-controller-manager
+  namespace: '{{ .Release.Namespace }}'
