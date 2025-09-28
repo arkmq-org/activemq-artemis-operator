@@ -82,7 +82,7 @@ For example, if you want to create a cluster of two brokers with persistent stor
 in your Custom Resource), you need to have two PVs available. By default, each broker instance requires storage of 2 GiB.
 
 If you specify persistenceEnabled=false in your Custom Resource, the deployed brokers uses ephemeral storage. Ephemeral 
-storage means that that every time you restart the broker Pods, any existing data is lost.
+storage means that every time you restart the broker Pods, any existing data is lost.
 
 ## Configuring logging for the Operator
 
@@ -134,7 +134,7 @@ After editing the Subscription yaml as such, save it and the operator will resta
 
 ### Getting the Operator code
 
-This procedure shows how to access and prepare the code you need to install the latest version of the Operator for arkmq-org .
+This procedure shows how to access and prepare the code you need to install the latest version of the Operator for arkmq-org.
 
 Download the latest version of the Operator from https://github.com/arkmq-org/activemq-artemis-operator/tags
 
@@ -255,7 +255,7 @@ Deploy the scaledown controller CRD.
 $ kubectl create -f deploy/crds/broker_activemqartemisscaledown_crd.yaml
 ```
 
-In the deploy directory of the Operator archive that you downloaded and extracted, open the operator.yaml file. Ensure that the value of the spec.containers.image property is set to the latest Operator image for ActiveMQ Artemis , as shown below.
+In the deploy directory of the Operator archive that you downloaded and extracted, open the operator.yaml file. Ensure that the value of the spec.containers.image property is set to the latest Operator image for ActiveMQ Artemis, as shown below.
 ```yaml
 spec:
     template:
@@ -338,7 +338,7 @@ spec:
 
 Observe that the sample CR uses a naming convention of **ex-aao**. This naming convention denotes that the CR is an example 
 resource for the arkmq-org (based on the ActiveMQ Artemis project) Operator. When you deploy this sample CR, the resulting 
-Stateful Set uses the name **ex-aao-ss**. Furthermore, broker Pods in the deployment are directly based on the Stateful Set name, 
+Stateful Set uses the name **ex-aao-ss**. Furthermore, broker Pods in the deployment are directly based on the StatefulSet name, 
 for example, **ex-aao-ss-0**, **ex-aao-ss-1**, and so on. 
 
 The size value specifies the number of brokers to deploy. The default value of 2 specifies a clustered broker deployment 
@@ -507,7 +507,7 @@ spec:
       periodSeconds: 5
 ```
 
-If no Liveness probe is configured or the handler itself is missing from a configured Liveness Probe then  the Operator 
+If no Liveness probe is configured or the handler itself is missing from a configured Liveness Probe then the Operator 
 will create a default TCP Probe that will check the liveness of the broker by connecting to the web Server port, the default config is:
 
 ```yaml
@@ -544,7 +544,7 @@ spec:
 ```
 
 By default this uses the URI of the acceptor configured with the name **artemis**. Since this is not configured by default
-it will need configuring in the broker CR. Alternatively configure the acceptor used by passing the **--acceptor** 
+it will need configuring in the broker CR. Alternatively, configure the acceptor used by passing the **--acceptor** 
 argument on the artemis check command.
 
 
@@ -599,7 +599,7 @@ spec:
 
 #### The Readiness Probe
 
-As with the Liveness Probe the Readiness probe has a default probe if not configured. Unlike the readiness probe this is 
+As with the Liveness Probe the Readiness probe has a default probe if not configured. Unlike the Readiness probe this is 
 a script that is shipped in the Kubernetes Image, this can be found [here](https://github.com/arkmq-org/activemq-artemis-broker-kubernetes-image/blob/main/modules/activemq-artemis-launch/added/readinessProbe.sh)
 
 The script will try to establish a tcp connection to each port configured in the broker.xml.  
@@ -628,7 +628,7 @@ spec:
 
 ###  Tolerations
 
-It is possible to configure tolerations on the deployed broker image . An example of a toleration would be something like:
+It is possible to configure tolerations on the deployed broker image. An example of a toleration would be something like:
 
 ```yaml
 apiVersion: broker.amq.io/v1beta1
@@ -753,9 +753,9 @@ spec:
 
 ### Custom Labels and Annotations on supporting resources; Services, Ingress, Secrets etc.
 
-It is possible to configure  ResourceTemplate(s) for resources that are managed by the operator.
+It is possible to configure ResourceTemplate(s) for resources that are managed by the operator.
 The TemplateType contains Labels and Annotations with an optional Selector. If the selector is empty
-the template matches all resources. Othewise it can be used to restrict what is matched.
+the template matches all resources. Otherwise, it can be used to restrict what is matched.
 Note: the relevant variables supported by [`ingressHost`](https://github.com/arkmq-org/activemq-artemis-operator/issues/614) in the CRD can be referenced in keys and values for both labels and annotations.
 In the following example, the annotation "someKey=someValue" is added to all Services
 
@@ -821,7 +821,7 @@ spec:
 ---
 **NOTE**
 
-You are configuring an array of [envVar](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#envvar-v1-core) which is a very powerfull concept. Proceed with care, taking due respect to any environment the operator may set and depend on. For full documentation see the [Kubernetes Documentation](https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/)
+You are configuring an array of [envVar](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#envvar-v1-core) which is a very powerful concept. Proceed with care, taking due respect to any environment the operator may set and depend on. For full documentation see the [Kubernetes Documentation](https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/)
 
 There are a few well-known environment variables that are used by the operator internally to configure brokers, as shown below
 
@@ -882,7 +882,7 @@ For example:
 ## Providing additional brokerProperties configuration from a secret
 In order to provide a way to split or organise these properties by file or by secret, an extra mount can be used to provide a secret that will be treated as an additional source of broker properties configuration.
 
-Using an **extraMounts** secret with a suffix "-bp" will cause the operator to auto mount the secret and make the broker aware of it's location. In addition the CR.Status.Condition[BrokerPropertiesApplied] will reflect the content of this secret.
+Using an **extraMounts** secret with a suffix "-bp" will cause the operator to auto mount the secret and make the broker aware of its location. In addition, the CR.Status.Condition[BrokerPropertiesApplied] will reflect the content of this secret.
 
 Broker properties are applied in order, starting with the CR.brokerProperties and then with the "-bp" auto mounts in turn. Keys (or property files) from secrets are applied in alphabetical order and the supported formats are text and JSON.
 
@@ -988,7 +988,7 @@ By default the operator deploys a broker with a default logging configuration th
 (https://github.com/arkmq-org/activemq-artemis-broker-kubernetes-image). Broker logs its messages to console only.
 
 Users can change the broker logging configuration by providing their own in a configmap or secret. The name of the configmap
-or secret must have the suffix **-logging-config**. There must a key **logging.properties** and the value must of the full content of the logging configuration. (The broker is using slf4j with
+or secret must have the suffix **-logging-config**. There must be a key **logging.properties** and the value must've the full content of the logging configuration. (The broker is using slf4j with
 log4j2 binding so the content should be log4j2's configuration in Java's properties file format).
 
 Then you need to give the name of the configmap or secret in the broker custom resource via **extraMounts**. For example
@@ -1000,7 +1000,6 @@ kind: ActiveMQArtemis
 metadata:
   name: broker
   namespace: activemq-artemis-operator
-spec:
 spec:
   deploymentPlan:
     size: 1
@@ -1017,7 +1016,6 @@ metadata:
   name: broker
   namespace: activemq-artemis-operator
 spec:
-spec:
   deploymentPlan:
     size: 1
     image: placeholder
@@ -1031,7 +1029,7 @@ spec:
 An entire JAAS configuration file (login.config) can be supplied via a secret with a `-jaas-config` postfix in the spec.deploymentPlan.extraMounts.secrets field. This file will be referenced from
 the jaas config system property (`java.security.auth.login.config`) and it will override anything configured via artemis create or via the ArtemisSecurityCR. For full details of how to configure JAAS for the broker refer to the [JAAS Security manager documentation](https://activemq.apache.org/components/artemis/documentation/latest/security.html#JAAS_Security_Manager).
 Note: care must be taken to respect the any configured admin user such that the operator can still access the jolokia endpoint of the broker. The simplest way to do that is to reference the existing PropertiesLoginModule configuration files in your login.config.
-For example, here we have two instances of the PropertiesLoginModule, one that references the the default credentials from `/home/jboss/amq-broker/etc` and one that has user suplied values from the secret. `reload=true` will ensure that the properties are reloaded if the secret changes. The `login.config` key in your secret called `<...>-jaas-config`, would have the following as the value:
+For example, here we have two instances of the PropertiesLoginModule, one that references the default credentials from `/home/jboss/amq-broker/etc` and one that has user suplied values from the secret. `reload=true` will ensure that the properties are reloaded if the secret changes. The `login.config` key in your secret called `<...>-jaas-config`, would have the following as the value:
 
 ```
 		// a full login.config with the default activemq realm
@@ -1058,7 +1056,7 @@ There would be corresponding keys for users.properties and roles.properties, the
 With the possiblity of configuring arbritary jaas login modules directly, the ArtemisSecurityCR ActiveMQArtemisSecuritySpec.LoginModules and ActiveMQArtemisSecuritySpec.SecurityDomains fields are deprecated.
 
 ## restricted mode (experimental)
-The CR supports a boolean restricted attribute. For single pod broker deployments this provides an empty broker that is configured through brokerProperties. The broker is secured with PKI, there are no passwords. Cert manager can be used to create the necessary PKI secrets.  The end result is a minimal broker deployment; an embedded broker with an mtls endpoint for the jolokia jvm agent and RBAC that allows just the operator to check the broker status. There is no init container, no jetty and no xml.
+The CR supports a boolean restricted attribute. For single pod broker deployments this provides an empty broker that is configured through brokerProperties. The broker is secured with PKI, there are no passwords. Cert manager can be used to create the necessary PKI secrets.  The end result is a minimal broker deployment; an embedded broker with a mtls endpoint for the jolokia jvm agent and RBAC that allows just the operator to check the broker status. There is no init container, no jetty and no xml.
 
 ## operator PKI
 In order for the operator to be able to use mtls to connect to the broker operand it needs a client certificate and a trust bundle listing the trusted CAs. The user needs to provide these two secrets in the operator namespace; cert manager can be used to create and populate both. If CRs use the restricted flag, these secrets are a prerequisit.
@@ -1067,14 +1065,14 @@ If either of these secrets need to be named differently, an enviroment variable 
 
 ## Locking down a broker deployment
 
-Often when verificiation is complete it is desirable to lock down the broker images and prevent auto upgrades, which will result in a roll out of images and a restart of your broker.
+Often when verification is complete it is desirable to lock down the broker images and prevent auto upgrades, which will result in a roll-out of images and a restart of your broker.
 The key enabler here is the **image** and **initImage** fields. When a fully qualified SHA uri is provided, the operator will only deploy that exact version.
 Note: both the image and initImage fields must be set because they have an implicit dependency on each other.
 
-The second enabler is the **version** field. The version field can restrict the matching versions selected by the operator using a ``major<.minor><.patch>`` format. When the Version field is empty, the operator will choose the latest version. When a major version is specified, only minor or patch version of that major will be chosen. An exact match can be configuired as **2.28.0**.
+The second enabler is the **version** field. The version field can restrict the matching versions selected by the operator using a ``major<.minor><.patch>`` format. When the Version field is empty, the operator will choose the latest version. When a major version is specified, only minor or patch version of that major will be chosen. An exact match can be configured as **2.28.0**.
 The operator supports a level of indirection when resolving versions, there are env vars that map version to image uris. If these change, via an operator redeployment, then locking down via a version may not be sufficient. In that case, the image and initImage fields will be necessary.
 
-The operator will validate the a CR specifies both image and initImage or a Version. It will also validate that a speficied version matches the internal list of supported versions.
+The operator will validate the CR specifies both image and initImage or a Version. It will also validate that a specified version matches the internal list of supported versions.
 The CR Status sub resource will contain feedback via the Valid Condition if validation fails.
 
 ## Disabling reconcile with the `arkmq.org/block-reconcile` annotation
@@ -1175,7 +1173,6 @@ metadata:
   name: broker
   namespace: activemq-artemis-operator
 spec:
-spec:
   deploymentPlan:
     size: 2
     image: placeholder
@@ -1185,7 +1182,7 @@ spec:
 
 When deploying the above custom resource the operator will create a PodDisruptionBudget
 object with the **minAvailable** set to 1. The operator also sets the proper selector
-so that the PodDisruptionBudget matches the broker statefulset.
+so that the PodDisruptionBudget matches the broker StatefulSet.
 
 ## Configuring TopologySpreadConstraints for broker deployment
 
@@ -1276,7 +1273,7 @@ spec:
     size: 1
 ```
 
-And you use init container to configure security to have a username **alice** with password **password1** for jolokia access. To enable operator to use client to have access jolokia, create a secret named **amq-jolokia-secret** in the same namespace, like this:
+And you use init container to configure security to have a username **alice** with password **password1** for jolokia access. To enable operator to use a client to have access to jolokia, create a secret named **amq-jolokia-secret** in the same namespace, like this:
 
 ```yaml
 apiVersion: v1
@@ -1334,7 +1331,7 @@ For example if you configure to attach a PersistentVolumeClaim type volume calle
 
 ### Attaching extra persistent volume claims to each broker
 
-The operator also supports configuration for each of the brokers of a custom resource to have a separate persistent volume. To do this you need configure the CR using **spec.extraVolumeClaimTemplates** in your CR. For example:
+The operator also supports configuration for each of the brokers of a custom resource to have a separate persistent volume. To do this you need to configure the CR using **spec.extraVolumeClaimTemplates** in your CR. For example:
 
 ```yaml
 apiVersion: broker.amq.io/v1beta1
@@ -1359,12 +1356,12 @@ spec:
 ```
 The **extraVolumeClaimTemplates** is a list of PVC specs. The key is the **pvc name base** of the PVC. The value is of type [persistentVolumeClaimSpec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#persistentvolumeclaimspec-v1-core)
 
-When deploying the above CR, the operator will append the external PVC to the statefulset's PersistentVolumeClaimTemplate field. When the statesulset rolls out the pods it will mount matching PVCs to each pod.
+When deploying the above CR, the operator will append the external PVC to the statefulset's PersistentVolumeClaimTemplate field. When the StatesulSet rolls out the pods it will mount matching PVCs to each pod.
 
 Note for each pod the PVC's name must follow the pattern `<volumeName>-<statefulset-name>-<ordinal>`.
 For the above CR the matching PVC names are **mydata-artemis-broker-ss-0** for pod0 and **mydata-artemis-broker-ss-1** for pod1 respectively. You can configure an optional VolumeMount for each PVC under **extraVolumeMounts**. If not specified the default mount path is **/opt/`<volumeName>`/data**.
 
-For complete configruation options please take a look at the api definitions of broker CRD.
+For complete configuration options please take a look at the api definitions of broker CRD.
 
 ## Using cert-manager and trust-manager configure brokers
 
@@ -1374,7 +1371,7 @@ Note: this feature currently is experimental. Feedback is welcomed.
 
 The operator provides options in the custom resource that utilizes cert-manager x509 certificates to configure SSL/TLS transports for brokers. It also works with [trust-manager](https://github.com/cert-manager/trust-manager) to distribute trust CA bundles.
 
-Before configuring a broker you need to have the certificates and bundles ready. The bundle target secret key must end with `.pem`. In the following example a self-signed isser is used as a root CA.
+Before configuring a broker you need to have the certificates and bundles ready. The bundle target secret key must end with `.pem`. In the following example a self-signed issuer is used as a root CA.
 
 Step 1 - create the root self-signed issuer
 
