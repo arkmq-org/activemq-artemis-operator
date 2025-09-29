@@ -20,8 +20,8 @@ $YQ -i '.controllerManager.manager.relatedImages.activemqArtemisBrokerInitReposi
 $YQ -i '.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository="quay.io/arkmq-org/activemq-artemis-broker-kubernetes"' ${dir}/values.yaml
 $YQ -i '.controllerManager.manager.relatedImages += (.controllerManager.manager.env | with_entries(select(.key | test("^relatedImageA.+"))) | with_entries(.key |= sub("relatedImageA","a")) | with_entries(.value |= {"digest": sub("quay.io.*@","")}))' ${dir}/values.yaml
 $YQ -i 'del(.controllerManager.manager.env)' ${dir}/values.yaml
-sed -i -E 's~\.Values\.controllerManager\.manager\.env\.relatedImageA(ctivemqArtemisBrokerInit.+)~(printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.a\1.digest)~' ${dir}/templates/deployment.yaml
-sed -i -E 's~\.Values\.controllerManager\.manager\.env\.relatedImageA(ctivemqArtemisBrokerKubernetes.+)~(printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.a\1.digest)~' ${dir}/templates/deployment.yaml
+sed -i -E 's~\.Values\.controllerManager\.manager\.env\.relatedImageA(ctivemqArtemisBrokerInit.+)~(printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.a\1.digest)~' ${dir}/templates/deployment.yaml
+sed -i -E 's~\.Values\.controllerManager\.manager\.env\.relatedImageA(ctivemqArtemisBrokerKubernetes.+)~(printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.a\1.digest)~' ${dir}/templates/deployment.yaml
 
 # pack CRDs as template
 crds="${dir}/templates/crds.yaml"

@@ -31,166 +31,166 @@ spec:
         - /home/activemq-artemis-operator/bin/entrypoint
         env:
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2150
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2150.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2150.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2150
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2150.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2150.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2160
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2160.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2160.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2160
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2160.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2160.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2180
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2180.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2180.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2180
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2180.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2180.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2200
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2200.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2200.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2200
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2200.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2200.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2210
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2210.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2210.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2210
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2210.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2210.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2220
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2220.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2220.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2220
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2220.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2220.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2230
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2230.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2230.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2230
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2230.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2230.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2250
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2250.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2250.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2250
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2250.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2250.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2260
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2260.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2260.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2260
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2260.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2260.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2270
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2270.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2270.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2270
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2270.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2270.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2271
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2271.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2271.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2271
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2271.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2271.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2280
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2280.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2280.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2280
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2280.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2280.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2290
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2290.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2290.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2290
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2290.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2290.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2300
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2300.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2300.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2300
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2300.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2300.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2310
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2310.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2310.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2310
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2310.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2310.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2312
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2312.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2312.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2312
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2312.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2312.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2320
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2320.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2320.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2320
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2320.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2320.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2330
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2330.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2330.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2330
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2330.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2330.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2340
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2340.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2340.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2340
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2340.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2340.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2350
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2350.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2350.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2350
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2350.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2350.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2360
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2360.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2360.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2360
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2360.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2360.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2370
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2370.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2370.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2370
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2370.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2370.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2380
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2380.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2380.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2380
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2380.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2380.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2390
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2390.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2390.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2390
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2390.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2390.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2400
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2400.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2400.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2400
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2400.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2400.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2410
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2410.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2410.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2410
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2410.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2410.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2420
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2420.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2420.digest)
             }}
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_2420
-          value: {{ quote (printf "%s%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2420.digest)
+          value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetes2420.digest)
             }}
         - name: OPERATOR_NAME
           valueFrom:
