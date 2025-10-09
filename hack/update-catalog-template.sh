@@ -23,7 +23,7 @@ if [[ ! "$YQ_VERSION" =~ ^v?4\. ]]; then
     exit 1
 fi
 
-package_name="arkmq-org-activemq-artemis-operator"
+package_name="arkmq-org-broker-operator"
 
 function add_bundle() {
     local package_name=$1 img=$2 prev_version=$3

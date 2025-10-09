@@ -3,7 +3,7 @@ kind: {{ if .Values.clusterScoped }}Cluster{{ end }}Role
 metadata:
   name: activemq-artemis-operator-role
   labels:
-  {{- include "arkmq-org-activemq-artemis-operator.labels" . | nindent 4 }}
+  {{- include "arkmq-org-broker-operator.labels" . | nindent 4 }}
 rules:
 - apiGroups:
   - ""
@@ -149,7 +149,7 @@ kind: {{ if .Values.clusterScoped }}Cluster{{ end }}RoleBinding
 metadata:
   name: activemq-artemis-operator-rolebinding
   labels:
-  {{- include "arkmq-org-activemq-artemis-operator.labels" . | nindent 4 }}
+  {{- include "arkmq-org-broker-operator.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: {{ if .Values.clusterScoped }}Cluster{{ end }}Role

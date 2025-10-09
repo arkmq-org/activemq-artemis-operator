@@ -4,7 +4,7 @@ metadata:
   name: activemq-artemis-controller-manager
   labels:
     control-plane: controller-manager
-  {{- include "arkmq-org-activemq-artemis-operator.labels" . | nindent 4 }}
+  {{- include "arkmq-org-broker-operator.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.controllerManager.replicas }}
   strategy:
@@ -17,13 +17,13 @@ spec:
     matchLabels:
       control-plane: controller-manager
       name: activemq-artemis-operator
-    {{- include "arkmq-org-activemq-artemis-operator.selectorLabels" . | nindent 6 }}
+    {{- include "arkmq-org-broker-operator.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
         control-plane: controller-manager
         name: activemq-artemis-operator
-      {{- include "arkmq-org-activemq-artemis-operator.selectorLabels" . | nindent 8 }}
+      {{- include "arkmq-org-broker-operator.selectorLabels" . | nindent 8 }}
     spec:
       containers:
       - args: {{- toYaml .Values.controllerManager.manager.args | nindent 8 }}
