@@ -11,7 +11,7 @@ OPERATOR_ACCOUNT_NAME := activemq-artemis-operator
 OPERATOR_CLUSTER_ROLE_NAME := operator-role
 OPERATOR_IMAGE_REPO := quay.io/arkmq-org/activemq-artemis-operator
 OPERATOR_NAMESPACE := activemq-artemis-operator
-BUNDLE_PACKAGE := arkmq-org-$(OPERATOR_NAMESPACE)
+BUNDLE_PACKAGE := arkmq-org-broker-operator
 BUNDLE_ANNOTATION_PACKAGE := $(BUNDLE_PACKAGE)
 GO_MODULE := github.com/arkmq-org/activemq-artemis-operator
 OS := $(shell go env GOOS)
@@ -20,7 +20,7 @@ OPM_VERSION := v1.55.0
 OPERATOR_SDK_VERSION := v1.28.0
 YQ_VERSION := v4.46.1
 
-HELM_CHART_NAME := arkmq-org-$(OPERATOR_NAMESPACE)
+HELM_CHART_NAME := $(BUNDLE_PACKAGE)
 HELMIFY ?= $(LOCALBIN)/helmify
 
 # Check that the system's go version is compatible with the one stored in the

@@ -3,7 +3,7 @@ kind: Role
 metadata:
   name: activemq-artemis-leader-election-role
   labels:
-  {{- include "arkmq-org-activemq-artemis-operator.labels" . | nindent 4 }}
+  {{- include "arkmq-org-broker-operator.labels" . | nindent 4 }}
 rules:
 - apiGroups:
   - ""
@@ -42,7 +42,7 @@ kind: RoleBinding
 metadata:
   name: activemq-artemis-leader-election-rolebinding
   labels:
-  {{- include "arkmq-org-activemq-artemis-operator.labels" . | nindent 4 }}
+  {{- include "arkmq-org-broker-operator.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role

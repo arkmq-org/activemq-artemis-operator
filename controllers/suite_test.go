@@ -255,7 +255,11 @@ func setUpIngress() {
 	ingressConfigErr := k8sClient.Get(ctx, ingressConfigKey, ingressConfig)
 
 	if ingressConfigErr == nil {
-		clusterIngressHost = "ingress." + ingressConfig.Spec.Domain
+		if isOpenshift {
+			clusterIngressHost = "console-openshift-console." + ingressConfig.Spec.Domain
+		} else {
+			clusterIngressHost = "ingress." + ingressConfig.Spec.Domain
+		}
 	} else {
 		ingressNginxControllerDeployment := &appsv1.Deployment{}
 		ingressNginxControllerDeploymentKey := types.NamespacedName{Name: "ingress-nginx-controller", Namespace: "ingress-nginx"}

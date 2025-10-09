@@ -24,7 +24,7 @@ metadata:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
     operatorframework.io/os.linux: supported
-  name: arkmq-org-activemq-artemis-operator.v0.0.0
+  name: arkmq-org-broker-operator.v0.0.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
