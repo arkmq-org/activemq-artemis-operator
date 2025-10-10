@@ -1,0 +1,1475 @@
+# Master AI Knowledge Index for ActiveMQ Artemis Operator
+# This file helps AI assistants quickly locate information across the documentation
+# Version: 1.0
+# Generated: 2025-10-10
+# Documentation Commit: 4acadb95603c38b82d5d7f63fb538c37ed855662
+
+version: "1.0"
+generated: "2025-10-10"
+documentation_commit: "4acadb95"
+total_concepts: 120
+total_questions: 55
+total_test_areas: 40
+
+# ============================================================================
+# CONCEPT INDEX - Quick lookup for all major architectural concepts
+# ============================================================================
+
+concepts:
+  
+  # -------------------------------------------------------------------------
+  # Operator Core Concepts
+  # -------------------------------------------------------------------------
+  
+  reconciliation_loop:
+    name: "Reconciliation Loop"
+    definition: "Core control loop that watches CR changes and updates cluster state to match desired configuration"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "1-high-level-architecture"
+      anchor: "#1-high-level-architecture"
+    related_concepts: ["controller_pattern", "statefulset_management", "validation_chain", "status_management"]
+    answers_questions:
+      - "How does the operator respond to changes?"
+      - "What triggers a reconciliation?"
+      - "What is the reconciliation loop?"
+      - "How does the controller pattern work?"
+    code_entry_points:
+      - file: "controllers/activemqartemis_controller.go"
+        function: "Reconcile"
+        line_range: "L156-L180"
+        description: "Main reconciliation entry point"
+    
+  controller_pattern:
+    name: "Controller Pattern"
+    definition: "Kubernetes controller pattern implementation for managing ActiveMQ Artemis resources"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "1-high-level-architecture"
+      anchor: "#1-high-level-architecture"
+    related_concepts: ["reconciliation_loop", "watch_events", "resource_tracking"]
+    answers_questions:
+      - "How does the operator architecture work?"
+      - "What design patterns are used?"
+    code_entry_points:
+      - file: "controllers/activemqartemis_controller.go"
+        description: "Main controller implementation"
+  
+  statefulset_management:
+    name: "StatefulSet Management"
+    definition: "How the operator creates, updates, and manages StatefulSets for broker pods with persistent identity"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "7-statefulset-management-and-resource-reconciliation"
+      anchor: "#7-statefulset-management-and-resource-reconciliation"
+    related_concepts: ["reconciliation_loop", "pod_management", "persistence", "resource_templates"]
+    answers_questions:
+      - "How are broker pods created?"
+      - "How does StatefulSet updating work?"
+      - "What resources does the operator manage?"
+      - "How are StatefulSets configured?"
+    code_entry_points:
+      - file: "controllers/activemqartemis_reconciler.go"
+        function: "ProcessStatefulSet"
+        description: "StatefulSet creation and updates"
+      - file: "pkg/resources/statefulsets/statefulset.go"
+        description: "StatefulSet resource generation"
+  
+  validation_chain:
+    name: "Validation Chain"
+    definition: "Chain of validators that verify CR correctness before reconciliation proceeds"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "10-validation-architecture"
+      anchor: "#10-validation-architecture"
+    related_concepts: ["error_handling", "status_management", "cr_validation"]
+    answers_questions:
+      - "How does validation work?"
+      - "What validations are performed?"
+      - "How are validation errors handled?"
+    code_entry_points:
+      - file: "controllers/activemqartemis_reconciler.go"
+        function: "ValidatePersistence"
+        description: "Persistence validation"
+      - file: "controllers/activemqartemis_reconciler.go"
+        function: "ValidateExtraMounts"
+        description: "ExtraMounts validation"
+  
+  broker_properties:
+    name: "Broker Properties Configuration"
+    definition: "Mechanism for configuring broker via properties with global, ordinal-specific, and external support"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "5-configuring-broker-properties"
+      anchor: "#5-configuring-broker-properties"
+    related_concepts: ["configuration_precedence", "extra_mounts", "ordinal_configuration"]
+    answers_questions:
+      - "How do I configure broker properties?"
+      - "What is brokerProperties?"
+      - "How does broker configuration work?"
+      - "Can I configure brokers individually?"
+    code_entry_points:
+      - file: "controllers/activemqartemis_reconciler.go"
+        function: "ProcessBrokerProperties"
+        description: "Broker properties processing"
+  
+  restricted_mode:
+    name: "Restricted Mode"
+    definition: "Security-sensitive deployment mode with minimal permissions and restricted capabilities"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "6-restricted-locked-down-mode"
+      anchor: "#6-restricted-locked-down-mode"
+    related_concepts: ["security", "metrics_implementation", "jmx_exporter"]
+    answers_questions:
+      - "What is restricted mode?"
+      - "How do I deploy in restricted environments?"
+      - "What are the security constraints?"
+    code_entry_points:
+      - file: "controllers/activemqartemis_reconciler.go"
+        description: "Restricted mode detection and configuration"
+  
+  # -------------------------------------------------------------------------
+  # Resource Management
+  # -------------------------------------------------------------------------
+  
+  resource_templates:
+    name: "Resource Templates and Strategic Merge Patches"
+    definition: "System for generating and patching Kubernetes resources using strategic merge patches"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "7-statefulset-management-and-resource-reconciliation"
+      anchor: "#resource-templates-and-strategic-merge-patches"
+    related_concepts: ["statefulset_management", "resource_updates"]
+    answers_questions:
+      - "How are Kubernetes resources updated?"
+      - "What is strategic merge patch?"
+      - "How does resource patching work?"
+  
+  persistence:
+    name: "Persistence and Storage"
+    definition: "PVC creation, management, retention, and dynamic toggling for broker data persistence"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "21-storage-and-persistence-architecture"
+      anchor: "#21-storage-and-persistence-architecture"
+    related_concepts: ["pvc_management", "storage_class", "data_retention"]
+    answers_questions:
+      - "How does persistence work?"
+      - "How are PVCs managed?"
+      - "Can I enable persistence dynamically?"
+      - "What happens to data on scale-down?"
+    code_entry_points:
+      - file: "controllers/activemqartemis_reconciler.go"
+        description: "PVC template generation and management"
+  
+  message_migration:
+    name: "Message Migration on Scale-Down"
+    definition: "ActiveMQArtemisScaledown CR for draining messages when scaling down brokers"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "7-statefulset-management-and-resource-reconciliation"
+      anchor: "#message-migration-on-scale-down"
+    related_concepts: ["scaledown", "deprecated_crs", "message_draining"]
+    answers_questions:
+      - "How do I drain messages on scale-down?"
+      - "What is ActiveMQArtemisScaledown?"
+      - "How does message migration work?"
+    code_entry_points:
+      - file: "controllers/activemqartemisscaledown_controller.go"
+        description: "Scale-down controller implementation"
+  
+  # -------------------------------------------------------------------------
+  # Networking and Exposure
+  # -------------------------------------------------------------------------
+  
+  acceptor_architecture:
+    name: "Acceptor Architecture"
+    definition: "Configuration of broker acceptors for client connections with SSL and protocol support"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "18-networking-and-exposure-architecture"
+      anchor: "#acceptor-architecture"
+    related_concepts: ["networking", "ssl_configuration", "protocols"]
+    answers_questions:
+      - "How do I configure acceptors?"
+      - "What are acceptors?"
+      - "How do clients connect to brokers?"
+    code_entry_points:
+      - file: "controllers/activemqartemis_reconciler.go"
+        description: "Acceptor configuration generation"
+  
+  connector_architecture:
+    name: "Connector Architecture"
+    definition: "Configuration of broker connectors for broker-to-broker connections"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "18-networking-and-exposure-architecture"
+      anchor: "#connector-architecture"
+    related_concepts: ["networking", "clustering", "ssl_configuration"]
+    answers_questions:
+      - "How do I configure connectors?"
+      - "What are connectors?"
+      - "How do brokers connect to each other?"
+  
+  expose_mode:
+    name: "Expose Mode Selection"
+    definition: "Platform-aware selection of Route (OpenShift) or Ingress (Kubernetes) for external exposure"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "18-networking-and-exposure-architecture"
+      anchor: "#expose-mode-selection"
+    related_concepts: ["platform_detection", "routes", "ingress", "external_access"]
+    answers_questions:
+      - "How do I expose brokers externally?"
+      - "What is expose mode?"
+      - "Route vs Ingress?"
+    code_entry_points:
+      - file: "pkg/resources/ingresses/ingress.go"
+        description: "Ingress resource creation"
+      - file: "pkg/resources/routes/route.go"
+        description: "Route resource creation"
+  
+  console_architecture:
+    name: "Console and Web UI Architecture"
+    definition: "Management console exposure, Jolokia integration, and SSL configuration"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "17-console-and-web-ui-architecture"
+      anchor: "#17-console-and-web-ui-architecture"
+    related_concepts: ["jolokia", "hawtio", "console_ssl", "web_ui"]
+    answers_questions:
+      - "How do I access the console?"
+      - "What is Jolokia?"
+      - "How do I configure console SSL?"
+  
+  # -------------------------------------------------------------------------
+  # Security and Credentials
+  # -------------------------------------------------------------------------
+  
+  credential_management:
+    name: "Credential and Secret Management"
+    definition: "User credential generation, console secrets, and secret persistence patterns"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "19-credential-and-secret-management"
+      anchor: "#19-credential-and-secret-management"
+    related_concepts: ["secrets", "users", "passwords", "console_credentials"]
+    answers_questions:
+      - "How are credentials generated?"
+      - "How do I manage secrets?"
+      - "How are user passwords created?"
+    code_entry_points:
+      - file: "controllers/activemqartemis_reconciler.go"
+        description: "Credential generation and management"
+  
+  certificate_management:
+    name: "Certificate Management"
+    definition: "cert-manager integration, certificate lifecycle, and TLS configuration patterns"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "15-certificate-management"
+      anchor: "#15-certificate-management"
+    related_concepts: ["cert_manager", "tls", "ssl_secrets"]
+    answers_questions:
+      - "How do I use cert-manager?"
+      - "How are certificates managed?"
+      - "How do I configure TLS?"
+    code_entry_points:
+      - file: "controllers/activemqartemis_reconciler.go"
+        description: "Certificate integration"
+  
+  ssl_configuration:
+    name: "SSL/TLS Configuration"
+    definition: "SSL secret configuration for acceptors, connectors, and console"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "18-networking-and-exposure-architecture"
+      anchor: "#18-networking-and-exposure-architecture"
+    related_concepts: ["certificate_management", "acceptor_architecture", "console_ssl"]
+    answers_questions:
+      - "How do I configure SSL?"
+      - "How do I secure connections?"
+      - "What SSL options are available?"
+  
+  # -------------------------------------------------------------------------
+  # Metrics and Monitoring
+  # -------------------------------------------------------------------------
+  
+  metrics_implementation:
+    name: "Metrics Implementation"
+    definition: "Prometheus integration via Jolokia (legacy) or JMX Exporter (restricted mode)"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "8-metrics-implementation"
+      anchor: "#8-metrics-implementation"
+    related_concepts: ["prometheus", "jolokia", "jmx_exporter", "monitoring"]
+    answers_questions:
+      - "How do metrics work?"
+      - "How do I monitor brokers?"
+      - "What metrics are available?"
+    code_entry_points:
+      - file: "controllers/activemqartemis_reconciler.go"
+        description: "Metrics plugin selection and configuration"
+  
+  jolokia:
+    name: "Jolokia Integration"
+    definition: "JMX-over-HTTP bridge for metrics and monitoring in legacy mode"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "17-console-and-web-ui-architecture"
+      anchor: "#jolokia-integration-and-metrics-ports"
+    related_concepts: ["metrics_implementation", "jmx", "monitoring"]
+    answers_questions:
+      - "What is Jolokia?"
+      - "How does Jolokia work?"
+  
+  jmx_exporter:
+    name: "JMX Exporter"
+    definition: "Prometheus JMX exporter used in restricted mode for metrics collection"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "8-metrics-implementation"
+      anchor: "#restricted-mode-implementation-jmx-exporter"
+    related_concepts: ["metrics_implementation", "restricted_mode", "prometheus"]
+    answers_questions:
+      - "What is JMX Exporter?"
+      - "How does restricted mode metrics work?"
+  
+  # -------------------------------------------------------------------------
+  # Version Management
+  # -------------------------------------------------------------------------
+  
+  version_management:
+    name: "Version Management and Upgrade System"
+    definition: "Broker version resolution, image selection, and upgrade policy management"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "9-version-management-and-upgrade-system"
+      anchor: "#9-version-management-and-upgrade-system"
+    related_concepts: ["image_resolution", "upgrades", "version_validation"]
+    answers_questions:
+      - "How are broker versions managed?"
+      - "How do upgrades work?"
+      - "What is the version resolution algorithm?"
+    code_entry_points:
+      - file: "pkg/utils/common/common.go"
+        description: "Version resolution logic"
+  
+  image_resolution:
+    name: "Image Selection and Resolution"
+    definition: "Algorithm for selecting container images based on version and platform"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "9-version-management-and-upgrade-system"
+      anchor: "#image-selection-precedence"
+    related_concepts: ["version_management", "container_images"]
+    answers_questions:
+      - "How are container images selected?"
+      - "What is image resolution?"
+  
+  # -------------------------------------------------------------------------
+  # High Availability
+  # -------------------------------------------------------------------------
+  
+  high_availability:
+    name: "High Availability and Resilience"
+    definition: "PodDisruptionBudget, affinity, tolerations, and topology spread for HA"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "12-high-availability-and-resilience"
+      anchor: "#12-high-availability-and-resilience"
+    related_concepts: ["pdb", "affinity", "tolerations", "topology_spread"]
+    answers_questions:
+      - "How do I configure HA?"
+      - "What is PodDisruptionBudget?"
+      - "How do I ensure high availability?"
+    code_entry_points:
+      - file: "pkg/resources/pods/pod.go"
+        description: "Pod affinity and toleration configuration"
+  
+  pod_disruption_budget:
+    name: "PodDisruptionBudget Configuration"
+    definition: "Kubernetes PDB configuration to control voluntary disruptions"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "12-high-availability-and-resilience"
+      anchor: "#poddisruptionbudget-configuration"
+    related_concepts: ["high_availability", "disruptions"]
+    answers_questions:
+      - "What is PodDisruptionBudget?"
+      - "How do I prevent pod evictions?"
+  
+  # -------------------------------------------------------------------------
+  # Probes and Health Checks
+  # -------------------------------------------------------------------------
+  
+  probe_configuration:
+    name: "Probe Configuration"
+    definition: "Liveness, readiness, and startup probes for broker health monitoring"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "13-probe-configuration"
+      anchor: "#13-probe-configuration"
+    related_concepts: ["health_checks", "liveness", "readiness", "startup"]
+    answers_questions:
+      - "How do probes work?"
+      - "What are the default probe values?"
+      - "How do I configure health checks?"
+    code_entry_points:
+      - file: "pkg/resources/pods/pod.go"
+        description: "Probe configuration"
+  
+  # -------------------------------------------------------------------------
+  # Logging
+  # -------------------------------------------------------------------------
+  
+  logging_configuration:
+    name: "Logging Configuration"
+    definition: "Custom logging properties and protected environment variables"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "14-logging-configuration"
+      anchor: "#14-logging-configuration"
+    related_concepts: ["log4j", "logging_properties", "environment_variables"]
+    answers_questions:
+      - "How do I configure logging?"
+      - "How do I customize log levels?"
+      - "What logging properties are available?"
+  
+  # -------------------------------------------------------------------------
+  # Namespace and Deployment
+  # -------------------------------------------------------------------------
+  
+  multi_namespace:
+    name: "Multi-Namespace Deployment"
+    definition: "Operator's ability to watch single, multiple, or all namespaces"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "11-multi-namespace-deployment"
+      anchor: "#11-multi-namespace-deployment"
+    related_concepts: ["watch_namespace", "namespace_modes", "rbac"]
+    answers_questions:
+      - "How do I deploy across namespaces?"
+      - "What is WATCH_NAMESPACE?"
+      - "Can the operator watch multiple namespaces?"
+    code_entry_points:
+      - file: "main.go"
+        description: "Manager namespace configuration"
+  
+  # -------------------------------------------------------------------------
+  # Operational Controls
+  # -------------------------------------------------------------------------
+  
+  operational_controls:
+    name: "Operational Controls"
+    definition: "Block reconcile annotation, resource tracking, and recovery patterns"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "16-operational-controls"
+      anchor: "#16-operational-controls"
+    related_concepts: ["annotations", "resource_adoption", "pause_reconcile"]
+    answers_questions:
+      - "How do I pause reconciliation?"
+      - "What is block reconcile?"
+      - "How does resource tracking work?"
+  
+  resource_tracking:
+    name: "Resource Tracking and Adoption"
+    definition: "Tracking of operator-managed resources and adoption of orphaned resources"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "16-operational-controls"
+      anchor: "#resource-tracking-and-adoption"
+    related_concepts: ["operational_controls", "owner_references"]
+    answers_questions:
+      - "How are resources tracked?"
+      - "What is resource adoption?"
+  
+  # -------------------------------------------------------------------------
+  # Status and Error Handling
+  # -------------------------------------------------------------------------
+  
+  status_management:
+    name: "Status Management"
+    definition: "CR status conditions, pod status tracking, and digest messages"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "22-error-handling-and-status-management"
+      anchor: "#22-error-handling-and-status-management"
+    related_concepts: ["conditions", "status_updates", "pod_status"]
+    answers_questions:
+      - "How is CR status managed?"
+      - "What status conditions exist?"
+      - "How do I check broker status?"
+    code_entry_points:
+      - file: "api/v1beta1/activemqartemis_types.go"
+        description: "Status type definitions"
+      - file: "pkg/utils/common/conditions.go"
+        description: "Condition management"
+  
+  error_handling:
+    name: "Error Handling"
+    definition: "Error detection, reporting, and status condition management"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "22-error-handling-and-status-management"
+      anchor: "#22-error-handling-and-status-management"
+    related_concepts: ["status_management", "validation_chain"]
+    answers_questions:
+      - "How are errors handled?"
+      - "How do I troubleshoot errors?"
+  
+  # -------------------------------------------------------------------------
+  # Metadata Management
+  # -------------------------------------------------------------------------
+  
+  metadata_management:
+    name: "Resource Metadata Management"
+    definition: "Custom annotations and labels propagation with reserved label protection"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "20-resource-metadata-management"
+      anchor: "#20-resource-metadata-management"
+    related_concepts: ["annotations", "labels", "resource_customization"]
+    answers_questions:
+      - "How do I add custom labels?"
+      - "How do annotations propagate?"
+      - "What labels are reserved?"
+  
+  # -------------------------------------------------------------------------
+  # Configuration and Conventions
+  # -------------------------------------------------------------------------
+  
+  configuration_precedence:
+    name: "Configuration Precedence"
+    definition: "Order of precedence for configuration sources (CR, env vars, defaults)"
+    primary_location:
+      file: "operator_conventions.md"
+      section: "configuration-precedence-conventions"
+      anchor: "#configuration-precedence-conventions"
+    related_concepts: ["broker_properties", "environment_variables", "defaults"]
+    answers_questions:
+      - "What is the configuration precedence?"
+      - "Which configuration takes priority?"
+  
+  naming_conventions:
+    name: "Resource Naming Conventions"
+    definition: "Conventions for naming resources (StatefulSet, Services, Secrets, etc.)"
+    primary_location:
+      file: "operator_conventions.md"
+      section: "resource-naming-conventions"
+      anchor: "#resource-naming-conventions"
+    related_concepts: ["resource_management", "conventions"]
+    answers_questions:
+      - "How are resources named?"
+      - "What are the naming patterns?"
+  
+  magic_behavior:
+    name: "Suffix-Based Magic Behavior"
+    definition: "Special behaviors triggered by ExtraMount name suffixes (-logging-config, -jaas-config, -bp)"
+    primary_location:
+      file: "operator_conventions.md"
+      section: "suffix-based-magic-behavior"
+      anchor: "#suffix-based-magic-behavior"
+    related_concepts: ["extra_mounts", "conventions", "broker_properties"]
+    answers_questions:
+      - "What are magic suffixes?"
+      - "How do ExtraMount suffixes work?"
+  
+  platform_detection:
+    name: "Platform Detection and Adaptation"
+    definition: "Automatic detection of OpenShift vs Kubernetes and platform-specific behaviors"
+    primary_location:
+      file: "operator_conventions.md"
+      section: "platform-detection-and-adaptation-conventions"
+      anchor: "#platform-detection-and-adaptation-conventions"
+    related_concepts: ["openshift", "kubernetes", "expose_mode"]
+    answers_questions:
+      - "How does platform detection work?"
+      - "What's different on OpenShift vs Kubernetes?"
+  
+  # -------------------------------------------------------------------------
+  # Deprecated Features
+  # -------------------------------------------------------------------------
+  
+  deprecated_crs:
+    name: "Deprecated Custom Resources"
+    definition: "ActiveMQArtemisAddress, ActiveMQArtemisSecurity, ActiveMQArtemisScaledown (deprecated in favor of brokerProperties)"
+    primary_location:
+      file: "operator_architecture.md"
+      section: "4-deprecated-custom-resources"
+      anchor: "#4-deprecated-custom-resources"
+    related_concepts: ["broker_properties", "migration"]
+    answers_questions:
+      - "What CRs are deprecated?"
+      - "Should I use ActiveMQArtemisAddress?"
+      - "How do I migrate from deprecated CRs?"
+  
+  # -------------------------------------------------------------------------
+  # Testing and Development
+  # -------------------------------------------------------------------------
+  
+  tdd_approach:
+    name: "Test-Driven Development"
+    definition: "TDD methodology used in the project with comprehensive test catalog"
+    primary_location:
+      file: "tdd_index.md"
+      section: "top"
+      anchor: "#activemq-artemis-operator-test-index"
+    related_concepts: ["testing", "test_catalog", "feature_coverage"]
+    answers_questions:
+      - "What is the testing approach?"
+      - "What tests exist?"
+      - "How is TDD practiced?"
+  
+  feature_development:
+    name: "Feature Development Guide"
+    definition: "Practical guide for adding new features, API fields, and extending the reconciler"
+    primary_location:
+      file: "contribution_guide.md"
+      section: "feature-development-guide"
+      anchor: "#feature-development-guide"
+    related_concepts: ["api_fields", "reconciler_extension", "testing"]
+    answers_questions:
+      - "How do I add a new feature?"
+      - "What is the development workflow?"
+      - "How do I add API fields?"
+    code_entry_points:
+      - file: "api/v1beta1/activemqartemis_types.go"
+        description: "API type definitions"
+  
+  debugging:
+    name: "Development and Debugging"
+    definition: "Debugging reconciliation issues, running tests, and code navigation"
+    primary_location:
+      file: "contribution_guide.md"
+      section: "development-and-debugging-guide"
+      anchor: "#development-and-debugging-guide"
+    related_concepts: ["troubleshooting", "logging", "testing"]
+    answers_questions:
+      - "How do I debug the operator?"
+      - "How do I run tests?"
+      - "How do I troubleshoot issues?"
+
+# ============================================================================
+# TOPIC-BASED NAVIGATION - Group concepts by functional area
+# ============================================================================
+
+topics:
+  
+  architecture:
+    name: "Operator Architecture"
+    description: "Core architecture, patterns, and design decisions"
+    concepts:
+      - "reconciliation_loop"
+      - "controller_pattern"
+      - "statefulset_management"
+      - "validation_chain"
+      - "status_management"
+    primary_docs:
+      - "operator_architecture.md#1-high-level-architecture"
+      - "operator_architecture.md#2-reconciler-logic-and-flow"
+  
+  deployment:
+    name: "Deployment and Configuration"
+    description: "Deploying the operator and configuring broker instances"
+    concepts:
+      - "multi_namespace"
+      - "broker_properties"
+      - "configuration_precedence"
+      - "platform_detection"
+    primary_docs:
+      - "operator_architecture.md#11-multi-namespace-deployment"
+      - "operator_architecture.md#5-configuring-broker-properties"
+      - "operator_conventions.md"
+  
+  networking:
+    name: "Networking and Connectivity"
+    description: "Acceptors, connectors, exposure modes, and external access"
+    concepts:
+      - "acceptor_architecture"
+      - "connector_architecture"
+      - "expose_mode"
+      - "console_architecture"
+    primary_docs:
+      - "operator_architecture.md#18-networking-and-exposure-architecture"
+      - "operator_architecture.md#17-console-and-web-ui-architecture"
+  
+  security:
+    name: "Security and Authentication"
+    description: "SSL/TLS, certificates, credentials, and restricted mode"
+    concepts:
+      - "ssl_configuration"
+      - "certificate_management"
+      - "credential_management"
+      - "restricted_mode"
+    primary_docs:
+      - "operator_architecture.md#15-certificate-management"
+      - "operator_architecture.md#19-credential-and-secret-management"
+      - "operator_architecture.md#6-restricted-locked-down-mode"
+  
+  storage:
+    name: "Storage and Persistence"
+    description: "PVC management, persistence, and data retention"
+    concepts:
+      - "persistence"
+      - "message_migration"
+    primary_docs:
+      - "operator_architecture.md#21-storage-and-persistence-architecture"
+      - "operator_architecture.md#7-statefulset-management-and-resource-reconciliation"
+  
+  monitoring:
+    name: "Metrics and Monitoring"
+    description: "Prometheus integration, metrics collection, and monitoring"
+    concepts:
+      - "metrics_implementation"
+      - "jolokia"
+      - "jmx_exporter"
+      - "probe_configuration"
+    primary_docs:
+      - "operator_architecture.md#8-metrics-implementation"
+      - "operator_architecture.md#13-probe-configuration"
+  
+  validation:
+    name: "Validation and Error Handling"
+    description: "CR validation, error detection, and status management"
+    concepts:
+      - "validation_chain"
+      - "error_handling"
+      - "status_management"
+    primary_docs:
+      - "operator_architecture.md#10-validation-architecture"
+      - "operator_architecture.md#22-error-handling-and-status-management"
+  
+  high_availability:
+    name: "High Availability"
+    description: "HA configuration, resilience, and failure handling"
+    concepts:
+      - "high_availability"
+      - "pod_disruption_budget"
+    primary_docs:
+      - "operator_architecture.md#12-high-availability-and-resilience"
+  
+  operations:
+    name: "Operational Controls"
+    description: "Managing running operators and resources"
+    concepts:
+      - "operational_controls"
+      - "resource_tracking"
+      - "metadata_management"
+    primary_docs:
+      - "operator_architecture.md#16-operational-controls"
+      - "operator_architecture.md#20-resource-metadata-management"
+  
+  development:
+    name: "Development and Contributing"
+    description: "Adding features, testing, and debugging"
+    concepts:
+      - "feature_development"
+      - "tdd_approach"
+      - "debugging"
+    primary_docs:
+      - "contribution_guide.md#feature-development-guide"
+      - "contribution_guide.md#development-and-debugging-guide"
+      - "tdd_index.md"
+  
+  conventions:
+    name: "Conventions and Defaults"
+    description: "Naming conventions, magic behaviors, and default values"
+    concepts:
+      - "naming_conventions"
+      - "magic_behavior"
+      - "configuration_precedence"
+    primary_docs:
+      - "operator_conventions.md"
+      - "operator_defaults_reference.md"
+
+# ============================================================================
+# QUESTION-TO-ANSWER MAPPING - Direct question routing
+# ============================================================================
+
+common_questions:
+  
+  # Getting Started
+  - question: "How does the operator work?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "1-high-level-architecture"
+      anchor: "#1-high-level-architecture"
+    related_concepts: ["reconciliation_loop", "controller_pattern"]
+  
+  - question: "What is the reconciliation loop?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "1-high-level-architecture"
+      anchor: "#1-high-level-architecture"
+    related_concepts: ["reconciliation_loop"]
+  
+  # Configuration
+  - question: "How do I configure broker properties?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "5-configuring-broker-properties"
+      anchor: "#5-configuring-broker-properties"
+    related_concepts: ["broker_properties", "configuration_precedence"]
+  
+  - question: "What configuration options are available?"
+    answer_location:
+      file: "operator_defaults_reference.md"
+      section: "top"
+      anchor: "#operator-defaults-reference"
+    related_concepts: ["configuration_precedence"]
+  
+  - question: "What are the default values?"
+    answer_location:
+      file: "operator_defaults_reference.md"
+      section: "api-spec-defaults"
+      anchor: "#api-spec-defaults"
+    related_concepts: ["configuration_precedence"]
+  
+  - question: "Which configuration takes priority?"
+    answer_location:
+      file: "operator_conventions.md"
+      section: "configuration-precedence-conventions"
+      anchor: "#configuration-precedence-conventions"
+    related_concepts: ["configuration_precedence"]
+  
+  # Development
+  - question: "How do I add a new field to the CR?"
+    answer_location:
+      file: "contribution_guide.md"
+      section: "adding-new-api-fields"
+      anchor: "#adding-new-api-fields"
+    related_concepts: ["feature_development", "api_fields"]
+  
+  - question: "What is the development workflow?"
+    answer_location:
+      file: "contribution_guide.md"
+      section: "development-workflow"
+      anchor: "#development-workflow"
+    related_concepts: ["feature_development"]
+  
+  - question: "How do I debug the operator?"
+    answer_location:
+      file: "contribution_guide.md"
+      section: "debugging-reconciliation-issues"
+      anchor: "#debugging-reconciliation-issues"
+    related_concepts: ["debugging", "troubleshooting"]
+  
+  - question: "How do I run tests?"
+    answer_location:
+      file: "contribution_guide.md"
+      section: "running-tests"
+      anchor: "#running-tests"
+    related_concepts: ["testing", "tdd_approach"]
+  
+  # StatefulSet and Resources
+  - question: "How are broker pods created?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "7-statefulset-management-and-resource-reconciliation"
+      anchor: "#7-statefulset-management-and-resource-reconciliation"
+    related_concepts: ["statefulset_management", "pod_management"]
+  
+  - question: "How does StatefulSet updating work?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "7-statefulset-management-and-resource-reconciliation"
+      anchor: "#statefulset-creation-and-updates"
+    related_concepts: ["statefulset_management"]
+  
+  - question: "What resources does the operator manage?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "2-reconciler-logic-and-flow"
+      anchor: "#managed-resources"
+    related_concepts: ["resource_management", "reconciliation_loop"]
+  
+  # Validation
+  - question: "How does validation work?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "10-validation-architecture"
+      anchor: "#10-validation-architecture"
+    related_concepts: ["validation_chain"]
+  
+  - question: "What validations are performed?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "10-validation-architecture"
+      anchor: "#individual-validation-functions"
+    related_concepts: ["validation_chain"]
+  
+  # Persistence
+  - question: "How does persistence work?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "21-storage-and-persistence-architecture"
+      anchor: "#21-storage-and-persistence-architecture"
+    related_concepts: ["persistence", "pvc_management"]
+  
+  - question: "How are PVCs managed?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "21-storage-and-persistence-architecture"
+      anchor: "#pvc-creation-and-management"
+    related_concepts: ["persistence"]
+  
+  - question: "Can I enable persistence dynamically?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "21-storage-and-persistence-architecture"
+      anchor: "#dynamic-persistence-toggle"
+    related_concepts: ["persistence"]
+  
+  # Networking
+  - question: "How do I configure acceptors?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "18-networking-and-exposure-architecture"
+      anchor: "#acceptor-architecture"
+    related_concepts: ["acceptor_architecture"]
+  
+  - question: "How do I configure connectors?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "18-networking-and-exposure-architecture"
+      anchor: "#connector-architecture"
+    related_concepts: ["connector_architecture"]
+  
+  - question: "How do I expose brokers externally?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "18-networking-and-exposure-architecture"
+      anchor: "#expose-mode-selection"
+    related_concepts: ["expose_mode", "external_access"]
+  
+  # Console
+  - question: "How do I access the console?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "17-console-and-web-ui-architecture"
+      anchor: "#17-console-and-web-ui-architecture"
+    related_concepts: ["console_architecture"]
+  
+  - question: "How do I configure console SSL?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "17-console-and-web-ui-architecture"
+      anchor: "#console-ssl-configuration"
+    related_concepts: ["console_architecture", "ssl_configuration"]
+  
+  # Security
+  - question: "How do I configure SSL?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "15-certificate-management"
+      anchor: "#15-certificate-management"
+    related_concepts: ["ssl_configuration", "certificate_management"]
+  
+  - question: "How do I use cert-manager?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "15-certificate-management"
+      anchor: "#cert-manager-integration"
+    related_concepts: ["certificate_management"]
+  
+  - question: "What is restricted mode?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "6-restricted-locked-down-mode"
+      anchor: "#6-restricted-locked-down-mode"
+    related_concepts: ["restricted_mode"]
+  
+  - question: "How are credentials generated?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "19-credential-and-secret-management"
+      anchor: "#19-credential-and-secret-management"
+    related_concepts: ["credential_management"]
+  
+  # Metrics
+  - question: "How do metrics work?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "8-metrics-implementation"
+      anchor: "#8-metrics-implementation"
+    related_concepts: ["metrics_implementation"]
+  
+  - question: "How do I monitor brokers?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "8-metrics-implementation"
+      anchor: "#8-metrics-implementation"
+    related_concepts: ["metrics_implementation", "monitoring"]
+  
+  # High Availability
+  - question: "How do I configure HA?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "12-high-availability-and-resilience"
+      anchor: "#12-high-availability-and-resilience"
+    related_concepts: ["high_availability"]
+  
+  - question: "What is PodDisruptionBudget?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "12-high-availability-and-resilience"
+      anchor: "#poddisruptionbudget-configuration"
+    related_concepts: ["pod_disruption_budget"]
+  
+  # Probes
+  - question: "How do probes work?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "13-probe-configuration"
+      anchor: "#13-probe-configuration"
+    related_concepts: ["probe_configuration"]
+  
+  - question: "What are the default probe values?"
+    answer_location:
+      file: "operator_defaults_reference.md"
+      section: "probe-configuration-defaults"
+      anchor: "#probe-configuration-defaults"
+    related_concepts: ["probe_configuration"]
+  
+  # Logging
+  - question: "How do I configure logging?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "14-logging-configuration"
+      anchor: "#14-logging-configuration"
+    related_concepts: ["logging_configuration"]
+  
+  # Versions
+  - question: "How are broker versions managed?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "9-version-management-and-upgrade-system"
+      anchor: "#9-version-management-and-upgrade-system"
+    related_concepts: ["version_management"]
+  
+  - question: "How do upgrades work?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "9-version-management-and-upgrade-system"
+      anchor: "#upgrade-policy-management"
+    related_concepts: ["version_management"]
+  
+  # Multi-namespace
+  - question: "How do I deploy across namespaces?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "11-multi-namespace-deployment"
+      anchor: "#11-multi-namespace-deployment"
+    related_concepts: ["multi_namespace"]
+  
+  - question: "What is WATCH_NAMESPACE?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "11-multi-namespace-deployment"
+      anchor: "#watch_namespace-configuration"
+    related_concepts: ["multi_namespace"]
+  
+  # Operations
+  - question: "How do I pause reconciliation?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "16-operational-controls"
+      anchor: "#block-reconcile-annotation"
+    related_concepts: ["operational_controls"]
+  
+  - question: "What is block reconcile?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "16-operational-controls"
+      anchor: "#block-reconcile-annotation"
+    related_concepts: ["operational_controls"]
+  
+  # Status
+  - question: "How is CR status managed?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "22-error-handling-and-status-management"
+      anchor: "#22-error-handling-and-status-management"
+    related_concepts: ["status_management"]
+  
+  # Conventions
+  - question: "How are resources named?"
+    answer_location:
+      file: "operator_conventions.md"
+      section: "resource-naming-conventions"
+      anchor: "#resource-naming-conventions"
+    related_concepts: ["naming_conventions"]
+  
+  - question: "What are magic suffixes?"
+    answer_location:
+      file: "operator_conventions.md"
+      section: "suffix-based-magic-behavior"
+      anchor: "#suffix-based-magic-behavior"
+    related_concepts: ["magic_behavior"]
+  
+  - question: "How does platform detection work?"
+    answer_location:
+      file: "operator_conventions.md"
+      section: "platform-detection-and-adaptation-conventions"
+      anchor: "#platform-detection-and-adaptation-conventions"
+    related_concepts: ["platform_detection"]
+  
+  # Deprecated
+  - question: "What CRs are deprecated?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "4-deprecated-custom-resources"
+      anchor: "#4-deprecated-custom-resources"
+    related_concepts: ["deprecated_crs"]
+  
+  - question: "Should I use ActiveMQArtemisAddress?"
+    answer_location:
+      file: "operator_architecture.md"
+      section: "4-deprecated-custom-resources"
+      anchor: "#4-deprecated-custom-resources"
+    related_concepts: ["deprecated_crs", "broker_properties"]
+  
+  # Testing
+  - question: "What tests exist?"
+    answer_location:
+      file: "tdd_index.md"
+      section: "top"
+      anchor: "#activemq-artemis-operator-test-index"
+    related_concepts: ["tdd_approach", "testing"]
+  
+  - question: "How is feature X tested?"
+    answer_location:
+      file: "tdd_index.md"
+      section: "top"
+      anchor: "#activemq-artemis-operator-test-index"
+    related_concepts: ["tdd_approach", "test_coverage"]
+  
+  - question: "What test coverage exists?"
+    answer_location:
+      file: "tdd_index.md"
+      section: "top"
+      anchor: "#activemq-artemis-operator-test-index"
+    related_concepts: ["tdd_approach", "test_coverage"]
+
+# ============================================================================
+# TEST COVERAGE MAPPING - Links test areas to concepts and documentation
+# ============================================================================
+
+test_areas:
+  
+  tls_ssl_configuration:
+    test_file: "activemqartemis_controller_test.go"
+    test_count: 8
+    doc_reference: "operator_architecture.md#15-certificate-management"
+    concepts: ["ssl_configuration", "certificate_management", "acceptor_architecture"]
+    description: "Tests for TLS/SSL configuration including secret reuse and acceptor SSL"
+  
+  statefulset_management:
+    test_file: "activemqartemis_controller_test.go"
+    test_count: 15
+    doc_reference: "operator_architecture.md#7-statefulset-management-and-resource-reconciliation"
+    concepts: ["statefulset_management", "resource_templates"]
+    description: "Tests for StatefulSet creation, updates, and options"
+  
+  high_availability:
+    test_file: "activemqartemis_controller_test.go"
+    test_count: 10
+    doc_reference: "operator_architecture.md#12-high-availability-and-resilience"
+    concepts: ["high_availability", "pod_disruption_budget", "affinity"]
+    description: "Tests for PDB, affinity, tolerations, and topology spread"
+  
+  version_management:
+    test_file: "activemqartemis_controller_test.go"
+    test_count: 8
+    doc_reference: "operator_architecture.md#9-version-management-and-upgrade-system"
+    concepts: ["version_management", "image_resolution"]
+    description: "Tests for version resolution and broker version management"
+  
+  resource_tracking:
+    test_file: "activemqartemis_controller_test.go"
+    test_count: 5
+    doc_reference: "operator_architecture.md#16-operational-controls"
+    concepts: ["resource_tracking", "operational_controls"]
+    description: "Tests for resource tracking and adoption"
+  
+  console_configuration:
+    test_file: "activemqartemis_controller_test.go"
+    test_count: 6
+    doc_reference: "operator_architecture.md#17-console-and-web-ui-architecture"
+    concepts: ["console_architecture", "jolokia"]
+    description: "Tests for console exposure and configuration"
+  
+  expose_modes:
+    test_file: "activemqartemis_controller_test.go"
+    test_count: 4
+    doc_reference: "operator_architecture.md#18-networking-and-exposure-architecture"
+    concepts: ["expose_mode", "routes", "ingress"]
+    description: "Tests for Route and Ingress expose modes"
+  
+  broker_properties:
+    test_file: "activemqartemis_address_broker_properties_test.go"
+    test_count: 12
+    doc_reference: "operator_architecture.md#5-configuring-broker-properties"
+    concepts: ["broker_properties", "configuration_precedence"]
+    description: "Tests for broker properties configuration including ordinal-specific"
+  
+  restricted_mode:
+    test_file: "activemqartemis_controller_test.go"
+    test_count: 5
+    doc_reference: "operator_architecture.md#6-restricted-locked-down-mode"
+    concepts: ["restricted_mode", "jmx_exporter"]
+    description: "Tests for restricted mode deployment"
+  
+  metrics:
+    test_file: "activemqartemis_controller_test.go"
+    test_count: 4
+    doc_reference: "operator_architecture.md#8-metrics-implementation"
+    concepts: ["metrics_implementation", "jolokia", "jmx_exporter"]
+    description: "Tests for metrics collection and Prometheus integration"
+  
+  persistence:
+    test_file: "activemqartemis_rwm_pvc_ha_test.go"
+    test_count: 8
+    doc_reference: "operator_architecture.md#21-storage-and-persistence-architecture"
+    concepts: ["persistence", "pvc_management"]
+    description: "Tests for PVC management and persistence"
+  
+  scale_zero:
+    test_file: "activemqartemis_scale_zero_test.go"
+    test_count: 6
+    doc_reference: "operator_architecture.md#7-statefulset-management-and-resource-reconciliation"
+    concepts: ["statefulset_management", "scaling"]
+    description: "Tests for scaling to zero and back"
+  
+  message_migration:
+    test_file: "activemqartemisscaledown_controller_test.go"
+    test_count: 8
+    doc_reference: "operator_architecture.md#7-statefulset-management-and-resource-reconciliation"
+    concepts: ["message_migration", "scaledown"]
+    description: "Tests for message draining on scale-down"
+  
+  jdbc_ha:
+    test_file: "activemqartemis_jdbc_ha_test.go"
+    test_count: 4
+    doc_reference: "operator_architecture.md#12-high-availability-and-resilience"
+    concepts: ["high_availability", "jdbc"]
+    description: "Tests for JDBC-based high availability"
+  
+  pub_sub_scale:
+    test_file: "activemqartemis_pub_sub_scale_test.go"
+    test_count: 6
+    doc_reference: "operator_architecture.md#7-statefulset-management-and-resource-reconciliation"
+    concepts: ["scaling", "pub_sub"]
+    description: "Tests for pub/sub topology scaling"
+  
+  work_queue:
+    test_file: "activemqartemis_work_queue_test.go"
+    test_count: 5
+    doc_reference: "operator_architecture.md#7-statefulset-management-and-resource-reconciliation"
+    concepts: ["work_queue", "messaging"]
+    description: "Tests for work queue patterns"
+  
+  cert_manager:
+    test_file: "activemqartemis_controller_cert_manager_test.go"
+    test_count: 7
+    doc_reference: "operator_architecture.md#15-certificate-management"
+    concepts: ["certificate_management", "cert_manager"]
+    description: "Tests for cert-manager integration"
+  
+  address_controller:
+    test_file: "activemqartemisaddress_controller_test.go"
+    test_count: 12
+    doc_reference: "operator_architecture.md#4-deprecated-custom-resources"
+    concepts: ["deprecated_crs", "addresses"]
+    description: "Tests for ActiveMQArtemisAddress CR (deprecated)"
+  
+  security_controller:
+    test_file: "activemqartemissecurity_controller_test.go"
+    test_count: 10
+    doc_reference: "operator_architecture.md#4-deprecated-custom-resources"
+    concepts: ["deprecated_crs", "security"]
+    description: "Tests for ActiveMQArtemisSecurity CR (deprecated)"
+
+# ============================================================================
+# CODE NAVIGATION HELPERS - Quick access to key code locations
+# ============================================================================
+
+code_locations:
+  
+  controllers:
+    path: "controllers/"
+    description: "Main operator logic and reconciliation"
+    key_files:
+      - name: "activemqartemis_controller.go"
+        description: "Main controller and Reconcile entry point"
+        key_functions: ["Reconcile", "SetupWithManager"]
+      - name: "activemqartemis_reconciler.go"
+        description: "Reconciliation logic for all resources"
+        key_functions: ["ProcessStatefulSet", "ProcessServices", "ProcessBrokerProperties"]
+      - name: "activemqartemisaddress_controller.go"
+        description: "Address controller (deprecated)"
+      - name: "activemqartemissecurity_controller.go"
+        description: "Security controller (deprecated)"
+      - name: "activemqartemisscaledown_controller.go"
+        description: "Scaledown controller for message migration"
+  
+  api_types:
+    path: "api/v1beta1/"
+    description: "CR type definitions and API specifications"
+    key_files:
+      - name: "activemqartemis_types.go"
+        description: "ActiveMQArtemis CR type definitions"
+        key_types: ["ActiveMQArtemis", "ActiveMQArtemisSpec", "ActiveMQArtemisStatus"]
+      - name: "activemqartemisaddress_types.go"
+        description: "Address CR types (deprecated)"
+      - name: "activemqartemissecurity_types.go"
+        description: "Security CR types (deprecated)"
+      - name: "activemqartemisscaledown_types.go"
+        description: "Scaledown CR types"
+  
+  resource_generators:
+    path: "pkg/resources/"
+    description: "Resource generation for Kubernetes objects"
+    key_subdirs:
+      - name: "statefulsets/"
+        description: "StatefulSet generation"
+        key_file: "statefulset.go"
+      - name: "services/"
+        description: "Service resource generation"
+        key_file: "service.go"
+      - name: "pods/"
+        description: "Pod template and configuration"
+        key_file: "pod.go"
+      - name: "routes/"
+        description: "OpenShift Route generation"
+        key_file: "route.go"
+      - name: "ingresses/"
+        description: "Kubernetes Ingress generation"
+        key_file: "ingress.go"
+      - name: "secrets/"
+        description: "Secret generation and management"
+        key_file: "secrets.go"
+  
+  utilities:
+    path: "pkg/utils/"
+    description: "Utility functions and helpers"
+    key_subdirs:
+      - name: "common/"
+        description: "Common utilities including version resolution"
+        key_files: ["common.go", "conditions.go"]
+      - name: "selectors/"
+        description: "Label selectors and matching"
+      - name: "namer/"
+        description: "Resource naming utilities"
+  
+  main:
+    path: "./"
+    description: "Entry point and manager setup"
+    key_files:
+      - name: "main.go"
+        description: "Application entry point, manager configuration"
+        key_functions: ["main", "setupManager"]
+
+# ============================================================================
+# DOCUMENTATION METADATA
+# ============================================================================
+
+documentation_files:
+  
+  operator_architecture:
+    file: "operator_architecture.md"
+    title: "Operator Architecture Overview"
+    lines: 2209
+    sections: 22
+    code_links: 481
+    doc_type: "architecture_reference"
+    description: "Complete technical architecture and implementation details"
+    complexity: "comprehensive"
+    primary_topics:
+      - "reconciliation"
+      - "statefulset"
+      - "validation"
+      - "networking"
+      - "security"
+      - "storage"
+  
+  operator_conventions:
+    file: "operator_conventions.md"
+    title: "Operator Conventions Reference"
+    lines: 409
+    sections: 18
+    code_links: 44
+    doc_type: "conventions_reference"
+    description: "Naming conventions, defaults, and automatic behaviors"
+    complexity: "reference"
+    primary_topics:
+      - "naming"
+      - "defaults"
+      - "magic_behavior"
+      - "precedence"
+  
+  operator_defaults_reference:
+    file: "operator_defaults_reference.md"
+    title: "Operator Defaults Reference"
+    lines: 508
+    sections: 13
+    code_links: 34
+    doc_type: "defaults_reference"
+    description: "Complete default value specifications"
+    complexity: "reference"
+    primary_topics:
+      - "default_values"
+      - "configuration"
+      - "ports"
+      - "timeouts"
+  
+  contribution_guide:
+    file: "contribution_guide.md"
+    title: "Contribution Guide"
+    lines: 910
+    sections: 8
+    code_links: 29
+    doc_type: "developer_guide"
+    description: "Development workflow, feature development, debugging"
+    complexity: "practical"
+    primary_topics:
+      - "feature_development"
+      - "testing"
+      - "debugging"
+      - "workflow"
+  
+  tdd_index:
+    file: "tdd_index.md"
+    title: "Test Index"
+    lines: 3205
+    test_scenarios: 396
+    test_files: 39
+    code_links: 369
+    doc_type: "test_catalog"
+    description: "Comprehensive test catalog and TDD feature inventory"
+    complexity: "comprehensive"
+    primary_topics:
+      - "testing"
+      - "tdd"
+      - "test_scenarios"
+      - "coverage"
+
+# ============================================================================
+# USAGE TIPS FOR AI ASSISTANTS
+# ============================================================================
+
+ai_usage_tips:
+  - "Start with 'concepts' section for quick concept lookup"
+  - "Use 'common_questions' to route user questions directly to answers"
+  - "Check 'topics' for high-level navigation by functional area"
+  - "Reference 'test_areas' to find test coverage for any feature"
+  - "Use 'code_locations' to navigate source code efficiently"
+  - "All documentation uses GitHub permalinks to commit 4acadb95"
+  - "Total of 1,352+ code links across all documentation"
+  - "Cross-references between concepts help build complete understanding"
+  - "Documentation is comprehensive - suitable for detailed queries"
+  - "TDD approach means tests validate all documented features"
+

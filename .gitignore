@@ -89,3 +89,12 @@ bin
 
 # Catalog files
 catalog/
+
+# AI Tools
+.cursor/
+.copilot/
+
+# Documentation tool binaries
+AI_documentation/ddt/ddt
+AI_documentation/ddt/ddt.exe
+AI_documentation/ddt/ddt-*

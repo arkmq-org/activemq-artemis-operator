@@ -1,0 +1,18 @@
+{
+  "targetCommit": "HEAD",
+  "documentationPaths": [
+    "operator_architecture.md",
+    "operator_conventions.md",
+    "operator_defaults_reference.md",
+    "contribution_guide.md",
+    "tdd_index.md"
+  ],
+  "updateThreshold": 0.95,
+  "warningThreshold": 0.70,
+  "createBackups": true,
+  "repository": {
+    "owner": "arkmq-org",
+    "name": "activemq-artemis-operator"
+  }
+}
+

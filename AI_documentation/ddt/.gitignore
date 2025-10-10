@@ -1,0 +1,28 @@
+# Binaries
+ddt
+ddt.exe
+ddt-*
+
+# Test outputs
+*.test
+*.out
+
+# Coverage
+*.prof
+coverage.html
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+
