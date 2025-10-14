@@ -1058,6 +1058,108 @@ With the possiblity of configuring arbritary jaas login modules directly, the Ar
 ## restricted mode (experimental)
 The CR supports a boolean restricted attribute. For single pod broker deployments this provides an empty broker that is configured through brokerProperties. The broker is secured with PKI, there are no passwords. Cert manager can be used to create the necessary PKI secrets.  The end result is a minimal broker deployment; an embedded broker with a mtls endpoint for the jolokia jvm agent and RBAC that allows just the operator to check the broker status. There is no init container, no jetty and no xml.
 
+### Customizing restricted mode with custom-control-plane secret
+
+In restricted mode, the operator generates default control plane authentication
+configuration including certificate-based user mappings (`_cert-users`), role
+mappings (`_cert-roles`), and JAAS login configuration (`login.config`). These
+defaults may not work for all scenarios, particularly when custom login modules
+or additional configuration files are needed.
+
+You can provide custom control plane configuration by creating an optional secret
+named `[cr-name]-custom-control-plane` in the same namespace as your
+ActiveMQArtemis CR. This secret allows you to customize the authentication
+configuration for:
+
+* **mTLS communications** between operator and broker (operand)
+* **mTLS communications** between broker instances (operand to operand)
+* **Metrics and monitoring** access control
+* **Custom login modules** and their configuration files
+
+#### Custom configuration keys
+
+Any key in the custom-control-plane secret will be applied to the broker's
+properties configuration. Common keys include:
+
+* `_cert-users`: Certificate DN to username mapping file (Java properties format
+  with regex patterns)
+* `_cert-roles`: Username to role mapping file (Java properties format)
+* `login.config`: JAAS login configuration for the http_server_authenticator
+  realm
+* **Any additional files** needed by custom login modules or authentication
+  mechanisms
+
+#### Example
+
+Create a secret to customize the certificate-based authentication:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-broker-custom-control-plane
+  namespace: my-namespace
+type: Opaque
+stringData:
+  _cert-users: |
+    # Map certificate DNs to usernames using regex patterns
+    hawtio=/CN = hawtio-online\\.hawtio\\.svc.*/
+    operator=/.*activemq-artemis-operator.*/
+    probe=/.*activemq-artemis-operand.*/
+    custom-metrics=/.*custom-metrics-user.*/
+  _cert-roles: |
+    # Map usernames to roles
+    status=operator,probe
+    metrics=operator,custom-metrics
+    hawtio=hawtio
+  # Add any additional configuration files needed by custom login modules
+```
+
+Then deploy your broker with `restricted: true`:
+
+```yaml
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemis
+metadata:
+  name: my-broker
+  namespace: my-namespace
+spec:
+  restricted: true
+  # ... other configuration ...
+```
+
+The operator will detect the `my-broker-custom-control-plane` secret and apply
+its configuration to the broker.
+
+#### Important considerations
+
+**Warning:** Ensure that your custom configuration preserves operator access to
+the broker. The operator needs:
+
+* A user mapped from its certificate DN in `_cert-users`
+* The `status` role assigned to that user in `_cert-roles` for broker status
+  checks
+* The `metrics` role assigned for metrics collection
+
+If you break operator access, the broker will not reconcile properly and status
+conditions will not update.
+
+**Flexibility:** Unlike a simple override mechanism, the custom-control-plane
+secret allows you to add any configuration files needed for custom authentication
+scenarios. This is particularly useful when implementing custom JAAS login
+modules that require additional configuration files or property files.
+
+#### Testing your configuration
+
+1. Create the custom-control-plane secret before or after creating the broker CR
+2. Deploy the broker with `restricted: true`
+3. Verify the broker reaches Ready status (operator can access it)
+4. Test your custom user access with their certificate
+5. Monitor the operator logs for any authentication errors
+
+For a complete example with cert-manager and custom users, see the E2E test in
+`controllers/controll_plane_test.go`.
+
 ## operator PKI
 In order for the operator to be able to use mtls to connect to the broker operand it needs a client certificate and a trust bundle listing the trusted CAs. The user needs to provide these two secrets in the operator namespace; cert manager can be used to create and populate both. If CRs use the restricted flag, these secrets are a prerequisit.
 The default operator cert secret name is `activemq-artemis-manager-cert` and the default operator trust bundle secret name is `activemq-artemis-manager-ca`. 
