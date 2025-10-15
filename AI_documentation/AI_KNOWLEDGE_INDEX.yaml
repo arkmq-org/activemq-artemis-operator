@@ -1,0 +1,256 @@
+# AI Knowledge Index for ActiveMQ Artemis Operator
+# Minimal index for code navigation - use codebase_search for discovering patterns
+
+# Core operator concepts mapped to code locations
+concepts:
+
+  # Operator Core
+  reconciliation_loop:
+    definition: "Core control loop that watches CR changes and reconciles cluster state"
+    code:
+      - "controllers/activemqartemis_controller.go::Reconcile"
+    related: ["controller_pattern", "statefulset_management", "validation_chain"]
+
+  controller_pattern:
+    definition: "Kubernetes controller pattern for managing ActiveMQ Artemis resources"
+    code:
+      - "controllers/activemqartemis_controller.go"
+    related: ["reconciliation_loop"]
+
+  statefulset_management:
+    definition: "Creates, updates, and manages StatefulSets for broker pods"
+    code:
+      - "controllers/activemqartemis_reconciler.go::ProcessStatefulSet"
+      - "pkg/resources/statefulsets/statefulset.go::NewStatefulSetForCR"
+    related: ["reconciliation_loop", "persistence"]
+
+  validation_chain:
+    definition: "Chain of validators that verify CR correctness before reconciliation"
+    code:
+      - "controllers/activemqartemis_reconciler.go::validate"
+      - "controllers/activemqartemis_reconciler.go::ValidatePersistence"
+    related: ["error_handling", "status_management"]
+
+  broker_properties:
+    definition: "Configure broker via properties with global and ordinal-specific support"
+    code:
+      - "controllers/activemqartemis_reconciler.go::ProcessBrokerProperties"
+    related: ["configuration_precedence", "extra_mounts"]
+
+  restricted_mode:
+    definition: "Security-sensitive deployment mode with minimal permissions"
+    code:
+      - "pkg/utils/common/common.go::IsRestricted"
+      - "controllers/activemqartemis_reconciler.go - search for IsRestricted"
+    related: ["metrics_implementation", "jmx_exporter"]
+
+  # Resource Management
+  persistence:
+    definition: "PVC creation, management, and dynamic toggling"
+    code:
+      - "controllers/activemqartemis_reconciler.go"
+    related: ["statefulset_management", "pvc_management"]
+
+  message_migration:
+    definition: "Message draining when scaling down brokers"
+    code:
+      - "controllers/activemqartemisscaledown_controller.go"
+    related: ["scaling"]
+
+  # Networking
+  acceptor_architecture:
+    definition: "Configuration of broker acceptors for client connections"
+    code:
+      - "controllers/activemqartemis_reconciler.go"
+    related: ["ssl_configuration", "expose_mode"]
+
+  connector_architecture:
+    definition: "Configuration of broker connectors for broker-to-broker connections"
+    related: ["clustering", "ssl_configuration"]
+
+  expose_mode:
+    definition: "Platform-aware Route (OpenShift) or Ingress (Kubernetes) selection"
+    code:
+      - "pkg/resources/ingresses/ingress.go"
+      - "pkg/resources/routes/route.go"
+    related: ["platform_detection"]
+
+  console_architecture:
+    definition: "Management console exposure and configuration"
+    code:
+      - "controllers/activemqartemis_reconciler.go::ProcessConsole"
+    related: ["jolokia"]
+
+  # Security
+  credential_management:
+    definition: "User credential generation and secret management"
+    code:
+      - "controllers/activemqartemis_reconciler.go"
+    related: ["secrets"]
+
+  certificate_management:
+    definition: "cert-manager integration and TLS configuration"
+    code:
+      - "controllers/activemqartemis_reconciler.go"
+      - "pkg/utils/certutil/"
+    related: ["ssl_configuration", "cert_manager"]
+
+  ssl_configuration:
+    definition: "SSL/TLS secret configuration for acceptors and connectors"
+    related: ["certificate_management", "acceptor_architecture"]
+
+  # Metrics
+  metrics_implementation:
+    definition: "Prometheus integration via Jolokia (legacy) or JMX Exporter (restricted)"
+    code:
+      - "controllers/activemqartemis_reconciler.go"
+    related: ["jolokia", "jmx_exporter", "restricted_mode"]
+
+  jolokia:
+    definition: "JMX-over-HTTP bridge for metrics in legacy mode"
+    related: ["metrics_implementation"]
+
+  jmx_exporter:
+    definition: "Prometheus JMX exporter for restricted mode metrics"
+    related: ["metrics_implementation", "restricted_mode"]
+
+  # Version Management
+  version_management:
+    definition: "Broker version resolution and upgrade policy"
+    code:
+      - "pkg/utils/common/common.go"
+    related: ["image_resolution"]
+
+  # High Availability
+  high_availability:
+    definition: "PodDisruptionBudget, affinity, tolerations for HA"
+    code:
+      - "pkg/resources/pods/pod.go"
+    related: ["pod_disruption_budget"]
+
+  pod_disruption_budget:
+    definition: "Kubernetes PDB to control voluntary disruptions"
+    related: ["high_availability"]
+
+  # Probes
+  probe_configuration:
+    definition: "Liveness, readiness, and startup probes"
+    code:
+      - "pkg/resources/pods/pod.go"
+    related: ["health_checks"]
+
+  # Logging
+  logging_configuration:
+    definition: "Custom logging properties and environment variables"
+    related: ["environment_variables"]
+
+  # Namespace
+  multi_namespace:
+    definition: "Watch single, multiple, or all namespaces"
+    code:
+      - "main.go"
+    related: ["watch_namespace"]
+
+  # Operations
+  operational_controls:
+    definition: "Block reconcile annotation and resource tracking"
+    related: ["resource_tracking"]
+
+  resource_tracking:
+    definition: "Tracking and adoption of operator-managed resources"
+    related: ["operational_controls"]
+
+  # Status
+  status_management:
+    definition: "CR status conditions and pod status tracking"
+    code:
+      - "api/v1beta1/activemqartemis_types.go"
+      - "pkg/utils/common/conditions.go"
+    related: ["error_handling"]
+
+  error_handling:
+    definition: "Error detection and reporting via status conditions"
+    related: ["status_management", "validation_chain"]
+
+  # Metadata
+  metadata_management:
+    definition: "Custom annotations and labels propagation"
+    related: ["annotations", "labels"]
+
+  # Configuration
+  configuration_precedence:
+    definition: "Order of precedence for configuration sources - discover in code"
+    related: ["broker_properties"]
+
+  naming_conventions:
+    definition: "Resource naming patterns and conventions - search for namer in codebase"
+    related: ["resource_management"]
+
+  magic_behavior:
+    definition: "Special behaviors triggered by ExtraMount suffixes like -bp, -jaas-config, -logging-config"
+    code:
+      - "controllers/activemqartemis_reconciler.go - search for 'Suffix'"
+    related: ["extra_mounts", "broker_properties"]
+
+  platform_detection:
+    definition: "Automatic OpenShift vs Kubernetes detection"
+    code:
+      - "pkg/utils/common/common.go"
+    related: ["openshift", "kubernetes", "expose_mode"]
+
+  # Deprecated
+  deprecated_crs:
+    definition: "ActiveMQArtemisAddress, Security, Scaledown (deprecated)"
+    related: ["broker_properties"]
+
+  # Development
+  feature_development:
+    definition: "Adding new features, API fields, and reconciler extensions"
+    file: "contribution_guide.md"
+    section: "Feature Development Guide"
+    code:
+      - "api/v1beta1/activemqartemis_types.go"
+    related: ["api_fields", "testing"]
+
+  debugging:
+    definition: "Debugging reconciliation issues and running tests"
+    file: "contribution_guide.md"
+    section: "Development and Debugging Guide"
+    related: ["troubleshooting", "testing"]
+
+# Common questions - use codebase_search to discover answers
+questions:
+  "How do I add a new field to the CR?": "contribution_guide.md - Adding New API Fields"
+  "What is the development workflow?": "contribution_guide.md - Development Workflow"
+  "How do I debug the operator?": "contribution_guide.md - Debugging Reconciliation Issues"
+  "How do I run tests?": "contribution_guide.md - Running Tests"
+  "How does the operator work?": "Use codebase_search: 'How does reconciliation loop work?'"
+  "How do I configure broker properties?": "Use codebase_search: 'How are broker properties processed?'"
+  "How are broker pods created?": "Use codebase_search: 'How are StatefulSets created for broker pods?'"
+  "What is restricted mode?": "Use codebase_search: 'What is restricted mode and how does it work?'"
+  "How are resources named?": "Use codebase_search: 'What are the resource naming conventions?'"
+
+# Key code entry points
+code_locations:
+  controllers:
+    - "controllers/activemqartemis_controller.go - Main controller and Reconcile entry"
+    - "controllers/activemqartemis_reconciler.go - Reconciliation logic"
+    - "controllers/activemqartemisscaledown_controller.go - Message migration"
+
+  api:
+    - "api/v1beta1/activemqartemis_types.go - CR type definitions"
+
+  resources:
+    - "pkg/resources/statefulsets/statefulset.go - StatefulSet generation"
+    - "pkg/resources/services/service.go - Service generation"
+    - "pkg/resources/pods/pod.go - Pod template and configuration"
+    - "pkg/resources/routes/route.go - OpenShift Route generation"
+    - "pkg/resources/ingresses/ingress.go - Kubernetes Ingress generation"
+
+  utilities:
+    - "pkg/utils/common/common.go - Common utilities and version resolution"
+    - "pkg/utils/common/conditions.go - Status condition management"
+    - "pkg/utils/namer/ - Resource naming utilities"
+
+  main:
+    - "main.go - Application entry point and manager setup"
