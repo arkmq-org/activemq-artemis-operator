@@ -59,9 +59,9 @@ helm install my-arkmq-org-broker-operator oci://quay.io/arkmq-org/helm-charts/ar
 ### Install the operator from OperatorHub.io
 In order to install the operator from OperatorHub.io, first be sure that you have a Kubernetes cluster with [OLM](https://olm.operatorframework.io/) then run the following command:
 ```shell
-kubectl create -f https://operatorhub.io/install/activemq-artemis-operator.yaml
+kubectl create -f https://operatorhub.io/install/arkmq-org-broker-operator.yaml
 ```
-For further details see https://operatorhub.io/operator/activemq-artemis-operator
+For further details see https://operatorhub.io/operator/arkmq-org-broker-operator
 
 ### Install the operator from sources
 In order to install the operator from sources, first clone the git repository with the following command:
