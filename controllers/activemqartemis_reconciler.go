@@ -2044,6 +2044,22 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		fmt.Fprintln(cert_roles, "hawtio=hawtio")
 		brokerPropertiesMapData["_cert-roles"] = cert_roles.String()
 
+		// Check for custom-control-plane secret
+		customControlPlaneSecretName := customResource.Name + "-custom-control-plane"
+		customControlPlaneSecret := &corev1.Secret{}
+		customControlPlaneSecretKey := types.NamespacedName{
+			Name:      customControlPlaneSecretName,
+			Namespace: customResource.Namespace,
+		}
+		if err := resources.Retrieve(customControlPlaneSecretKey, client, customControlPlaneSecret); err == nil {
+			reconciler.log.V(1).Info("Found custom-control-plane secret, applying custom config", "secret", customControlPlaneSecretName)
+			// Apply ALL keys from custom secret
+			for key, value := range customControlPlaneSecret.Data {
+				reconciler.log.V(1).Info("Applying custom control-plane config", "key", key)
+				brokerPropertiesMapData[key] = string(value)
+			}
+		}
+
 		foundationalProps := newPropsWithHeader()
 		fmt.Fprintf(foundationalProps, "name=%s\n", environments.ResolveBrokerNameFromEnvs(customResource.Spec.Env, customResource.Name))
 		fmt.Fprintln(foundationalProps, "criticalAnalyzer=false")
