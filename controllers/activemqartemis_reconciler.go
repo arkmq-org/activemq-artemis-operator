@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"hash/adler32"
 	"regexp"
+	"slices"
 	"sort"
 	"unicode"
 
@@ -96,6 +97,8 @@ const (
 	debugArgsEnvVarName      = "DEBUG_ARGS"
 	javaOptsEnvVarName       = "JAVA_OPTS"
 	jdkJavaOptionsEnvVarName = "JDK_JAVA_OPTIONS"
+	ScaleDownConfigTrigger   = "HAPolicyConfiguration.scaleDownConfiguration.enabled=false"
+	ScaleDownConfigTriggerOn = "HAPolicyConfiguration.scaleDownConfiguration.enabled=true"
 )
 
 var defaultMessageMigration bool = true
@@ -372,21 +375,127 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessCredentials(customResour
 	reconciler.sourceEnvVarFromSecret(customResource, namer, currentStatefulSet, &envVars, secretName, client)
 }
 
-func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessDeploymentPlan(customResource *brokerv1beta1.ActiveMQArtemis, namer common.Namers, client rtclient.Client, scheme *runtime.Scheme, currentStatefulSet *appsv1.StatefulSet) {
+func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessDeploymentPlan(customResource *brokerv1beta1.ActiveMQArtemis, theNamer common.Namers, client rtclient.Client, scheme *runtime.Scheme, currentStatefulSet *appsv1.StatefulSet) {
 
 	deploymentPlan := &customResource.Spec.DeploymentPlan
 
 	reconciler.log.V(2).Info("Processing deployment plan", "plan", deploymentPlan, "broker cr", customResource.Name)
-	// Ensure the StatefulSet size is the same as the spec
-	replicas := common.GetDeploymentSize(customResource)
-	currentStatefulSet.Spec.Replicas = &replicas
 
-	reconciler.log.V(2).Info("Now sync Message migration", "for cr", customResource.Name)
-	reconciler.syncMessageMigration(customResource, namer, client, scheme)
+	reqestedReplicas := common.GetDeploymentSize(customResource)
+
+	if nil == customResource.Spec.DeploymentPlan.MessageMigration {
+		customResource.Spec.DeploymentPlan.MessageMigration = &defaultMessageMigration
+	}
+
+	if reconciler.CrConfiguredForControllerManagedScaleDown() {
+		reconciler.controllerManagedScaledownViaConditions(customResource, currentStatefulSet, reqestedReplicas, client)
+	} else {
+		// Ensure the StatefulSet size is the same as the spec
+		currentStatefulSet.Spec.Replicas = &reqestedReplicas
+
+		reconciler.log.V(2).Info("Now sync Message migration", "for cr", customResource.Name)
+		reconciler.syncMessageMigration(customResource, theNamer, client, scheme)
+	}
 
 	if customResource.Spec.DeploymentPlan.PodDisruptionBudget != nil {
 		reconciler.applyPodDisruptionBudget(customResource)
 	}
+}
+
+func (reconciler *ActiveMQArtemisReconcilerImpl) controllerManagedScaledownViaConditions(customResource *brokerv1beta1.ActiveMQArtemis, currentStatefulSet *appsv1.StatefulSet, reqestedReplicas int32, client rtclient.Client) {
+	if isClustered(customResource) &&
+		*customResource.Spec.DeploymentPlan.MessageMigration &&
+		currentStatefulSet != nil &&
+		currentStatefulSet.Spec.Replicas != nil &&
+		*currentStatefulSet.Spec.Replicas > 1 &&
+		reqestedReplicas < *currentStatefulSet.Spec.Replicas {
+
+		ordinalToDrain := OrdinalToDrain(currentStatefulSet)
+
+		condition := meta.FindStatusCondition(customResource.Status.Conditions, brokerv1beta1.ScaleDownPendingConditionType)
+		if condition == nil {
+			condition = &metav1.Condition{
+				Type:   brokerv1beta1.ScaleDownPendingConditionType,
+				Status: metav1.ConditionTrue,
+				Reason: brokerv1beta1.ScaleDownPendingConditionPendingEmptyReason,
+			}
+		}
+		podName := namer.CrToSSOrdinal(customResource.Name, int(ordinalToDrain))
+		condition.Message = podName
+		count, err := reconciler.GetTotalMessageCount(customResource, client, ordinalToDrain)
+		if err != nil {
+			condition.Message = fmt.Sprintf("failed to get total message count for %s, reason: %v", podName, err)
+		} else if count == 0 {
+			// resize by one
+			currentStatefulSet.Spec.Replicas = &ordinalToDrain
+			condition.Reason = brokerv1beta1.ScaleDownPendingConditionPendingDeleteReason
+		} else {
+			condition.Reason = brokerv1beta1.ScaleDownPendingConditionPendingEmptyReason
+			condition.Message = fmt.Sprintf("on %s, total pending count: %d", podName, count)
+
+			reconciler.log.Info(fmt.Sprintf("shutdown scaledown on %s with pending message count %d", podName, count))
+			if err := reconciler.shutdownWithScaledown(customResource, client, ordinalToDrain); err != nil {
+				condition.Message = fmt.Sprintf("failed to migrate messages via shutdownScaledown on %s, pending message count %d, reason: %v", podName, count, err)
+			}
+		}
+		meta.SetStatusCondition(&customResource.Status.Conditions, *condition)
+
+	} else {
+
+		meta.RemoveStatusCondition(&customResource.Status.Conditions, brokerv1beta1.ScaleDownPendingConditionType)
+
+		// Ensure the StatefulSet size is the same as the spec
+		currentStatefulSet.Spec.Replicas = &reqestedReplicas
+	}
+}
+
+func OrdinalToDrain(currentStatefulSet *appsv1.StatefulSet) int32 {
+	return *currentStatefulSet.Spec.Replicas - 1
+}
+
+func (reconciler *ActiveMQArtemisReconcilerImpl) CrConfiguredForControllerManagedScaleDown() bool {
+	return slices.Contains(reconciler.customResource.Spec.BrokerProperties, ScaleDownConfigTrigger)
+}
+
+func (reconciler *ActiveMQArtemisReconcilerImpl) shutdownWithScaledown(customResource *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, ordinalToDrain int32) error {
+	reconciler.resolveJolokiaEndpoints(customResource, client)
+
+	if len(reconciler.jolokiaEndpoints) == 0 {
+		return NewJolokiaClientsNotFoundError(errors.New("waiting for jolokia endpoints to become available"))
+	}
+
+	if len(reconciler.jolokiaEndpoints) < int(ordinalToDrain) {
+		return NewJolokiaClientsNotFoundError(errors.New(fmt.Sprintf("waiting for jolokia endpoint for ordinal %d to become available", ordinalToDrain)))
+	}
+
+	jk := reconciler.jolokiaEndpoints[ordinalToDrain]
+
+	// shutdown scaledown with web console won't exit the jvm, but force failover will and with scaledown enabled via config it works
+	if _, err := jk.Artemis.ForceFailover(); err != nil {
+		reconciler.log.Error(err, "failed to scaledown", "ordinal", ordinalToDrain)
+		return fmt.Errorf("error on scaledown %w ", err)
+	}
+	return nil
+}
+
+func (reconciler *ActiveMQArtemisReconcilerImpl) GetTotalMessageCount(customResource *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, ordinalToDrain int32) (int64, error) {
+	reconciler.resolveJolokiaEndpoints(customResource, client)
+
+	if len(reconciler.jolokiaEndpoints) == 0 {
+		return -1, NewJolokiaClientsNotFoundError(errors.New("waiting for jolokia endpoints to become available"))
+	}
+
+	if len(reconciler.jolokiaEndpoints) < int(ordinalToDrain) {
+		return -1, NewJolokiaClientsNotFoundError(errors.New(fmt.Sprintf("waiting for jolokia endpoint for ordinal %d to become available", ordinalToDrain)))
+	}
+
+	jk := reconciler.jolokiaEndpoints[ordinalToDrain]
+	result, err := jk.Artemis.GetTotalMessageCount()
+	if err != nil {
+		return -1, NewJolokiaClientsNotFoundError(fmt.Errorf("error on get total message count %w ", err))
+	}
+
+	return strconv.ParseInt(result, 10, 64)
 }
 
 func (reconciler *ActiveMQArtemisReconcilerImpl) applyPodDisruptionBudget(customResource *brokerv1beta1.ActiveMQArtemis) {
@@ -1920,7 +2029,7 @@ func MakeContainerPorts(cr *brokerv1beta1.ActiveMQArtemis) []corev1.ContainerPor
 	return containerPorts
 }
 
-func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customResource *brokerv1beta1.ActiveMQArtemis, namer common.Namers, current *corev1.PodTemplateSpec, client rtclient.Client) (*corev1.PodTemplateSpec, error) {
+func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customResource *brokerv1beta1.ActiveMQArtemis, namer common.Namers, currentStatefulSet *appsv1.StatefulSet, client rtclient.Client) (*corev1.PodTemplateSpec, error) {
 
 	reqLogger := reconciler.log.WithName(customResource.Name)
 
@@ -1928,6 +2037,8 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		Name:      customResource.Name,
 		Namespace: customResource.Namespace,
 	}
+
+	current := &currentStatefulSet.Spec.Template
 
 	terminationGracePeriodSeconds := int64(60)
 	respectExistingJavaOpts := isExistingDeploymentWithJavaOpts(current) // check before we mutate
@@ -1967,7 +2078,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 
 	configMapsToMount := customResource.Spec.DeploymentPlan.ExtraMounts.ConfigMaps
 	secretsToMount := customResource.Spec.DeploymentPlan.ExtraMounts.Secrets
-	brokerPropertiesResourceName, isSecret, brokerPropertiesMapData, serr := reconciler.addResourceForBrokerProperties(customResource, namer)
+	brokerPropertiesResourceName, isSecret, brokerPropertiesMapData, serr := reconciler.addResourceForBrokerProperties(customResource, namer, currentStatefulSet)
 	if serr != nil {
 		return nil, serr
 	}
@@ -2756,7 +2867,7 @@ func getPropertiesResourceNsName(artemis *brokerv1beta1.ActiveMQArtemis) types.N
 	}
 }
 
-func (reconciler *ActiveMQArtemisReconcilerImpl) addResourceForBrokerProperties(customResource *brokerv1beta1.ActiveMQArtemis, namer common.Namers) (string, bool, map[string]string, error) {
+func (reconciler *ActiveMQArtemisReconcilerImpl) addResourceForBrokerProperties(customResource *brokerv1beta1.ActiveMQArtemis, namer common.Namers, ss *appsv1.StatefulSet) (string, bool, map[string]string, error) {
 
 	// fetch and do idempotent transform based on CR
 
@@ -2786,7 +2897,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) addResourceForBrokerProperties(
 		desired = obj.(*corev1.Secret)
 	}
 
-	data := BrokerPropertiesData(customResource.Spec.BrokerProperties)
+	data := BrokerPropertiesData(reconciler.ProcessBrokerProperties(ss))
 
 	if desired == nil {
 		reconciler.log.V(1).Info("desired brokerprop secret nil, create new one", "name", resourceName.Name)
@@ -2801,6 +2912,22 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) addResourceForBrokerProperties(
 
 	reconciler.log.V(1).Info("Requesting mount for broker properties secret")
 	return resourceName.Name, true, data, nil
+}
+
+func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessBrokerProperties(ss *appsv1.StatefulSet) []string {
+	props := reconciler.customResource.Spec.BrokerProperties
+
+	scalingDownCondition := meta.FindStatusCondition(reconciler.customResource.Status.Conditions, brokerv1beta1.ScaleDownPendingConditionType)
+	if scalingDownCondition != nil {
+		ordinalToDrain := OrdinalToDrain(ss)
+		if scalingDownCondition.Reason == brokerv1beta1.ScaleDownPendingConditionPendingDeleteReason {
+			ordinalToDrain++ // we have reflected the request to delete in the ss but don't want to revert config till gone
+		}
+		ordinalConfigVal := fmt.Sprintf("%s%d%s%s", OrdinalPrefix, ordinalToDrain, OrdinalPrefixSep, ScaleDownConfigTriggerOn)
+		props = append(props, ordinalConfigVal)
+		reconciler.log.V(1).Info("configuring scaledown via broker properties", "entry", ordinalConfigVal, "condition", scalingDownCondition)
+	}
+	return props
 }
 
 func alder32StringValue(alder32Bytes []byte) string {
@@ -3046,7 +3173,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) StatefulSetForCR(customResource
 	replicas := common.GetDeploymentSize(customResource)
 	currentStateFullSet = ss.MakeStatefulSet(currentStateFullSet, namer.SsNameBuilder.Name(), namer.SvcHeadlessNameBuilder.Name(), namespacedName, nil, namer.LabelBuilder.Labels(), &replicas)
 
-	podTemplateSpec, err := reconciler.PodTemplateSpecForCR(customResource, namer, &currentStateFullSet.Spec.Template, client)
+	podTemplateSpec, err := reconciler.PodTemplateSpecForCR(customResource, namer, currentStateFullSet, client)
 	if err != nil {
 		reqLogger.Error(err, "error creating pod template")
 		return nil, err
@@ -3214,11 +3341,15 @@ type applyError struct {
 func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessBrokerStatus(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, scheme *runtime.Scheme) (retry bool) {
 	var condition metav1.Condition
 
+	// we need to requeue till stable
+	retry = meta.IsStatusConditionTrue(cr.Status.Conditions, brokerv1beta1.ScaleDownPendingConditionType)
+
 	err := AssertBrokersAvailable(cr, client)
 	if err != nil {
 		condition = trapErrorAsCondition(err, brokerv1beta1.ConfigAppliedConditionType)
 		meta.SetStatusCondition(&cr.Status.Conditions, condition)
-		return err.Requeue()
+		retry = retry || err.Requeue()
+		return retry
 	}
 
 	err = reconciler.AssertBrokerImageVersion(cr, client)
@@ -3230,7 +3361,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessBrokerStatus(cr *brokerv
 		}
 	} else {
 		condition = trapErrorAsCondition(err, brokerv1beta1.BrokerVersionAlignedConditionType)
-		retry = err.Requeue()
+		retry = retry || err.Requeue()
 	}
 	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 
@@ -3243,7 +3374,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessBrokerStatus(cr *brokerv
 		}
 	} else {
 		condition = trapErrorAsCondition(err, brokerv1beta1.ConfigAppliedConditionType)
-		retry = err.Requeue()
+		retry = retry || err.Requeue()
 	}
 	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 

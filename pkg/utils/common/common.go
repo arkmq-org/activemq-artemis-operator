@@ -353,25 +353,16 @@ func ProcessStatus(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, na
 
 	updateScaleStatus(cr, namer)
 
-	reqLogger.V(1).Info("Updating status for pods")
-
 	podStatus := updatePodStatus(cr, client, namespacedName)
 
-	reqLogger.V(1).Info("PodStatus current..................", "info:", podStatus)
-	reqLogger.V(1).Info("Ready Count........................", "info:", len(podStatus.Ready))
-	reqLogger.V(1).Info("Stopped Count......................", "info:", len(podStatus.Stopped))
-	reqLogger.V(1).Info("Starting Count.....................", "info:", len(podStatus.Starting))
+	reqLogger.V(1).Info("PodStatus current", "info:", podStatus)
 
 	ValidCondition := getValidCondition(cr)
 	meta.SetStatusCondition(&cr.Status.Conditions, ValidCondition)
 	meta.SetStatusCondition(&cr.Status.Conditions, getDeploymentCondition(cr, client, podStatus, ValidCondition.Status != metav1.ConditionFalse, reconcileError))
 
 	if !reflect.DeepEqual(podStatus, cr.Status.PodStatus) {
-		reqLogger.V(1).Info("Pods status updated")
 		cr.Status.PodStatus = podStatus
-	} else {
-		// could leave this to kube, it will do a []byte comparison
-		reqLogger.V(1).Info("Pods status unchanged")
 	}
 }
 
@@ -517,12 +508,10 @@ func updatePodStatus(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, 
 	sfsFound := &appsv1.StatefulSet{}
 	err := client.Get(context.TODO(), ssNamespacedName, sfsFound)
 	if err == nil {
+		reqLogger.V(1).Info("statefulSet", "status", sfsFound.Status)
 		status = GetSingleStatefulSetStatus(sfsFound, cr)
 	}
 
-	// TODO: Remove global usage
-	reqLogger.V(1).Info("lastStatus.Ready len is " + fmt.Sprint(len(lastStatus.Ready)))
-	reqLogger.V(1).Info("status.Ready len is " + fmt.Sprint(len(status.Ready)))
 	if len(status.Ready) > len(lastStatus.Ready) {
 		// More pods ready, let the address controller know
 		for i := len(lastStatus.Ready); i < len(status.Ready); i++ {
@@ -567,8 +556,10 @@ func GetSingleStatefulSetStatus(ss *appsv1.StatefulSet, cr *brokerv1beta1.Active
 			instanceName := fmt.Sprintf("%s-%d", ss.Name, i)
 			if i < readyCount {
 				ready = append(ready, instanceName)
-			} else {
+			} else if i < requestedCount {
 				starting = append(starting, instanceName)
+			} else {
+				stopped = append(stopped, instanceName)
 			}
 		}
 	}
@@ -598,7 +589,7 @@ func getDeploymentCondition(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.C
 		}
 	}
 
-	deploymentSize := GetDeploymentSize(cr)
+	deploymentSize := cr.Status.DeploymentPlanSize // check against the ss replicas
 	if deploymentSize == 0 {
 		return metav1.Condition{
 			Type:    brokerv1beta1.DeployedConditionType,
@@ -610,9 +601,14 @@ func getDeploymentCondition(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.C
 	if len(podStatus.Ready) != int(deploymentSize) {
 		crReadyCondition := metav1.Condition{
 			Type:    brokerv1beta1.DeployedConditionType,
-			Status:  metav1.ConditionFalse,
 			Reason:  brokerv1beta1.DeployedConditionNotReadyReason,
 			Message: fmt.Sprintf("%d/%d pods ready", len(podStatus.Ready), deploymentSize),
+		}
+		// over provisioned is deployed, normal during scaledown pending delete
+		if len(podStatus.Ready) > int(deploymentSize) {
+			crReadyCondition.Status = metav1.ConditionTrue
+		} else {
+			crReadyCondition.Status = metav1.ConditionFalse
 		}
 		for _, startingPodName := range podStatus.Starting {
 			podNamespacedName := types.NamespacedName{Namespace: cr.Namespace, Name: startingPodName}
@@ -621,6 +617,10 @@ func getDeploymentCondition(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.C
 				ctrl.Log.V(1).Info("Pod "+startingPodName, "starting status", pod.Status)
 				crReadyCondition.Message = fmt.Sprintf("%s %s", crReadyCondition.Message, PodStartingStatusDigestMessage(startingPodName, pod.Status))
 			}
+		}
+		// qualify if scaling down
+		if meta.IsStatusConditionTrue(cr.Status.Conditions, brokerv1beta1.ScaleDownPendingConditionType) {
+			crReadyCondition.Reason = brokerv1beta1.ScaleDownPendingConditionType
 		}
 		return crReadyCondition
 	}
