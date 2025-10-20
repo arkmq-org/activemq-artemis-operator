@@ -1,8 +1,11 @@
 package artemis
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"strings"
+	"time"
 
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/jolokia"
 	rtclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -178,8 +181,43 @@ func (artemis *Artemis) DeleteAddress(addressName string) (*jolokia.ResponseData
 
 	url := "org.apache.activemq.artemis:broker=\"" + artemis.name + "\""
 	parameters := `"` + addressName + `"`
-	jsonStr := `{ "type":"EXEC","mbean":"` + strings.Replace(url, "\"", "\\\"", -1) + `","operation":"deleteAddress(java.lang.String)","arguments":[` + parameters + `]` + ` }`
+	jsonStr := `{ "type":"EXEC","mbean":"` + strings.ReplaceAll(url, "\"", "\\\"") + `","operation":"deleteAddress(java.lang.String)","arguments":[` + parameters + `]` + ` }`
 	data, err := artemis.jolokia.Exec(url, jsonStr)
 
 	return data, err
+}
+
+func (artemis *Artemis) ForceFailover() (*jolokia.ResponseData, error) {
+
+	url := "org.apache.activemq.artemis:broker=\"" + artemis.name + "\""
+	jsonStr := `{ "type":"EXEC","mbean":"` + strings.ReplaceAll(url, "\"", "\\\"") + `","operation":"forceFailover()","arguments":[]` + ` }`
+	data, err := artemis.jolokia.Exec(url, jsonStr)
+
+	return data, err
+}
+
+func (artemis *Artemis) ScaleDown() (*jolokia.ResponseData, error) {
+
+	url := "org.apache.activemq.artemis:broker=\"" + artemis.name + "\""
+	jsonStr := `{ "type":"EXEC","mbean":"` + strings.ReplaceAll(url, "\"", "\\\"") + `","operation":"scaleDown(java.lang.String)","arguments":[null]` + ` }`
+	data, err := artemis.jolokia.ExecWithClient(artemis.jolokia.GetClientWithTimeout(time.Second*30), url, jsonStr)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			// expected as broker will exit
+			return data, nil
+		}
+	}
+	return data, err
+}
+
+func (artemis *Artemis) GetTotalMessageCount() (string, error) {
+	url := "org.apache.activemq.artemis:broker=\"" + artemis.name + "\"/TotalMessageCount"
+	resp, err := artemis.jolokia.Read(url)
+	if err != nil || resp == nil {
+		return "", err
+	}
+	if resp.Status != 200 {
+		return "", fmt.Errorf("unable to retrieve TotalMessageCount %v", resp.Error)
+	}
+	return resp.Value, nil
 }

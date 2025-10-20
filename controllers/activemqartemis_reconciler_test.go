@@ -531,7 +531,7 @@ func TestNewPodTemplateSpecForCR_IncludesDebugArgs(t *testing.T) {
 		customResource: cr,
 	}
 
-	newSpec, err := reconciler.PodTemplateSpecForCR(cr, common.Namers{}, &v1.PodTemplateSpec{}, k8sClient)
+	newSpec, err := reconciler.PodTemplateSpecForCR(cr, common.Namers{}, &appsv1.StatefulSet{}, k8sClient)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, newSpec)
@@ -1115,7 +1115,7 @@ func TestNewPodTemplateSpecForCR_AppendsDebugArgs(t *testing.T) {
 	outer := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log.WithName("test"), isOpenshift)
 	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
 
-	newSpec, err := reconciler.PodTemplateSpecForCR(cr, common.Namers{}, &v1.PodTemplateSpec{}, k8sClient)
+	newSpec, err := reconciler.PodTemplateSpecForCR(cr, common.Namers{}, &appsv1.StatefulSet{}, k8sClient)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, newSpec)
@@ -1142,7 +1142,7 @@ func TestNewPodTemplateSpecForCR_IncludesImagePullSecret(t *testing.T) {
 	outer := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
 	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
 
-	newSpec, err := reconciler.PodTemplateSpecForCR(cr, common.Namers{}, &v1.PodTemplateSpec{}, k8sClient)
+	newSpec, err := reconciler.PodTemplateSpecForCR(cr, common.Namers{}, &appsv1.StatefulSet{}, k8sClient)
 	assert.NoError(t, err)
 	assert.NotNil(t, newSpec)
 	expectedPullSecret := []v1.LocalObjectReference{
@@ -1178,7 +1178,7 @@ func TestNewPodTemplateSpecForCR_IncludesTopologySpreadConstraints(t *testing.T)
 	outer := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
 	reconciler := NewActiveMQArtemisReconcilerImpl(cr, outer)
 
-	newSpec, err := reconciler.PodTemplateSpecForCR(cr, common.Namers{}, &v1.PodTemplateSpec{}, k8sClient)
+	newSpec, err := reconciler.PodTemplateSpecForCR(cr, common.Namers{}, &appsv1.StatefulSet{}, k8sClient)
 	assert.NoError(t, err)
 	assert.NotNil(t, newSpec)
 	expectedTopologySpreadConstraints := []v1.TopologySpreadConstraint{
@@ -1208,7 +1208,7 @@ func TestNewPodTemplateSpecForCR_IncludesContainerSecurityContext(t *testing.T) 
 		customResource: cr,
 	}
 
-	newSpec, err := reconciler.PodTemplateSpecForCR(cr, common.Namers{}, &v1.PodTemplateSpec{}, k8sClient)
+	newSpec, err := reconciler.PodTemplateSpecForCR(cr, common.Namers{}, &appsv1.StatefulSet{}, k8sClient)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, newSpec)
@@ -1540,8 +1540,8 @@ func TestBrokerPropertiesData(t *testing.T) {
 
 	assert.Equal(t, 1, len(data))
 
-	assert.True(t, strings.Contains(data[BrokerPropertiesName], "maxDiskUsage=97"))
-	assert.True(t, strings.Contains(data[BrokerPropertiesName], "minDiskFree=5"))
+	assert.True(t, strings.Contains(string(data[BrokerPropertiesName]), "maxDiskUsage=97"))
+	assert.True(t, strings.Contains(string(data[BrokerPropertiesName]), "minDiskFree=5"))
 }
 
 func TestBrokerPropertiesDataWithOrdinal(t *testing.T) {
@@ -1555,16 +1555,16 @@ func TestBrokerPropertiesDataWithOrdinal(t *testing.T) {
 
 	assert.Equal(t, 3, len(data))
 
-	assert.False(t, strings.Contains(data[BrokerPropertiesName], "maxDiskUsage"))
-	assert.False(t, strings.Contains(data[BrokerPropertiesName], "minDiskFree"))
+	assert.False(t, strings.Contains(string(string(data[BrokerPropertiesName])), "maxDiskUsage"))
+	assert.False(t, strings.Contains(string(data[BrokerPropertiesName]), "minDiskFree"))
 
 	broker0BrokerPropertiesName := "broker-0" + OrdinalPrefixSep + BrokerPropertiesName
-	assert.True(t, strings.Contains(data[broker0BrokerPropertiesName], "maxDiskUsage=98"))
-	assert.True(t, strings.Contains(data[broker0BrokerPropertiesName], "minDiskFree=6"))
+	assert.True(t, strings.Contains(string(data[broker0BrokerPropertiesName]), "maxDiskUsage=98"))
+	assert.True(t, strings.Contains(string(data[broker0BrokerPropertiesName]), "minDiskFree=6"))
 
 	broker999BrokerPropertiesName := "broker-999" + OrdinalPrefixSep + BrokerPropertiesName
-	assert.True(t, strings.Contains(data[broker999BrokerPropertiesName], "maxDiskUsage=99"))
-	assert.True(t, strings.Contains(data[broker999BrokerPropertiesName], "minDiskFree=7"))
+	assert.True(t, strings.Contains(string(data[broker999BrokerPropertiesName]), "maxDiskUsage=99"))
+	assert.True(t, strings.Contains(string(data[broker999BrokerPropertiesName]), "minDiskFree=7"))
 }
 
 func TestBrokerPropertiesDataWithAndWithoutOrdinal(t *testing.T) {
@@ -1580,14 +1580,14 @@ func TestBrokerPropertiesDataWithAndWithoutOrdinal(t *testing.T) {
 
 	assert.Equal(t, 3, len(data))
 
-	assert.True(t, strings.Contains(data[BrokerPropertiesName], "maxDiskUsage=97"))
-	assert.True(t, strings.Contains(data[BrokerPropertiesName], "minDiskFree=5"))
+	assert.True(t, strings.Contains(string(data[BrokerPropertiesName]), "maxDiskUsage=97"))
+	assert.True(t, strings.Contains(string(data[BrokerPropertiesName]), "minDiskFree=5"))
 
 	broker0BrokerPropertiesName := "broker-0" + OrdinalPrefixSep + BrokerPropertiesName
-	assert.True(t, strings.Contains(data[broker0BrokerPropertiesName], "maxDiskUsage=98"))
-	assert.True(t, strings.Contains(data[broker0BrokerPropertiesName], "minDiskFree=6"))
+	assert.True(t, strings.Contains(string(data[broker0BrokerPropertiesName]), "maxDiskUsage=98"))
+	assert.True(t, strings.Contains(string(data[broker0BrokerPropertiesName]), "minDiskFree=6"))
 
 	broker999BrokerPropertiesName := "broker-999" + OrdinalPrefixSep + BrokerPropertiesName
-	assert.True(t, strings.Contains(data[broker999BrokerPropertiesName], "maxDiskUsage=99"))
-	assert.True(t, strings.Contains(data[broker999BrokerPropertiesName], "minDiskFree=7"))
+	assert.True(t, strings.Contains(string(data[broker999BrokerPropertiesName]), "maxDiskUsage=99"))
+	assert.True(t, strings.Contains(string(data[broker999BrokerPropertiesName]), "minDiskFree=7"))
 }

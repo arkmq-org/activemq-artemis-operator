@@ -44,7 +44,9 @@ func (j *JolokiaError) Error() string {
 type IJolokia interface {
 	Read(path string) (*ResponseData, error)
 	Exec(path, postJsonString string) (*ResponseData, error)
+	ExecWithClient(httpClient *http.Client, path, postJsonString string) (*ResponseData, error)
 	GetProtocol() string
+	GetClientWithTimeout(timeout time.Duration) *http.Client
 }
 
 type Jolokia struct {
@@ -99,11 +101,15 @@ func (j *Jolokia) GetProtocol() string {
 }
 
 func (j *Jolokia) getClient() *http.Client {
+	// A timeout less than 3 seconds may cause connection issues when
+	// the server requires to change the chiper.
+	return j.GetClientWithTimeout(time.Second * 3)
+}
+
+func (j *Jolokia) GetClientWithTimeout(timeout time.Duration) *http.Client {
 	httpClient := http.Client{
 		Transport: http.DefaultTransport,
-		// A timeout less than 3 seconds may cause connection issues when
-		// the server requires to change the chiper.
-		Timeout: time.Second * 3,
+		Timeout:   timeout,
 	}
 
 	if j.protocol == "https" {
@@ -180,10 +186,12 @@ func (j *Jolokia) Read(_path string) (*ResponseData, error) {
 }
 
 func (j *Jolokia) Exec(_path string, _postJsonString string) (*ResponseData, error) {
+	return j.ExecWithClient(j.getClient(), _path, _postJsonString)
+}
+
+func (j *Jolokia) ExecWithClient(jolokiaClient *http.Client, _path string, _postJsonString string) (*ResponseData, error) {
 
 	url := j.protocol + "://" + j.user + ":" + j.password + "@" + j.jolokiaURL + "/exec/" + _path
-
-	jolokiaClient := j.getClient()
 
 	var jdata *ResponseData
 	var execErr error = nil

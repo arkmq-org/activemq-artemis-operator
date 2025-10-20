@@ -7,6 +7,7 @@ package jolokia
 import (
 	"net/http"
 	reflect "reflect"
+	"time"
 
 	gomock "github.com/golang/mock/gomock"
 )
@@ -78,6 +79,15 @@ func (m *MockIJolokia) Exec(path, postJsonString string) (*ResponseData, error) 
 	return ret0, ret1
 }
 
+// Exec mocks base method.
+func (m *MockIJolokia) ExecWithClient(httpClient *http.Client, path, postJsonString string) (*ResponseData, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ExecWithClient", httpClient, path, postJsonString)
+	ret0, _ := ret[0].(*ResponseData)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
 // Exec indicates an expected call of Exec.
 func (mr *MockIJolokiaMockRecorder) Exec(path, postJsonString interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
@@ -95,6 +105,10 @@ func (m *MockIJolokia) Read(path string) (*ResponseData, error) {
 
 func (m *MockIJolokia) GetProtocol() string {
 	return "http"
+}
+
+func (m *MockIJolokia) GetClientWithTimeout(timeout time.Duration) *http.Client {
+	return nil
 }
 
 // Read indicates an expected call of Read.

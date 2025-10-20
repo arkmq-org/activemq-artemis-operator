@@ -29,7 +29,6 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -195,7 +194,7 @@ func (r *ActiveMQArtemisReconciler) Reconcile(ctx context.Context, request ctrl.
 		requeueRequest = true
 	}
 
-	if !requeueRequest && hasExtraMounts(customResource) {
+	if !requeueRequest && !reconcileBlocked && hasExtraMounts(customResource) {
 		reqLogger.V(1).Info("resource has extraMounts, requeuing")
 		requeueRequest = true
 	}
@@ -287,8 +286,7 @@ func (r *ActiveMQArtemisReconcilerImpl) validate(customResource *brokerv1beta1.A
 		}
 	}
 
-	validationCondition.ObservedGeneration = customResource.Generation
-	meta.SetStatusCondition(&customResource.Status.Conditions, validationCondition)
+	common.SetStatusConditionWithGeneration(customResource, validationCondition)
 
 	return validationCondition.Status != metav1.ConditionFalse, retry
 }
@@ -845,7 +843,7 @@ func (r *ActiveMQArtemisReconciler) UpdateCRStatus(desired *brokerv1beta1.Active
 	}
 
 	if !EqualCRStatus(&desired.Status, &current.Status) {
-		r.log.V(2).Info("CR.status update", "Namespace", desired.Namespace, "Name", desired.Name, "Observed status", desired.Status)
+		r.log.V(1).Info("cr.status update", "Namespace", desired.Namespace, "Name", desired.Name, "Observed status", desired.Status)
 		return resources.UpdateStatus(client, desired)
 	}
 

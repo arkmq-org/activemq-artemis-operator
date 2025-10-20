@@ -74,6 +74,23 @@ func SSToCr(ssName string) string {
 	return strings.TrimSuffix(ssName, "-ss")
 }
 
+func OrdinalFromPodName(crName string, podName string) (int, error) {
+	ordinalString := strings.SplitAfter(podName, CrToSS(crName)+"-")
+	if len(ordinalString) > 1 {
+		fields := strings.Fields(ordinalString[1])
+		if len(fields) > 0 {
+			if val, err := strconv.Atoi(fields[0]); err == nil {
+				return val, nil
+			} else {
+				return -1, fmt.Errorf("ordinal int not found in subtring field %s", fields[1])
+			}
+		} else {
+			return -1, fmt.Errorf("ordinal int not found in subtring %s", ordinalString[1])
+		}
+	}
+	return -1, fmt.Errorf("ordinal not found in %s", podName)
+}
+
 // This function returns whether a pod belongs to a statefulset
 // and if so, also returns the pod's number attached to its name
 // It depends on the naming convention between a statefulset and its pods:

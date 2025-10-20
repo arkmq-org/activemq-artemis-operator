@@ -33,12 +33,12 @@ func TestConditions(t *testing.T) {
 
 var _ = Describe("Common Conditions", func() {
 	Describe("SetReadyCondition", func() {
-		It("is Ready when there are no other conditions", func() {
-			conditions := []metav1.Condition{}
+		It("is Ready when there are no other conditions other than deployed", func() {
+			conditions := []metav1.Condition{{Type: DeployedConditionType, Status: metav1.ConditionTrue}}
 			SetReadyCondition(&conditions)
 			Expect(meta.IsStatusConditionTrue(conditions, ReadyConditionType)).To(BeTrue())
 		})
-		It("changes back to Ready when there are no other conditions and Ready was false", func() {
+		It("changes back to Ready when there are no other conditions, apart from deployed, and Ready was false", func() {
 			conditions := []metav1.Condition{
 				{
 					Type:    ReadyConditionType,
@@ -46,6 +46,7 @@ var _ = Describe("Common Conditions", func() {
 					Reason:  "ReplaceMe",
 					Message: "replace this message",
 				},
+				{Type: DeployedConditionType, Status: metav1.ConditionTrue},
 			}
 			SetReadyCondition(&conditions)
 
@@ -66,12 +67,13 @@ var _ = Describe("Common Conditions", func() {
 					Status: metav1.ConditionTrue,
 					Reason: "BarIsOK",
 				},
+				{Type: DeployedConditionType, Status: metav1.ConditionTrue},
 			}
 
 			SetReadyCondition(&conditions)
 
 			Expect(meta.IsStatusConditionTrue(conditions, ReadyConditionType)).To(BeTrue())
-			Expect(conditions).To(HaveLen(3))
+			Expect(conditions).To(HaveLen(4))
 			ready := meta.FindStatusCondition(conditions, ReadyConditionType)
 			Expect(ready.Reason).To(Equal(ReadyConditionReason))
 			Expect(ready.Message).To(BeEmpty())
@@ -94,12 +96,13 @@ var _ = Describe("Common Conditions", func() {
 					Status: metav1.ConditionTrue,
 					Reason: "BazIsOK",
 				},
+				{Type: DeployedConditionType, Status: metav1.ConditionTrue},
 			}
 
 			SetReadyCondition(&conditions)
 
 			Expect(meta.IsStatusConditionFalse(conditions, ReadyConditionType)).To(BeTrue())
-			Expect(conditions).To(HaveLen(4))
+			Expect(conditions).To(HaveLen(5))
 			ready := meta.FindStatusCondition(conditions, ReadyConditionType)
 			Expect(ready.Reason).To(Equal(NotReadyConditionReason))
 			Expect(ready.Message).To(Equal(NotReadyConditionMessage))
@@ -151,12 +154,13 @@ var _ = Describe("Common Conditions", func() {
 					Status: metav1.ConditionTrue,
 					Reason: "BazIsOK",
 				},
+				{Type: DeployedConditionType, Status: metav1.ConditionTrue},
 			}
 
 			SetReadyCondition(&conditions)
 
 			Expect(meta.IsStatusConditionTrue(conditions, ReadyConditionType)).To(BeTrue())
-			Expect(conditions).To(HaveLen(4))
+			Expect(conditions).To(HaveLen(5))
 		})
 	})
 
