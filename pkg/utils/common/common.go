@@ -346,6 +346,11 @@ func DetermineImageToUse(customResource *brokerv1beta1.ActiveMQArtemis, imageTyp
 	return imageName
 }
 
+func SetStatusConditionWithGeneration(cr *brokerv1beta1.ActiveMQArtemis, condition metav1.Condition) {
+	condition.ObservedGeneration = cr.Generation
+	meta.SetStatusCondition(&cr.Status.Conditions, condition)
+}
+
 func ProcessStatus(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, namespacedName types.NamespacedName, namer Namers, reconcileError error) {
 
 	reqLogger := ctrl.Log.WithName("util_process_status").WithValues("ActiveMQArtemis Name", cr.Name)
@@ -354,31 +359,18 @@ func ProcessStatus(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, na
 
 	updateScaleStatus(cr, namer)
 
-	reqLogger.V(1).Info("Updating status for pods")
+	cr.Status.PodStatus = updatePodStatus(cr, client, namespacedName)
 
-	podStatus := updatePodStatus(cr, client, namespacedName)
-
-	reqLogger.V(1).Info("PodStatus current..................", "info:", podStatus)
-	reqLogger.V(1).Info("Ready Count........................", "info:", len(podStatus.Ready))
-	reqLogger.V(1).Info("Stopped Count......................", "info:", len(podStatus.Stopped))
-	reqLogger.V(1).Info("Starting Count.....................", "info:", len(podStatus.Starting))
+	reqLogger.V(1).Info("PodStatus current", "info:", cr.Status.PodStatus)
 
 	ValidCondition := getValidCondition(cr)
-	meta.SetStatusCondition(&cr.Status.Conditions, ValidCondition)
-	meta.SetStatusCondition(&cr.Status.Conditions, getDeploymentCondition(cr, client, podStatus, ValidCondition.Status != metav1.ConditionFalse, reconcileError))
-
-	if !reflect.DeepEqual(podStatus, cr.Status.PodStatus) {
-		reqLogger.V(1).Info("Pods status updated")
-		cr.Status.PodStatus = podStatus
-	} else {
-		// could leave this to kube, it will do a []byte comparison
-		reqLogger.V(1).Info("Pods status unchanged")
-	}
+	SetStatusConditionWithGeneration(cr, ValidCondition)
+	meta.SetStatusCondition(&cr.Status.Conditions, getDeploymentCondition(cr, client, ValidCondition.Status != metav1.ConditionFalse, reconcileError))
 }
 
 func UpdateBlockedStatus(cr *brokerv1beta1.ActiveMQArtemis, blocked bool) {
 	if blocked {
-		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+		SetStatusConditionWithGeneration(cr, metav1.Condition{
 			Type:    brokerv1beta1.ReconcileBlockedType,
 			Status:  metav1.ConditionTrue,
 			Reason:  brokerv1beta1.ReconcileBlockedReason,
@@ -518,12 +510,10 @@ func updatePodStatus(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, 
 	sfsFound := &appsv1.StatefulSet{}
 	err := client.Get(context.TODO(), ssNamespacedName, sfsFound)
 	if err == nil {
+		reqLogger.V(1).Info("statefulSet", "status", sfsFound.Status)
 		status = GetSingleStatefulSetStatus(sfsFound, cr)
 	}
 
-	// TODO: Remove global usage
-	reqLogger.V(1).Info("lastStatus.Ready len is " + fmt.Sprint(len(lastStatus.Ready)))
-	reqLogger.V(1).Info("status.Ready len is " + fmt.Sprint(len(status.Ready)))
 	if len(status.Ready) > len(lastStatus.Ready) {
 		// More pods ready, let the address controller know
 		for i := len(lastStatus.Ready); i < len(status.Ready); i++ {
@@ -568,8 +558,10 @@ func GetSingleStatefulSetStatus(ss *appsv1.StatefulSet, cr *brokerv1beta1.Active
 			instanceName := fmt.Sprintf("%s-%d", ss.Name, i)
 			if i < readyCount {
 				ready = append(ready, instanceName)
-			} else {
+			} else if i < requestedCount {
 				starting = append(starting, instanceName)
+			} else {
+				stopped = append(stopped, instanceName)
 			}
 		}
 	}
@@ -580,7 +572,7 @@ func GetSingleStatefulSetStatus(ss *appsv1.StatefulSet, cr *brokerv1beta1.Active
 	}
 }
 
-func getDeploymentCondition(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, podStatus olm.DeploymentStatus, valid bool, reconcileError error) metav1.Condition {
+func getDeploymentCondition(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, valid bool, reconcileError error) metav1.Condition {
 
 	if !valid {
 		return metav1.Condition{
@@ -608,22 +600,22 @@ func getDeploymentCondition(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.C
 			Message: DeployedConditionZeroSizeMessage,
 		}
 	}
-	if len(podStatus.Ready) != int(deploymentSize) {
-		crReadyCondition := metav1.Condition{
+	if len(cr.Status.PodStatus.Ready) < int(deploymentSize) {
+		crDeployedCondition := metav1.Condition{
 			Type:    brokerv1beta1.DeployedConditionType,
 			Status:  metav1.ConditionFalse,
 			Reason:  brokerv1beta1.DeployedConditionNotReadyReason,
-			Message: fmt.Sprintf("%d/%d pods ready", len(podStatus.Ready), deploymentSize),
+			Message: fmt.Sprintf("%d/%d pods ready", len(cr.Status.PodStatus.Ready), deploymentSize),
 		}
-		for _, startingPodName := range podStatus.Starting {
+		for _, startingPodName := range cr.Status.PodStatus.Starting {
 			podNamespacedName := types.NamespacedName{Namespace: cr.Namespace, Name: startingPodName}
 			pod := &corev1.Pod{}
 			if err := client.Get(context.TODO(), podNamespacedName, pod); err == nil {
 				ctrl.Log.V(1).Info("Pod "+startingPodName, "starting status", pod.Status)
-				crReadyCondition.Message = fmt.Sprintf("%s %s", crReadyCondition.Message, PodStartingStatusDigestMessage(startingPodName, pod.Status))
+				crDeployedCondition.Message = fmt.Sprintf("%s %s", crDeployedCondition.Message, PodStartingStatusDigestMessage(startingPodName, pod.Status))
 			}
 		}
-		return crReadyCondition
+		return crDeployedCondition
 	}
 	return metav1.Condition{
 		Type:   brokerv1beta1.DeployedConditionType,

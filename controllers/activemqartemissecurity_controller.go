@@ -243,7 +243,7 @@ func (r *ActiveMQArtemisSecurityConfigHandler) getPassword(secretName string, ke
 		Namespace: r.NamespacedName.Namespace,
 	}
 	// Attempt to retrieve the secret
-	stringDataMap := make(map[string]string)
+	stringDataMap := make(map[string][]byte)
 
 	secretDefinition := secrets.NewSecret(namespacedName, stringDataMap, r.GetDefaultLabels())
 

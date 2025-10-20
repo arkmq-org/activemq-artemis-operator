@@ -205,10 +205,10 @@ func getEnvVarValueFromSecret(envName string, varSource *corev1.EnvVarSource, na
 		Namespace: namespace.Namespace,
 	}
 	// Attempt to retrieve the secret
-	stringDataMap := map[string]string{
-		envName: "",
+	dataMap := map[string][]byte{
+		envName: []byte(""),
 	}
-	theSecret := secrets.NewSecret(namespacedName, stringDataMap, labels)
+	theSecret := secrets.NewSecret(namespacedName, dataMap, labels)
 	var err error = nil
 	if err = resources.Retrieve(namespacedName, client, theSecret); err != nil {
 		if errors.IsNotFound(err) {
