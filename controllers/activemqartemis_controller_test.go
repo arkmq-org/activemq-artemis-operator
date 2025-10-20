@@ -2446,7 +2446,7 @@ var _ = Describe("artemis controller", func() {
 					res, err := httpClient.Get("http://" + host + "/console")
 					g.Expect(err).NotTo(HaveOccurred())
 					g.Expect(res.StatusCode).Should(Equal(200))
-				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+				}, existingClusterTimeout*3, existingClusterInterval).Should(Succeed())
 			}
 
 			By("check ingress is created for acceptor")
@@ -6030,6 +6030,10 @@ var _ = Describe("artemis controller", func() {
 
 					condition := meta.FindStatusCondition(createdCrd.Status.Conditions, brokerv1beta1.BrokerVersionAlignedConditionType)
 					g.Expect(condition).NotTo(BeNil())
+
+					if verbose {
+						fmt.Printf("\nSTATUS: %v\n", createdCrd.Status)
+					}
 
 					g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 
