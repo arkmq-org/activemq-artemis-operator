@@ -1081,6 +1081,8 @@ In order for the operator to be able to use mtls to connect to the broker operan
 The default operator cert secret name is `activemq-artemis-manager-cert` and the default operator trust bundle secret name is `activemq-artemis-manager-ca`. 
 If either of these secrets need to be named differently, an enviroment variable can provide the alternative name using key ACTIVEMQ_ARTEMIS_MANAGER_CERT_SECRET_NAME or ACTIVEMQ_ARTEMIS_MANAGER_CA_SECRET_NAME.
 
+In restricted mode, the operator automatically configures control plane authentication for common services. For Prometheus metrics scraping, the operator reads the certificate from a prometheus cert secret and configures the broker to grant metrics access to that certificate's Common Name (CN). The operator first checks for a CR-specific secret `[cr-name]-[base-name]` (allowing per-CR isolation), then falls back to the shared `[base-name]` secret. The base name defaults to `prometheus-cert` but can be overridden using the BASE_PROMETHEUS_CERT_SECRET_NAME environment variable (e.g., if set to `custom-prometheus`, it checks `my-broker-custom-prometheus` then `custom-prometheus`).
+
 ## Locking down a broker deployment
 
 Often when verification is complete it is desirable to lock down the broker images and prevent auto upgrades, which will result in a roll-out of images and a restart of your broker.

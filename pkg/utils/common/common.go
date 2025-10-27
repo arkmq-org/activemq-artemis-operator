@@ -66,9 +66,10 @@ const (
 	defaultRetryInterval = 3 * time.Second
 
 	// https://cert-manager.io/docs/trust/trust-manager/#preparing-for-production
-	DefaultOperatorCertSecretName = "activemq-artemis-manager-cert"
-	DefaultOperatorCASecretName   = "activemq-artemis-manager-ca"
-	DefaultOperandCertSecretName  = "broker-cert" // or can be prefixed with `cr.Name-`
+	DefaultOperatorCertSecretName   = "activemq-artemis-manager-cert"
+	DefaultOperatorCASecretName     = "activemq-artemis-manager-ca"
+	DefaultOperandCertSecretName    = "broker-cert"     // or can be prefixed with `cr.Name-`
+	DefaultPrometheusCertSecretName = "prometheus-cert" // or can be prefixed with `cr.Name-`
 
 	BlockReconcileAnnotation = "arkmq.org/block-reconcile"
 )
@@ -83,7 +84,7 @@ var ClusterDomain *string
 
 var isOpenshift *bool
 
-var operatorCertSecretName, operatorCASecretName *string
+var operatorCertSecretName, operatorCASecretName, prometheusCertSecretName *string
 
 // we may want to cache and require operator restart on rotation
 //var operatorCert *tls.Certificate
@@ -769,6 +770,24 @@ func GetOperatorCASecretName() string {
 		operatorCASecretName = fromEnv("ACTIVEMQ_ARTEMIS_MANAGER_CA_SECRET_NAME", DefaultOperatorCASecretName)
 	}
 	return *operatorCASecretName
+}
+
+func GetPrometheusCertSecretName(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client) string {
+	// Determine the base secret name (from env or default)
+	if prometheusCertSecretName == nil {
+		prometheusCertSecretName = fromEnv("BASE_PROMETHEUS_CERT_SECRET_NAME", DefaultPrometheusCertSecretName)
+	}
+	baseSecretName := *prometheusCertSecretName
+
+	// Check for CR-specific secret first (e.g., "my-broker-prometheus-cert" or "my-broker-custom-prometheus")
+	customName := cr.Name + "-" + baseSecretName
+
+	if _, err := secrets.RetriveSecret(types.NamespacedName{Namespace: cr.Namespace, Name: customName}, nil, client); err == nil {
+		return customName
+	}
+
+	// Fall back to shared secret (respects env override)
+	return baseSecretName
 }
 
 func GetOperatorCASecretKey(client rtclient.Client, bundleSecret *corev1.Secret) (key string, err error) {
