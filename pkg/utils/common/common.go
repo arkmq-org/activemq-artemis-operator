@@ -22,7 +22,6 @@ import (
 	"github.com/RHsyseng/operator-utils/pkg/resource/read"
 	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/secrets"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/channels"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/namer"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/selectors"
@@ -34,6 +33,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -742,10 +742,10 @@ func DetectOpenshiftWith(config *rest.Config) (bool, error) {
 
 func GetOperandCertSecretName(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client) string {
 
-	customName := cr.Name + "-" + DefaultOperandCertSecretName
+	secret, _ := ResolveSecret(cr.Name, cr.Namespace, DefaultOperandCertSecretName, client)
 
-	if _, err := secrets.RetriveSecret(types.NamespacedName{Namespace: cr.Namespace, Name: customName}, nil, client); err == nil {
-		return customName
+	if secret != nil {
+		return secret.Name
 	}
 	return DefaultOperandCertSecretName
 }
@@ -771,15 +771,53 @@ func GetPrometheusCertSecretName(cr *brokerv1beta1.ActiveMQArtemis, client rtcli
 	}
 	baseSecretName := *prometheusCertSecretName
 
-	// Check for CR-specific secret first (e.g., "my-broker-prometheus-cert" or "my-broker-custom-prometheus")
-	customName := cr.Name + "-" + baseSecretName
-
-	if _, err := secrets.RetriveSecret(types.NamespacedName{Namespace: cr.Namespace, Name: customName}, nil, client); err == nil {
-		return customName
+	secret, _ := ResolveSecret(cr.Name, cr.Namespace, baseSecretName, client)
+	if secret != nil {
+		return secret.Name
 	}
 
 	// Fall back to shared secret (respects env override)
 	return baseSecretName
+}
+
+// ResolveSecret looks for a secret with CR-specific name first, then falls back to shared name.
+// It first tries [crName]-[baseSecretName], then [baseSecretName].
+// Returns the secret if found, nil if not found, or error if a non-NotFound error occurs.
+func ResolveSecret(crName string, namespace string, baseSecretName string, client rtclient.Client) (*corev1.Secret, error) {
+	ctx := context.Background()
+
+	// Try CR-specific secret first
+	crSpecificName := crName + "-" + baseSecretName
+	secret := &corev1.Secret{}
+	secretKey := types.NamespacedName{
+		Name:      crSpecificName,
+		Namespace: namespace,
+	}
+
+	err := client.Get(ctx, secretKey, secret)
+	if err == nil {
+		ctrl.Log.V(1).Info("Found CR-specific secret", "secret", crSpecificName)
+		return secret, nil
+	}
+
+	if !k8serrors.IsNotFound(err) {
+		return nil, err
+	}
+
+	// Try shared secret as fallback
+	secretKey.Name = baseSecretName
+	err = client.Get(ctx, secretKey, secret)
+	if err == nil {
+		ctrl.Log.V(1).Info("Found shared secret", "secret", baseSecretName)
+		return secret, nil
+	}
+
+	if k8serrors.IsNotFound(err) {
+		// No secret found, this is OK for optional secrets
+		return nil, nil
+	}
+
+	return nil, err
 }
 
 func GetOperatorCASecretKey(client rtclient.Client, bundleSecret *corev1.Secret) (key string, err error) {
