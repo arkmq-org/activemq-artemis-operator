@@ -100,6 +100,8 @@ jobs:
           ./bin/operator-sdk olm install
           minikube kubectl -- wait pod -l app=catalog-operator --for=condition=Ready --namespace=olm --timeout=2m
           minikube kubectl -- wait pod -l app=olm-operator --for=condition=Ready --namespace=olm --timeout=2m
+          minikube kubectl -- wait --for=condition=Established crd/catalogsources.operators.coreos.com --timeout=2m
+          minikube kubectl -- wait --for=condition=Established crd/subscriptions.operators.coreos.com --timeout=2m
 
       - name: Execute tests
         if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' && !inputs.skipTests }}
