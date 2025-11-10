@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	artemis_client "github.com/arkmq-org/activemq-artemis-operator/pkg/utils/artemis"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/jolokia"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/jolokia_client"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/selectors"
@@ -239,5 +240,109 @@ func TestJolokiaStatusCached(t *testing.T) {
 	valid = ri.CheckStatusFromJolokia(&jolokia_client.JkInfo{Artemis: a, IP: "IP", Ordinal: "0"}, checkOk)
 	assert.NotNil(t, valid)
 	assert.True(t, strings.Contains(valid.Error(), "AttributeNotFoundException"))
+
+}
+
+func TestErrOnNotFoundSecret(t *testing.T) {
+
+	boolTrue = true
+	cr := &brokerv1beta1.ActiveMQArtemis{
+		ObjectMeta: v1.ObjectMeta{Name: "a"},
+		Spec: brokerv1beta1.ActiveMQArtemisSpec{
+			Restricted: &boolTrue,
+		},
+	}
+
+	namer := MakeNamers(cr)
+
+	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
+	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+
+	var times = 0
+	interceptorFuncs := interceptor.Funcs{
+		Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			times++
+			return apierrors.NewNotFound(schema.GroupResource{}, key.Name)
+		},
+	}
+
+	common.SetOperatorNameSpace("test")
+
+	client := fake.NewClientBuilder().WithInterceptorFuncs(interceptorFuncs).Build()
+
+	error := ri.Process(cr, *namer, client, nil)
+
+	assert.NotNil(t, error)
+	assert.ErrorContains(t, error, "not found")
+}
+
+func TestValidateRestrictedNeedsSecret(t *testing.T) {
+
+	cr := &brokerv1beta1.ActiveMQArtemis{
+		Spec: brokerv1beta1.ActiveMQArtemisSpec{
+			Restricted: &boolTrue,
+		},
+	}
+
+	namer := MakeNamers(cr)
+
+	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
+	ri := NewActiveMQArtemisReconcilerImpl(cr, r)
+
+	fakeSecrets := map[string]client.Object{}
+	interceptorFuncs := interceptor.Funcs{
+		Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			if _, found := fakeSecrets[key.Name]; found {
+				return nil
+			}
+			return apierrors.NewNotFound(schema.GroupResource{}, key.Name)
+		},
+	}
+
+	common.SetOperatorNameSpace("test")
+
+	client := fake.NewClientBuilder().WithInterceptorFuncs(interceptorFuncs).Build()
+
+	valid, retry := ri.validate(cr, client, *namer)
+
+	assert.False(t, valid)
+	assert.True(t, retry)
+
+	assert.True(t, meta.IsStatusConditionFalse(cr.Status.Conditions, brokerv1beta1.ValidConditionType))
+
+	condition := meta.FindStatusCondition(cr.Status.Conditions, brokerv1beta1.ValidConditionType)
+	assert.Equal(t, condition.Reason, brokerv1beta1.ValidConditionMissingResourcesReason)
+	assert.Contains(t, condition.Message, "failed to get secret")
+	assert.Contains(t, condition.Message, common.DefaultOperatorCertSecretName)
+
+	fakeSecrets[common.DefaultOperatorCertSecretName] = nil
+
+	valid, retry = ri.validate(cr, client, *namer)
+
+	assert.False(t, valid)
+	assert.True(t, retry)
+	assert.True(t, meta.IsStatusConditionFalse(cr.Status.Conditions, brokerv1beta1.ValidConditionType))
+	condition = meta.FindStatusCondition(cr.Status.Conditions, brokerv1beta1.ValidConditionType)
+	assert.Equal(t, condition.Reason, brokerv1beta1.ValidConditionMissingResourcesReason)
+	assert.Contains(t, condition.Message, "failed to get secret")
+	assert.Contains(t, condition.Message, common.DefaultOperatorCASecretName)
+
+	fakeSecrets[common.DefaultOperatorCASecretName] = nil
+	valid, retry = ri.validate(cr, client, *namer)
+
+	assert.False(t, valid)
+	assert.True(t, retry)
+	assert.True(t, meta.IsStatusConditionFalse(cr.Status.Conditions, brokerv1beta1.ValidConditionType))
+	condition = meta.FindStatusCondition(cr.Status.Conditions, brokerv1beta1.ValidConditionType)
+	assert.Equal(t, condition.Reason, brokerv1beta1.ValidConditionMissingResourcesReason)
+	assert.Contains(t, condition.Message, "failed to get secret")
+	assert.Contains(t, condition.Message, common.DefaultOperandCertSecretName)
+
+	fakeSecrets[common.DefaultOperandCertSecretName] = nil
+	valid, retry = ri.validate(cr, client, *namer)
+
+	assert.True(t, valid)
+	assert.False(t, retry)
+	assert.True(t, meta.IsStatusConditionTrue(cr.Status.Conditions, brokerv1beta1.ValidConditionType))
 
 }

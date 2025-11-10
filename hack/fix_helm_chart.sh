@@ -1,4 +1,6 @@
 #!/bin/bash
+# to ensure file order independence
+LANG=C
 
 version=$1
 dir=$2

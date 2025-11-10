@@ -43,13 +43,12 @@ import (
 const (
 	brokerCrNameBase = "broker-cert-mgr"
 
-	rootIssuerName       = "root-issuer"
-	rootCertName         = "root-cert"
-	rootCertNamespce     = "cert-manager"
-	rootCertSecretName   = "artemis-root-cert-secret"
-	caIssuerName         = "broker-ca-issuer"
-	caPemTrustStoreName  = "ca.pem"
-	caTrustStorePassword = "changeit"
+	rootIssuerName      = "root-issuer"
+	rootCertName        = "root-cert"
+	rootCertNamespce    = "cert-manager"
+	rootCertSecretName  = "artemis-root-cert-secret"
+	caIssuerName        = "broker-ca-issuer"
+	caPemTrustStoreName = "ca.pem"
 )
 
 var (
