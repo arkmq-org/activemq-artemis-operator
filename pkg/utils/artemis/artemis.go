@@ -178,8 +178,29 @@ func (artemis *Artemis) DeleteAddress(addressName string) (*jolokia.ResponseData
 
 	url := "org.apache.activemq.artemis:broker=\"" + artemis.name + "\""
 	parameters := `"` + addressName + `"`
-	jsonStr := `{ "type":"EXEC","mbean":"` + strings.Replace(url, "\"", "\\\"", -1) + `","operation":"deleteAddress(java.lang.String)","arguments":[` + parameters + `]` + ` }`
+	jsonStr := `{ "type":"EXEC","mbean":"` + strings.ReplaceAll(url, "\"", "\\\"") + `","operation":"deleteAddress(java.lang.String)","arguments":[` + parameters + `]` + ` }`
 	data, err := artemis.jolokia.Exec(url, jsonStr)
 
 	return data, err
+}
+
+func (artemis *Artemis) ForceFailover() (*jolokia.ResponseData, error) {
+
+	url := "org.apache.activemq.artemis:broker=\"" + artemis.name + "\""
+	jsonStr := `{ "type":"EXEC","mbean":"` + strings.ReplaceAll(url, "\"", "\\\"") + `","operation":"forceFailover()","arguments":[]` + ` }`
+	data, err := artemis.jolokia.Exec(url, jsonStr)
+
+	return data, err
+}
+
+func (artemis *Artemis) GetTotalMessageCount() (string, error) {
+	url := "org.apache.activemq.artemis:broker=\"" + artemis.name + "\"/TotalMessageCount"
+	resp, err := artemis.jolokia.Read(url)
+	if err != nil || resp == nil {
+		return "", err
+	}
+	if resp.Status != 200 {
+		return "", fmt.Errorf("unable to retrieve TotalMessageCount %v", resp.Error)
+	}
+	return resp.Value, nil
 }

@@ -195,7 +195,7 @@ func (r *ActiveMQArtemisReconciler) Reconcile(ctx context.Context, request ctrl.
 		requeueRequest = true
 	}
 
-	if !requeueRequest && hasExtraMounts(customResource) {
+	if !requeueRequest && !reconcileBlocked && hasExtraMounts(customResource) {
 		reqLogger.V(1).Info("resource has extraMounts, requeuing")
 		requeueRequest = true
 	}
@@ -845,7 +845,7 @@ func (r *ActiveMQArtemisReconciler) UpdateCRStatus(desired *brokerv1beta1.Active
 	}
 
 	if !EqualCRStatus(&desired.Status, &current.Status) {
-		r.log.V(2).Info("CR.status update", "Namespace", desired.Namespace, "Name", desired.Name, "Observed status", desired.Status)
+		r.log.V(1).Info("cr.status update", "Namespace", desired.Namespace, "Name", desired.Name, "Observed status", desired.Status)
 		return resources.UpdateStatus(client, desired)
 	}
 
