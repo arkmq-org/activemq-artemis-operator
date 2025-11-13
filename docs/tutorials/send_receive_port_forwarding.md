@@ -23,22 +23,21 @@ minikube start --profile tutorialtester
 minikube profile tutorialtester
 ```
 ```shell markdown_runner
-* [tutorialtester] minikube v1.35.0 on Fedora 42
-* Using the podman driver based on user configuration
-* Using Podman driver with root privileges
+* [tutorialtester] minikube v1.36.0 on Fedora 41
+  - MINIKUBE_ROOTLESS=true
+* Automatically selected the kvm2 driver. Other choices: podman, qemu2, ssh
 * Starting "tutorialtester" primary control-plane node in "tutorialtester" cluster
-* Pulling base image v0.0.46 ...
-* Creating podman container (CPUs=2, Memory=15900MB) ...
-* Preparing Kubernetes v1.32.0 on Docker 27.4.1 ...
+* Creating kvm2 VM (CPUs=2, Memory=6000MB, Disk=20000MB) ...
+* Preparing Kubernetes v1.33.1 on Docker 28.0.4 ...
   - Generating certificates and keys ...
   - Booting up control plane ...
   - Configuring RBAC rules ...
 * Configuring bridge CNI (Container Networking Interface) ...
 * Verifying Kubernetes components...
   - Using image gcr.io/k8s-minikube/storage-provisioner:v5
-* Enabled addons: storage-provisioner, default-storageclass
+* Enabled addons: default-storageclass, storage-provisioner
 * Done! kubectl is now configured to use "tutorialtester" cluster and "default" namespace by default
-E0911 18:37:24.542165  295607 cache.go:222] Error downloading kic artifacts:  not yet implemented, see issue #8426
+! Image was not built for the current minikube version. To resolve this you can delete and recreate your minikube cluster using the latest images. Expected minikube version: v1.35.0 -> Actual minikube version: v1.36.0
 * minikube profile was successfully set to tutorialtester
 ```
 
@@ -51,9 +50,9 @@ minikube kubectl -- patch deployment -n ingress-nginx ingress-nginx-controller -
 ```shell markdown_runner
 * ingress is an addon maintained by Kubernetes. For any concerns contact minikube on GitHub.
 You can view the list of minikube maintainers at: https://github.com/kubernetes/minikube/blob/master/OWNERS
-  - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.4.4
-  - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.4.4
-  - Using image registry.k8s.io/ingress-nginx/controller:v1.11.3
+  - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3
+  - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3
+  - Using image registry.k8s.io/ingress-nginx/controller:v1.12.2
 * Verifying ingress addon...
 * The 'ingress' addon is enabled
 deployment.apps/ingress-nginx-controller patched
@@ -87,9 +86,9 @@ Go to the root of the operator repo and install it:
 ```
 ```shell markdown_runner
 Deploying operator to watch single namespace
-Client Version: 4.18.14
+Client Version: 4.18.5
 Kustomize Version: v5.4.2
-Kubernetes Version: v1.32.0
+Kubernetes Version: v1.33.1
 customresourcedefinition.apiextensions.k8s.io/activemqartemises.broker.amq.io created
 customresourcedefinition.apiextensions.k8s.io/activemqartemisaddresses.broker.amq.io created
 customresourcedefinition.apiextensions.k8s.io/activemqartemisscaledowns.broker.amq.io created
@@ -108,7 +107,7 @@ Wait for the Operator to start (status: `running`).
 kubectl wait pod --all --for=condition=Ready --namespace=send-receive-project --timeout=600s
 ```
 ```shell markdown_runner
-pod/activemq-artemis-controller-manager-6f4f5f699f-czl6v condition met
+pod/activemq-artemis-controller-manager-fdd64476f-kclrm condition met
 ```
 
 ### Deploying the Apache ActiveMQ Artemis Broker
@@ -197,8 +196,8 @@ Handling connection for 62626
 Producer ActiveMQQueue[APP.JOBS], thread=0 Started to calculate elapsed time ...
 
 Producer ActiveMQQueue[APP.JOBS], thread=0 Produced: 1000 messages
-Producer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in second : 6 s
-Producer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in milli second : 6481 milli seconds
+Producer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in second : 3 s
+Producer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in milli second : 3634 milli seconds
 Connection brokerURL = tcp://localhost:62626
 Consumer:: filter = null
 Handling connection for 62626
@@ -207,9 +206,11 @@ Consumer ActiveMQQueue[APP.JOBS], thread=0 wait 3000ms until 1000 messages are c
 Received 1000
 Consumer ActiveMQQueue[APP.JOBS], thread=0 Consumed: 1000 messages
 Consumer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in second : 0 s
-Consumer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in milli second : 48 milli seconds
+Consumer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in milli second : 69 milli seconds
 Consumer ActiveMQQueue[APP.JOBS], thread=0 Consumed: 1000 messages
 Consumer ActiveMQQueue[APP.JOBS], thread=0 Consumer thread finished
+NOTE: Picked up JDK_JAVA_OPTIONS: -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts
+NOTE: Picked up JDK_JAVA_OPTIONS: -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts
 ```
 
 ### cleanup
@@ -221,8 +222,6 @@ delete the minikube cluster.
 minikube delete --profile tutorialtester
 ```
 ```shell markdown_runner
-* Deleting "tutorialtester" in podman ...
-* Deleting container "tutorialtester" ...
-* Removing /home/dbruscin/.minikube/machines/tutorialtester ...
+* Deleting "tutorialtester" in kvm2 ...
 * Removed all traces of the "tutorialtester" cluster.
 ```

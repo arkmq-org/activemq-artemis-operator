@@ -23,13 +23,12 @@ minikube start --profile tutorialtester
 minikube profile tutorialtester
 ```
 ```shell markdown_runner
-* [tutorialtester] minikube v1.35.0 on Fedora 42
-* Using the podman driver based on user configuration
-* Using Podman driver with root privileges
+* [tutorialtester] minikube v1.36.0 on Fedora 41
+  - MINIKUBE_ROOTLESS=true
+* Automatically selected the kvm2 driver. Other choices: qemu2, podman, ssh
 * Starting "tutorialtester" primary control-plane node in "tutorialtester" cluster
-* Pulling base image v0.0.46 ...
-* Creating podman container (CPUs=2, Memory=15900MB) ...
-* Preparing Kubernetes v1.32.0 on Docker 27.4.1 ...
+* Creating kvm2 VM (CPUs=2, Memory=6000MB, Disk=20000MB) ...
+* Preparing Kubernetes v1.33.1 on Docker 28.0.4 ...
   - Generating certificates and keys ...
   - Booting up control plane ...
   - Configuring RBAC rules ...
@@ -38,7 +37,7 @@ minikube profile tutorialtester
   - Using image gcr.io/k8s-minikube/storage-provisioner:v5
 * Enabled addons: storage-provisioner, default-storageclass
 * Done! kubectl is now configured to use "tutorialtester" cluster and "default" namespace by default
-E0911 18:26:52.628280  267436 cache.go:222] Error downloading kic artifacts:  not yet implemented, see issue #8426
+! Image was not built for the current minikube version. To resolve this you can delete and recreate your minikube cluster using the latest images. Expected minikube version: v1.35.0 -> Actual minikube version: v1.36.0
 * minikube profile was successfully set to tutorialtester
 ```
 
@@ -51,9 +50,9 @@ minikube kubectl -- patch deployment -n ingress-nginx ingress-nginx-controller -
 ```shell markdown_runner
 * ingress is an addon maintained by Kubernetes. For any concerns contact minikube on GitHub.
 You can view the list of minikube maintainers at: https://github.com/kubernetes/minikube/blob/master/OWNERS
-  - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.4.4
-  - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.4.4
-  - Using image registry.k8s.io/ingress-nginx/controller:v1.11.3
+  - Using image registry.k8s.io/ingress-nginx/controller:v1.12.2
+  - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3
+  - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3
 * Verifying ingress addon...
 * The 'ingress' addon is enabled
 deployment.apps/ingress-nginx-controller patched
@@ -93,9 +92,9 @@ Go to the root of the operator repo and install it:
 ```
 ```shell markdown_runner
 Deploying operator to watch single namespace
-Client Version: 4.18.14
+Client Version: 4.18.5
 Kustomize Version: v5.4.2
-Kubernetes Version: v1.32.0
+Kubernetes Version: v1.33.1
 customresourcedefinition.apiextensions.k8s.io/activemqartemises.broker.amq.io created
 customresourcedefinition.apiextensions.k8s.io/activemqartemisaddresses.broker.amq.io created
 customresourcedefinition.apiextensions.k8s.io/activemqartemisscaledowns.broker.amq.io created
@@ -114,7 +113,7 @@ Wait for the Operator to start (status: `running`).
 kubectl wait pod --all --for=condition=Ready --namespace=send-receive-project --timeout=600s
 ```
 ```shell markdown_runner
-pod/activemq-artemis-controller-manager-6f4f5f699f-9mtzf condition met
+pod/activemq-artemis-controller-manager-fdd64476f-km8ml condition met
 ```
 
 ### Deploy the Apache ActiveMQ Artemis Broker
@@ -151,13 +150,13 @@ printf '000000\n' | keytool -export -alias artemis -file broker.cert -keystore b
 printf '000000\n000000\nyes\n' | keytool -import -v -trustcacerts -alias artemis -file broker.cert -keystore client.ts
 ```
 ```shell markdown_runner
-Owner: CN=192.168.58.2.nip.io, OU=arkmq-org, O=Red Hat, L=Grenoble, ST=Auvergne Rhône Alpes, C=FR
-Issuer: CN=192.168.58.2.nip.io, OU=arkmq-org, O=Red Hat, L=Grenoble, ST=Auvergne Rhône Alpes, C=FR
-Serial number: 7a8bd0830dd0e450
-Valid from: Thu Sep 11 18:28:17 CEST 2025 until: Mon Nov 28 17:28:17 CET 2033
+Owner: CN=192.168.50.5.nip.io, OU=arkmq-org, O=Red Hat, L=Grenoble, ST=Auvergne Rhône Alpes, C=FR
+Issuer: CN=192.168.50.5.nip.io, OU=arkmq-org, O=Red Hat, L=Grenoble, ST=Auvergne Rhône Alpes, C=FR
+Serial number: 46deb0fb8d74485d
+Valid from: Thu Nov 13 10:40:29 CET 2025 until: Mon Jan 30 10:40:29 CET 2034
 Certificate fingerprints:
-	 SHA1: A4:D5:E7:B5:E5:E0:2A:EF:F0:59:97:F7:08:13:03:B8:6E:CF:1B:1B
-	 SHA256: AC:B4:B3:46:9F:AC:45:9C:DD:87:81:46:3F:2E:41:85:AD:2F:73:CD:3B:ED:0C:EF:BF:B4:56:F1:BA:27:4D:92
+	 SHA1: 75:9B:29:01:C4:2E:D9:86:9D:7B:4B:C7:D2:65:E4:98:75:BF:8D:58
+	 SHA256: 76:10:2C:99:5E:A2:C3:AE:1C:2B:13:92:40:BE:25:77:1E:F7:0A:23:A4:D6:DF:D0:42:E4:E2:FA:E5:5A:C9:DB
 Signature algorithm name: SHA384withRSA
 Subject Public Key Algorithm: 2048-bit RSA key
 Version: 3
@@ -167,8 +166,8 @@ Extensions:
 #1: ObjectId: 2.5.29.14 Criticality=false
 SubjectKeyIdentifier [
 KeyIdentifier [
-0000: 04 59 8C 0B 45 1E A7 E9   2A E7 11 8F F2 F6 3C 5E  .Y..E...*.....<^
-0010: B7 F0 02 D6                                        ....
+0000: 9A D1 BB 09 AA 84 1C D4   13 6D 5B B4 98 93 0B 5D  .........m[....]
+0010: DB 8E CA 36                                        ...6
 ]
 ]
 
@@ -179,10 +178,10 @@ What is your first and last name?
   [Unknown]:  What is the name of your City or Locality?
   [Unknown]:  What is the name of your State or Province?
   [Unknown]:  What is the two-letter country code for this unit?
-  [Unknown]:  Is CN=192.168.58.2.nip.io, OU=arkmq-org, O=Red Hat, L=Grenoble, ST=Auvergne Rhône Alpes, C=FR correct?
+  [Unknown]:  Is CN=192.168.50.5.nip.io, OU=arkmq-org, O=Red Hat, L=Grenoble, ST=Auvergne Rhône Alpes, C=FR correct?
   [no]:  
 Generating 2,048 bit RSA key pair and self-signed certificate (SHA384withRSA) with a validity of 3,000 days
-	for: CN=192.168.58.2.nip.io, OU=arkmq-org, O=Red Hat, L=Grenoble, ST=Auvergne Rhône Alpes, C=FR
+	for: CN=192.168.50.5.nip.io, OU=arkmq-org, O=Red Hat, L=Grenoble, ST=Auvergne Rhône Alpes, C=FR
 Enter keystore password:  Certificate stored in file <broker.cert>
 Enter keystore password:  Re-enter new password: Trust this certificate? [no]:  Certificate was added to keystore
 [Storing client.ts]
@@ -248,8 +247,8 @@ Check for the ingress availability:
 kubectl get ingress --show-labels
 ```
 ```shell markdown_runner
-NAME                                 CLASS   HOSTS                                                                         ADDRESS        PORTS     AGE    LABELS
-send-receive-sslacceptor-0-svc-ing   nginx   send-receive-sslacceptor-0-svc-ing-send-receive-project.192.168.58.2.nip.io   192.168.58.2   80, 443   110s   ActiveMQArtemis=send-receive,application=send-receive-app,statefulset.kubernetes.io/pod-name=send-receive-ss-0
+NAME                                 CLASS   HOSTS                                                                         ADDRESS        PORTS     AGE   LABELS
+send-receive-sslacceptor-0-svc-ing   nginx   send-receive-sslacceptor-0-svc-ing-send-receive-project.192.168.50.5.nip.io   192.168.50.5   80, 443   40s   ActiveMQArtemis=send-receive,application=send-receive-app,statefulset.kubernetes.io/pod-name=send-receive-ss-0
 ```
 
 ### Exchanging messages between a producer and a consumer
@@ -294,7 +293,7 @@ export INGRESS_URL=$(kubectl get ingress send-receive-sslacceptor-0-svc-ing -o j
 Craft the broker url for artemis
 
 ```{"stage":"test_setup", "runtime":"bash", "label":"compute the broker url"}
-export BROKER_URL="tcp://${INGRESS_URL}:443?sslEnabled=true&verifyHost=false&trustStorePath=${CERT_FOLDER}/broker.ks&trustStorePassword=000000&useTopologyForLoadBalancing=false"
+export BROKER_URL="tcp://${INGRESS_URL}:443?forceSSLParameters=true&sslEnabled=true&verifyHost=false&trustStorePath=${CERT_FOLDER}/broker.ks&trustStorePassword=000000&useTopologyForLoadBalancing=false"
 ```
 
 ##### Test the connection
@@ -303,14 +302,15 @@ export BROKER_URL="tcp://${INGRESS_URL}:443?sslEnabled=true&verifyHost=false&tru
 ./artemis check queue --name TEST --produce 10 --browse 10 --consume 10 --url ${BROKER_URL} --verbose
 ```
 ```shell markdown_runner
-Executing org.apache.activemq.artemis.cli.commands.check.QueueCheck check queue --name TEST --produce 10 --browse 10 --consume 10 --url tcp://send-receive-sslacceptor-0-svc-ing-send-receive-project.192.168.58.2.nip.io:443?sslEnabled=true&verifyHost=false&trustStorePath=/tmp/4079053363/broker.ks&trustStorePassword=000000&useTopologyForLoadBalancing=false --verbose 
-Home::/tmp/4079053363/apache-artemis, Instance::null
-Connection brokerURL = tcp://send-receive-sslacceptor-0-svc-ing-send-receive-project.192.168.58.2.nip.io:443?sslEnabled=true&verifyHost=false&trustStorePath=/tmp/4079053363/broker.ks&trustStorePassword=000000&useTopologyForLoadBalancing=false
+Executing org.apache.activemq.artemis.cli.commands.check.QueueCheck check queue --name TEST --produce 10 --browse 10 --consume 10 --url tcp://send-receive-sslacceptor-0-svc-ing-send-receive-project.192.168.50.5.nip.io:443?forceSSLParameters=true&sslEnabled=true&verifyHost=false&trustStorePath=/tmp/2821826002/broker.ks&trustStorePassword=000000&useTopologyForLoadBalancing=false --verbose 
+Home::/tmp/2821826002/apache-artemis, Instance::null
+Connection brokerURL = tcp://send-receive-sslacceptor-0-svc-ing-send-receive-project.192.168.50.5.nip.io:443?forceSSLParameters=true&sslEnabled=true&verifyHost=false&trustStorePath=/tmp/2821826002/broker.ks&trustStorePassword=000000&useTopologyForLoadBalancing=false
 Running QueueCheck
 Checking that a producer can send 10 messages to the queue TEST ... success
 Checking that a consumer can browse 10 messages from the queue TEST ... success
 Checking that a consumer can consume 10 messages from the queue TEST ... success
-Checks run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.412 sec - QueueCheck
+Checks run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.262 sec - QueueCheck
+NOTE: Picked up JDK_JAVA_OPTIONS: -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts
 ```
 
 #### ANYCAST
@@ -321,27 +321,29 @@ For this use case, run first the producer, then the consumer.
 ./artemis producer --destination queue://APP.JOBS --url ${BROKER_URL}
 ```
 ```shell markdown_runner
-Connection brokerURL = tcp://send-receive-sslacceptor-0-svc-ing-send-receive-project.192.168.58.2.nip.io:443?sslEnabled=true&verifyHost=false&trustStorePath=/tmp/4079053363/broker.ks&trustStorePassword=000000&useTopologyForLoadBalancing=false
+Connection brokerURL = tcp://send-receive-sslacceptor-0-svc-ing-send-receive-project.192.168.50.5.nip.io:443?forceSSLParameters=true&sslEnabled=true&verifyHost=false&trustStorePath=/tmp/2821826002/broker.ks&trustStorePassword=000000&useTopologyForLoadBalancing=false
 Producer ActiveMQQueue[APP.JOBS], thread=0 Started to calculate elapsed time ...
 
 Producer ActiveMQQueue[APP.JOBS], thread=0 Produced: 1000 messages
-Producer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in second : 6 s
-Producer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in milli second : 6065 milli seconds
+Producer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in second : 3 s
+Producer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in milli second : 3561 milli seconds
+NOTE: Picked up JDK_JAVA_OPTIONS: -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts
 ```
 
 ```{"stage":"test1", "rootdir":"$tmpdir.1/apache-artemis/bin/", "runtime":"bash", "label":"anycast: consume 1000 messages"}
 ./artemis consumer --destination queue://APP.JOBS --url ${BROKER_URL}
 ```
 ```shell markdown_runner
-Connection brokerURL = tcp://send-receive-sslacceptor-0-svc-ing-send-receive-project.192.168.58.2.nip.io:443?sslEnabled=true&verifyHost=false&trustStorePath=/tmp/4079053363/broker.ks&trustStorePassword=000000&useTopologyForLoadBalancing=false
+Connection brokerURL = tcp://send-receive-sslacceptor-0-svc-ing-send-receive-project.192.168.50.5.nip.io:443?forceSSLParameters=true&sslEnabled=true&verifyHost=false&trustStorePath=/tmp/2821826002/broker.ks&trustStorePassword=000000&useTopologyForLoadBalancing=false
 Consumer:: filter = null
 Consumer ActiveMQQueue[APP.JOBS], thread=0 wait 3000ms until 1000 messages are consumed
 Received 1000
 Consumer ActiveMQQueue[APP.JOBS], thread=0 Consumed: 1000 messages
 Consumer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in second : 0 s
-Consumer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in milli second : 67 milli seconds
+Consumer ActiveMQQueue[APP.JOBS], thread=0 Elapsed time in milli second : 94 milli seconds
 Consumer ActiveMQQueue[APP.JOBS], thread=0 Consumed: 1000 messages
 Consumer ActiveMQQueue[APP.JOBS], thread=0 Consumer thread finished
+NOTE: Picked up JDK_JAVA_OPTIONS: -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts
 ```
 
 #### MULTICAST
@@ -355,15 +357,16 @@ For this use case, run first the consumer(s), then the producer.
 ./artemis consumer --destination topic://APP.COMMANDS --url ${BROKER_URL}
 ```
 ```shell markdown_runner
-Connection brokerURL = tcp://send-receive-sslacceptor-0-svc-ing-send-receive-project.192.168.58.2.nip.io:443?sslEnabled=true&verifyHost=false&trustStorePath=/tmp/4079053363/broker.ks&trustStorePassword=000000&useTopologyForLoadBalancing=false
+Connection brokerURL = tcp://send-receive-sslacceptor-0-svc-ing-send-receive-project.192.168.50.5.nip.io:443?forceSSLParameters=true&sslEnabled=true&verifyHost=false&trustStorePath=/tmp/2821826002/broker.ks&trustStorePassword=000000&useTopologyForLoadBalancing=false
 Consumer:: filter = null
 Consumer ActiveMQTopic[APP.COMMANDS], thread=0 wait 3000ms until 1000 messages are consumed
 Received 1000
 Consumer ActiveMQTopic[APP.COMMANDS], thread=0 Consumed: 1000 messages
 Consumer ActiveMQTopic[APP.COMMANDS], thread=0 Elapsed time in second : 5 s
-Consumer ActiveMQTopic[APP.COMMANDS], thread=0 Elapsed time in milli second : 5596 milli seconds
+Consumer ActiveMQTopic[APP.COMMANDS], thread=0 Elapsed time in milli second : 5597 milli seconds
 Consumer ActiveMQTopic[APP.COMMANDS], thread=0 Consumed: 1000 messages
 Consumer ActiveMQTopic[APP.COMMANDS], thread=0 Consumer thread finished
+NOTE: Picked up JDK_JAVA_OPTIONS: -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts
 ```
 
 2. connect the producer to start broadcasting messages.
@@ -373,12 +376,13 @@ sleep 5s
 ./artemis producer --destination topic://APP.COMMANDS --url ${BROKER_URL}
 ```
 ```shell markdown_runner
-Connection brokerURL = tcp://send-receive-sslacceptor-0-svc-ing-send-receive-project.192.168.58.2.nip.io:443?sslEnabled=true&verifyHost=false&trustStorePath=/tmp/4079053363/broker.ks&trustStorePassword=000000&useTopologyForLoadBalancing=false
+Connection brokerURL = tcp://send-receive-sslacceptor-0-svc-ing-send-receive-project.192.168.50.5.nip.io:443?forceSSLParameters=true&sslEnabled=true&verifyHost=false&trustStorePath=/tmp/2821826002/broker.ks&trustStorePassword=000000&useTopologyForLoadBalancing=false
 Producer ActiveMQTopic[APP.COMMANDS], thread=0 Started to calculate elapsed time ...
 
 Producer ActiveMQTopic[APP.COMMANDS], thread=0 Produced: 1000 messages
 Producer ActiveMQTopic[APP.COMMANDS], thread=0 Elapsed time in second : 0 s
-Producer ActiveMQTopic[APP.COMMANDS], thread=0 Elapsed time in milli second : 626 milli seconds
+Producer ActiveMQTopic[APP.COMMANDS], thread=0 Elapsed time in milli second : 625 milli seconds
+NOTE: Picked up JDK_JAVA_OPTIONS: -Djavax.net.ssl.trustStore=/etc/pki/java/cacerts
 ```
 
 ### cleanup
@@ -390,8 +394,6 @@ delete the minikube cluster and clean the `/etc/hosts` file.
 minikube delete --profile tutorialtester
 ```
 ```shell markdown_runner
-* Deleting "tutorialtester" in podman ...
-* Deleting container "tutorialtester" ...
-* Removing /home/dbruscin/.minikube/machines/tutorialtester ...
+* Deleting "tutorialtester" in kvm2 ...
 * Removed all traces of the "tutorialtester" cluster.
 ```
