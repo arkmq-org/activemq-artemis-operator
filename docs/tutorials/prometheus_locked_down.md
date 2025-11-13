@@ -210,7 +210,11 @@ minikube addons enable metrics-server --profile tutorialtester
 ```
 ```shell markdown_runner
 * [tutorialtester] minikube v1.36.0 on Fedora 41
-* Automatically selected the kvm2 driver. Other choices: qemu2, ssh
+  - MINIKUBE_ROOTLESS=true
+* minikube 1.37.0 is available! Download it: https://github.com/kubernetes/minikube/releases/tag/v1.37.0
+* To disable this notice, run: 'minikube config set WantUpdateNotification false'
+
+* Automatically selected the kvm2 driver. Other choices: podman, qemu2, ssh
 * Starting "tutorialtester" primary control-plane node in "tutorialtester" cluster
 * Creating kvm2 VM (CPUs=2, Memory=6000MB, Disk=20000MB) ...
 * Preparing Kubernetes v1.33.1 on Docker 28.0.4 ...
@@ -245,8 +249,8 @@ minikube kubectl -- patch deployment -n ingress-nginx ingress-nginx-controller -
 ```shell markdown_runner
 * ingress is an addon maintained by Kubernetes. For any concerns contact minikube on GitHub.
 You can view the list of minikube maintainers at: https://github.com/kubernetes/minikube/blob/master/OWNERS
-  - Using image registry.k8s.io/ingress-nginx/controller:v1.12.2
   - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3
+  - Using image registry.k8s.io/ingress-nginx/controller:v1.12.2
   - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3
 * Verifying ingress addon...
 * The 'ingress' addon is enabled
@@ -306,7 +310,7 @@ Wait for the Operator to start (status: `running`).
 kubectl wait pod --all --for=condition=Ready --namespace=locked-down-broker --timeout=600s
 ```
 ```shell markdown_runner
-pod/activemq-artemis-controller-manager-7f55767d45-772b9 condition met
+pod/activemq-artemis-controller-manager-fdd64476f-mbqhx condition met
 ```
 
 ## Install the dependencies
@@ -344,7 +348,7 @@ helm upgrade -i prometheus prometheus-community/kube-prometheus-stack \
 "prometheus-community" already exists with the same configuration, skipping
 Release "prometheus" does not exist. Installing it now.
 NAME: prometheus
-LAST DEPLOYED: Thu Oct  2 16:24:02 2025
+LAST DEPLOYED: Thu Nov 13 10:34:34 2025
 NAMESPACE: locked-down-broker
 STATUS: deployed
 REVISION: 1
@@ -451,7 +455,7 @@ helm upgrade trust-manager jetstack/trust-manager --install --namespace cert-man
 ```shell markdown_runner
 Release "trust-manager" does not exist. Installing it now.
 NAME: trust-manager
-LAST DEPLOYED: Thu Oct  2 16:25:10 2025
+LAST DEPLOYED: Thu Nov 13 10:35:40 2025
 NAMESPACE: cert-manager
 STATUS: deployed
 REVISION: 1
@@ -460,11 +464,11 @@ NOTES:
 ⚠️  WARNING: Consider increasing the Helm value `replicaCount` to 2 if you require high availability.
 ⚠️  WARNING: Consider setting the Helm value `podDisruptionBudget.enabled` to true if you require high availability.
 
-trust-manager v0.19.0 has been deployed successfully!
+trust-manager v0.20.2 has been deployed successfully!
 Your installation includes a default CA package, using the following
 default CA package image:
 
-quay.io/jetstack/trust-pkg-debian-bookworm:20230311-deb12u1.0
+quay.io/jetstack/trust-pkg-debian-bookworm:20230311-deb12u1.2
 
 It's imperative that you keep the default CA package image up to date.
 To find out more about securely running trust-manager and to get started
@@ -1072,7 +1076,6 @@ kubectl rollout status deployment prometheus-grafana -n locked-down-broker --tim
 ```
 ```shell markdown_runner
 deployment.apps/prometheus-grafana restarted
-Waiting for deployment "prometheus-grafana" rollout to finish: 0 out of 1 new replicas have been updated...
 Waiting for deployment "prometheus-grafana" rollout to finish: 1 old replicas are pending termination...
 Waiting for deployment "prometheus-grafana" rollout to finish: 1 old replicas are pending termination...
 deployment "prometheus-grafana" successfully rolled out
@@ -1126,8 +1129,23 @@ echo "  container_cpu_usage_seconds_total is queryable"
 
 # Test 5: Grafana datasources
 echo "✓ Test 5: Grafana has both datasources configured"
+
+# Get the Grafana admin password from the secret
+export GRAFANA_PASSWORD=$(kubectl get secret -n locked-down-broker prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 --decode)
+
+# Wait for Grafana API to be ready with proper authentication
+echo "  Waiting for Grafana to be fully initialized..."
 DATASOURCES=$(kubectl exec -n locked-down-broker deployment/prometheus-grafana -- \
-  curl -s http://localhost:3000/api/datasources -u admin:prom-operator)
+  curl -s --retry 36 --retry-delay 5 --retry-all-errors \
+    http://localhost:3000/api/datasources -u admin:${GRAFANA_PASSWORD})
+
+# Validate the response is a valid JSON array
+if ! echo "$DATASOURCES" | jq -e 'type == "array"' >/dev/null 2>&1; then
+  echo "  ✗ FAILED: Grafana returned invalid response"
+  echo "  Response: $DATASOURCES"
+  exit 1
+fi
+echo "  Grafana is ready and authenticated"
 
 ARTEMIS_DS=$(echo "$DATASOURCES" | jq -r '.[] | select(.uid=="artemis-prometheus") | .name')
 if [ "$ARTEMIS_DS" != "Artemis-Prometheus" ]; then
@@ -1155,6 +1173,8 @@ Testing Prometheus and Grafana datasource configuration...
 ✓ Test 4: Infrastructure metrics are available in Cluster-Prometheus
   container_cpu_usage_seconds_total is queryable
 ✓ Test 5: Grafana has both datasources configured
+  Waiting for Grafana to be fully initialized...
+  Grafana is ready and authenticated
   Found: Artemis-Prometheus (uid: artemis-prometheus)
   Found: Prometheus (uid: prometheus)
 ```
@@ -1314,6 +1334,7 @@ sleep 15
 ```
 ```shell markdown_runner
 deployment.apps/prometheus-grafana restarted
+Waiting for deployment "prometheus-grafana" rollout to finish: 0 out of 1 new replicas have been updated...
 Waiting for deployment "prometheus-grafana" rollout to finish: 1 old replicas are pending termination...
 Waiting for deployment "prometheus-grafana" rollout to finish: 1 old replicas are pending termination...
 deployment "prometheus-grafana" successfully rolled out
@@ -1329,7 +1350,7 @@ echo ""
 
 # Fetch dashboard JSON once
 DASHBOARD_JSON=$(kubectl exec -n locked-down-broker deployment/prometheus-grafana -- \
-  curl -s 'http://localhost:3000/api/dashboards/uid/artemis-broker-dashboard' -u admin:prom-operator)
+  curl -s 'http://localhost:3000/api/dashboards/uid/artemis-broker-dashboard' -u admin:${GRAFANA_PASSWORD})
 
 # Test 1: Check dashboard exists and has correct title
 echo "✓ Test 1: Dashboard exists with correct title"
@@ -1744,8 +1765,9 @@ kubectl describe pod prometheus-artemis-prometheus-0 -n locked-down-broker
 kubectl get prometheus -n locked-down-broker
 
 # Verify datasource URLs point to correct services
+GRAFANA_PASSWORD=$(kubectl get secret -n locked-down-broker prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 --decode)
 kubectl exec -n locked-down-broker deployment/prometheus-grafana -- \
-  curl -s http://localhost:3000/api/datasources -u admin:prom-operator | grep -E '"name"|"url"'
+  curl -s http://localhost:3000/api/datasources -u admin:${GRAFANA_PASSWORD} | grep -E '"name"|"url"'
 ```
 
 **Solution:** Ensure the `artemis-prometheus` datasource uses `http://artemis-prometheus-svc:9090`
