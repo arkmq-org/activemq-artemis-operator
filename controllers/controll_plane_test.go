@@ -144,6 +144,17 @@ var _ = Describe("minimal", func() {
 				}
 			})
 
+			prometheusCertName := common.DefaultPrometheusCertSecretName
+			By("installing prometheus cert")
+			InstallCert(prometheusCertName, defaultNamespace, func(candidate *cmv1.Certificate) {
+				candidate.Spec.SecretName = prometheusCertName
+				candidate.Spec.CommonName = "prometheus"
+				candidate.Spec.IssuerRef = cmmetav1.ObjectReference{
+					Name: caIssuer.Name,
+					Kind: "ClusterIssuer",
+				}
+			})
+
 			crd.Spec.Restricted = common.NewTrue()
 
 			// how the jdk command line can be configured or modified

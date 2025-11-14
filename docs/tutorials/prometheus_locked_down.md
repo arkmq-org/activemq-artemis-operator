@@ -76,7 +76,7 @@ graph TB
     subgraph cert_layer ["Application Certificates"]
         ServerCert["🖥️ Server<br />CN: activemq-artemis-<br />operand"]
         OperatorCert["⚙️ Operator<br />CN: activemq-artemis-<br />operator"]
-        PrometheusCert["📊 Prometheus<br />CN: my-prometheus"]
+        PrometheusCert["📊 Prometheus<br />CN: prometheus"]
         MessagingCert["💬 Messaging<br />CN: messaging-client"]
     end
 
@@ -144,33 +144,57 @@ graph TD
 
 ## Understanding the Security Model
 
-The locked-down broker uses certificate-based authentication with specific naming requirements:
+The locked-down broker uses certificate-based authentication. This tutorial uses the following configuration:
 
 * **Certificate-Based Roles:** The broker grants access based on certificate
   Common Names (CN) - the "name" field in a certificate that identifies who it
-  belongs to. We configure two separate authentication realms:
+  belongs to. We make use of two separate authentication realms, one for messaging and the default one for the control plane.
 
   **Messaging Realm (AMQPS acceptor):**
-  * `CN=messaging-client` gets messaging permissions (used by producer/consumer
-    jobs)
+  * Manually configured in the `artemis-broker-jaas-config` secret
+  * In this tutorial we use `CN=messaging-client` for messaging permissions
+    (producer/consumer jobs)
+  * You can configure any CN values you need for your application clients
 
   **Control Plane Realm (HTTP/Jolokia metrics endpoint):**
-  * `CN=activemq-artemis-operator` gets operator privileges (used by the
-    operator for management)
-  * `CN=my-prometheus` gets metrics access (used by Prometheus for scraping)
-  * `CN=activemq-artemis-operand` allows health probes
+  * Created and configured automatically by the operator in restricted mode
+  * The operator reads the actual CN values from the certificate secrets and
+    configures access accordingly
+  * In this tutorial we use:
+    * `CN=activemq-artemis-operator` for operator privileges (management)
+    * `CN=prometheus` for metrics access (Prometheus scraping)
+    * `CN=activemq-artemis-operand` for health probes
+  * You can use different CN values - the operator will extract them from your
+    actual certificates
 
-* **Required Secret Names:** Kubernetes Secrets that store certificates and keys:
-  * `broker-cert`: Server certificate for the broker pod (proves the broker's
-    identity)
-  * `activemq-artemis-manager-ca`: CA trust bundle (the "root" certificate that
-    validates all others, key must be `ca.pem`)
-  * `my-prometheus-cert`: Client certificate for Prometheus to authenticate with
-    the metrics endpoint
-
-These conventions ensure secure communication between all components in the
-tutorial, with separate certificates for different roles following the principle
-of least privilege.
+* **Required Secrets:** The following Kubernetes Secrets must exist and contain
+  the appropriate certificates and keys. Default names are shown, but can be
+  customized using environment variables. The operator extracts the CN from each
+  certificate to configure access:
+  * **Broker server certificate** - Default: `broker-cert`
+    * Server certificate for the broker pod (proves the broker's identity)
+    * The operator automatically checks for `[cr-name]-broker-cert` first, then
+      falls back to `broker-cert`
+    * No environment variable override (uses discovery based on what exists in
+      the namespace)
+    * CN in this tutorial: `activemq-artemis-operand` (used for health probes)
+  * **Operator client certificate** - Default: `activemq-artemis-manager-cert`
+    * Operator certificate for authenticating with the broker
+    * Override via env: `ACTIVEMQ_ARTEMIS_MANAGER_CERT_SECRET_NAME`
+    * CN in this tutorial: `activemq-artemis-operator` (gets operator
+      privileges)
+  * **CA trust bundle** - Default: `activemq-artemis-manager-ca`
+    * Root certificate that validates all others (key must be `ca.pem`)
+    * Override via env: `ACTIVEMQ_ARTEMIS_MANAGER_CA_SECRET_NAME`
+  * **Prometheus client certificate** - Default: `prometheus-cert`
+    * Prometheus certificate for authenticating to the metrics endpoint
+    * The operator automatically checks for `[cr-name]-[base-name]` first, then
+      falls back to `[base-name]` (where base-name is from env or default)
+    * Override via env: `BASE_PROMETHEUS_CERT_SECRET_NAME` (affects both
+      CR-specific and shared secret names)
+    * Example: If env is set to `custom-prometheus`, checks
+      `my-broker-custom-prometheus` then `custom-prometheus`
+    * CN in this tutorial: `prometheus` (gets metrics access)
 
 ## Prerequisites
 
@@ -214,7 +238,7 @@ minikube addons enable metrics-server --profile tutorialtester
 * minikube 1.37.0 is available! Download it: https://github.com/kubernetes/minikube/releases/tag/v1.37.0
 * To disable this notice, run: 'minikube config set WantUpdateNotification false'
 
-* Automatically selected the kvm2 driver. Other choices: podman, qemu2, ssh
+* Automatically selected the kvm2 driver. Other choices: qemu2, podman, ssh
 * Starting "tutorialtester" primary control-plane node in "tutorialtester" cluster
 * Creating kvm2 VM (CPUs=2, Memory=6000MB, Disk=20000MB) ...
 * Preparing Kubernetes v1.33.1 on Docker 28.0.4 ...
@@ -249,8 +273,8 @@ minikube kubectl -- patch deployment -n ingress-nginx ingress-nginx-controller -
 ```shell markdown_runner
 * ingress is an addon maintained by Kubernetes. For any concerns contact minikube on GitHub.
 You can view the list of minikube maintainers at: https://github.com/kubernetes/minikube/blob/master/OWNERS
-  - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3
   - Using image registry.k8s.io/ingress-nginx/controller:v1.12.2
+  - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3
   - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3
 * Verifying ingress addon...
 * The 'ingress' addon is enabled
@@ -310,7 +334,7 @@ Wait for the Operator to start (status: `running`).
 kubectl wait pod --all --for=condition=Ready --namespace=locked-down-broker --timeout=600s
 ```
 ```shell markdown_runner
-pod/activemq-artemis-controller-manager-fdd64476f-mbqhx condition met
+pod/activemq-artemis-controller-manager-fdd64476f-xgt4v condition met
 ```
 
 ## Install the dependencies
@@ -348,7 +372,7 @@ helm upgrade -i prometheus prometheus-community/kube-prometheus-stack \
 "prometheus-community" already exists with the same configuration, skipping
 Release "prometheus" does not exist. Installing it now.
 NAME: prometheus
-LAST DEPLOYED: Thu Nov 13 10:34:34 2025
+LAST DEPLOYED: Fri Nov 14 10:51:49 2025
 NAMESPACE: locked-down-broker
 STATUS: deployed
 REVISION: 1
@@ -430,9 +454,9 @@ Wait for `cert-manager` to be ready.
 kubectl wait pod --all --for=condition=Ready --namespace=cert-manager --timeout=600s
 ```
 ```shell markdown_runner
-pod/cert-manager-58f8dcbb68-27chj condition met
-pod/cert-manager-cainjector-7588b6f5cc-whbcx condition met
-pod/cert-manager-webhook-768c67c955-b6rbr condition met
+pod/cert-manager-58f8dcbb68-c7pwg condition met
+pod/cert-manager-cainjector-7588b6f5cc-zmddd condition met
+pod/cert-manager-webhook-768c67c955-8nxdm condition met
 ```
 
 ### Install Trust Manager
@@ -455,7 +479,7 @@ helm upgrade trust-manager jetstack/trust-manager --install --namespace cert-man
 ```shell markdown_runner
 Release "trust-manager" does not exist. Installing it now.
 NAME: trust-manager
-LAST DEPLOYED: Thu Nov 13 10:35:40 2025
+LAST DEPLOYED: Fri Nov 14 10:53:02 2025
 NAMESPACE: cert-manager
 STATUS: deployed
 REVISION: 1
@@ -597,7 +621,7 @@ We need three certificates:
 1. A server certificate for the broker pod (`broker-cert`)
 2. A client certificate for the operator to authenticate with the broker
    (`activemq-artemis-manager-cert`)
-3. A client certificate for Prometheus to scrape metrics (`my-prometheus-cert`)
+3. A client certificate for Prometheus to scrape metrics (`prometheus-cert`)
 
 ```{"stage":"deploy", "runtime":"bash", "label":"create broker and client certs"}
 kubectl apply -f - <<EOF
@@ -634,11 +658,11 @@ spec:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: my-prometheus-cert
+  name: prometheus-cert
   namespace: locked-down-broker
 spec:
-  secretName: my-prometheus-cert
-  commonName: my-prometheus
+  secretName: prometheus-cert
+  commonName: prometheus
   issuerRef:
     name: ca-issuer
     kind: ClusterIssuer
@@ -647,7 +671,7 @@ EOF
 ```shell markdown_runner
 certificate.cert-manager.io/broker-cert created
 certificate.cert-manager.io/activemq-artemis-manager-cert created
-certificate.cert-manager.io/my-prometheus-cert created
+certificate.cert-manager.io/prometheus-cert created
 ```
 
 Wait for the secrets to be created.
@@ -655,25 +679,20 @@ Wait for the secrets to be created.
 ```{"stage":"deploy", "runtime":"bash", "label":"wait for secrets"}
 kubectl wait --for=condition=Ready certificate broker-cert -n locked-down-broker --timeout=300s
 kubectl wait --for=condition=Ready certificate activemq-artemis-manager-cert -n locked-down-broker --timeout=300s
-kubectl wait --for=condition=Ready certificate my-prometheus-cert -n locked-down-broker --timeout=300s
+kubectl wait --for=condition=Ready certificate prometheus-cert -n locked-down-broker --timeout=300s
 ```
 ```shell markdown_runner
 certificate.cert-manager.io/broker-cert condition met
 certificate.cert-manager.io/activemq-artemis-manager-cert condition met
-certificate.cert-manager.io/my-prometheus-cert condition met
+certificate.cert-manager.io/prometheus-cert condition met
 ```
 
-### Create JAAS Configuration
+### Create JAAS Configuration for Messaging
 
-Create a JAAS (Java Authentication and Authorization Service) configuration for both
-messaging clients and the control plane (metrics/management endpoint). This single
-secret contains two authentication realms that map certificate Common Names to roles,
-enabling certificate-based access control.
-
-The `login.config` defines two realms:
-
-* **activemq**: For AMQPS messaging connections
-* **http_server_authenticator**: For HTTP/Jolokia metrics and management endpoint
+Create a JAAS (Java Authentication and Authorization Service) configuration for the
+messaging acceptor. In restricted mode, the operator automatically handles control
+plane authentication (metrics and management), so we only need to configure the
+AMQPS messaging realm.
 
 ```{"stage":"deploy", "runtime":"bash", "label":"create jaas config"}
 kubectl apply -f - <<EOF
@@ -692,29 +711,17 @@ stringData:
         baseDir="/amq/extra/secrets/artemis-broker-jaas-config"
         ;
     };
-    my_http_server_authenticator {
-      org.apache.activemq.artemis.spi.core.security.jaas.TextFileCertificateLoginModule required
-        reload=true
-        debug=false
-        org.apache.activemq.jaas.textfiledn.user=_cert-users
-        org.apache.activemq.jaas.textfiledn.role=_cert-roles
-        baseDir="/amq/extra/secrets/artemis-broker-jaas-config"
-        ;
-    };
   cert-users: "messaging-client=/.*messaging-client.*/"
   cert-roles: "messaging=messaging-client"
-  _cert-users: |
-    operator=/.*activemq-artemis-operator.*/
-    probe=/.*activemq-artemis-operand.*/
-    prometheus=/.*my-prometheus.*/
-  _cert-roles: |
-    status=operator,probe
-    metrics=operator,prometheus
 EOF
 ```
 ```shell markdown_runner
 secret/artemis-broker-jaas-config created
 ```
+
+**Note:** The operator automatically configures control plane authentication in
+restricted mode, granting `CN=activemq-artemis-operator`, `CN=activemq-artemis-operand`,
+and `CN=prometheus` the appropriate access to metrics and management endpoints.
 
 ### Deploy the Broker Custom Resource
 
@@ -750,17 +757,14 @@ secret/amqps-pem created
 ```
 
 Now, deploy the `ActiveMQArtemis` custom resource with `spec.restricted: true`,
-along with the configuration for the acceptor and the metrics endpoint
-authentication.
+along with the configuration for the acceptor.
 
 **Key Configuration Elements:**
 
-* `restricted: true`: Enables certificate-based authentication mode
-* `brokerProperties`: Configure messaging queues, security roles, network
-  acceptors, and custom HTTP authentication realm
-* `extraMounts.secrets`: Mount certificate and configuration files into the
-  broker pod
-* `env`: Set Java system property to use custom realm for HTTP authentication
+* `restricted: true`: Enables certificate-based authentication mode and automatic
+  control plane authentication
+* `brokerProperties`: Configure messaging queues, security roles, and network acceptors
+* `extraMounts.secrets`: Mount certificate and configuration files into the broker pod
 
 For detailed explanation of broker properties, see the [broker configuration documentation](../help/operator.md#configuring-brokerproperties).
 
@@ -773,9 +777,6 @@ metadata:
   namespace: locked-down-broker
 spec:
   restricted: true
-  env:
-    - name: JAVA_ARGS_APPEND
-      value: "-DhttpServerAuthenticator.realm=my_http_server_authenticator"
   brokerProperties:
     - "messageCounterSamplePeriod=500"
     # Create a queue for messaging
@@ -879,13 +880,13 @@ spec:
           name: activemq-artemis-manager-ca
           key: ca.pem
       # Client certificate and key for mutual TLS authentication.
-      # This uses the dedicated Prometheus certificate (CN: my-prometheus).
+      # This uses the dedicated Prometheus certificate (CN: prometheus).
       cert:
         secret:
-          name: my-prometheus-cert
+          name: prometheus-cert
           key: tls.crt
       keySecret:
-        name: my-prometheus-cert
+        name: prometheus-cert
         key: tls.key
 EOF
 ```
@@ -1076,6 +1077,7 @@ kubectl rollout status deployment prometheus-grafana -n locked-down-broker --tim
 ```
 ```shell markdown_runner
 deployment.apps/prometheus-grafana restarted
+Waiting for deployment "prometheus-grafana" rollout to finish: 0 out of 1 new replicas have been updated...
 Waiting for deployment "prometheus-grafana" rollout to finish: 1 old replicas are pending termination...
 Waiting for deployment "prometheus-grafana" rollout to finish: 1 old replicas are pending termination...
 deployment "prometheus-grafana" successfully rolled out
@@ -1347,6 +1349,9 @@ Verify that the dashboard has been loaded correctly and has the expected configu
 ```{"stage":"grafana", "runtime":"bash", "label":"verify dashboard loaded"}
 echo "Testing Artemis Broker Metrics dashboard configuration..."
 echo ""
+
+# Get the Grafana admin password from the secret
+GRAFANA_PASSWORD=$(kubectl get secret -n locked-down-broker prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 --decode)
 
 # Fetch dashboard JSON once
 DASHBOARD_JSON=$(kubectl exec -n locked-down-broker deployment/prometheus-grafana -- \

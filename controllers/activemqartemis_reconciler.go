@@ -2046,6 +2046,12 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 			return nil, err
 		}
 
+		prometheusCertSecretName := common.GetPrometheusCertSecretName(customResource, client)
+		prometheusCertSubject, err := common.ExtractCertSubjectFromSecret(prometheusCertSecretName, customResource.Namespace, client)
+		if err != nil {
+			return nil, err
+		}
+
 		// TODO - make configuable
 		// support <crNname->control-plane-auth-secret, maybe a suffix for the http_server_authenticator realm login.config
 
@@ -2054,11 +2060,12 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		fmt.Fprintf(cert_user, "operator=/.*%s.*/\n", operatorCertSubject.CommonName) // regexp syntax start and with /
 		// can and should use the full DN after https://issues.apache.org/jira/browse/ARTEMIS-5102
 		fmt.Fprintf(cert_user, "probe=/.*%s.*/\n", operandCertSubject.CommonName)
+		fmt.Fprintf(cert_user, "prometheus=/.*%s.*/\n", prometheusCertSubject.CommonName)
 		brokerPropertiesMapData["_cert-users"] = cert_user.String()
 
 		cert_roles := newPropsWithHeader()
 		fmt.Fprintln(cert_roles, "status=operator,probe")
-		fmt.Fprintln(cert_roles, "metrics=operator")
+		fmt.Fprintln(cert_roles, "metrics=operator,prometheus")
 		fmt.Fprintln(cert_roles, "hawtio=hawtio")
 		brokerPropertiesMapData["_cert-roles"] = cert_roles.String()
 
