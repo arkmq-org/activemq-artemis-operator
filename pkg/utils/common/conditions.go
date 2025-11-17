@@ -31,7 +31,7 @@ const (
 
 func SetReadyCondition(conditions *[]metav1.Condition) {
 	condition := newReadyCondition()
-	ready := true
+	ready := meta.IsStatusConditionTrue(*conditions, brokerv1beta1.DeployedConditionType)
 	for _, c := range *conditions {
 		if c.Type != brokerv1beta1.ReadyConditionType && c.Status == metav1.ConditionFalse {
 			ready = false

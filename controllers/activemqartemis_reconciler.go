@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"hash/adler32"
 	"regexp"
+	"slices"
 	"sort"
 	"unicode"
 
@@ -96,6 +97,11 @@ const (
 	debugArgsEnvVarName      = "DEBUG_ARGS"
 	javaOptsEnvVarName       = "JAVA_OPTS"
 	jdkJavaOptionsEnvVarName = "JDK_JAVA_OPTIONS"
+
+	ScaleDownConfigTrigger        = "HAPolicyConfiguration.scaleDownConfiguration.enabled=false"
+	ScaleDownConfigTriggerOn      = "HAPolicyConfiguration.scaleDownConfiguration.enabled=true"
+	OrdinalPropertiesSuffix       = "for_ordinal_"
+	BrokerPropertiesOrdinalFormat = UncheckedPrefix + "%s" + OrdinalPrefixSep + OrdinalPropertiesSuffix + "%d"
 )
 
 var defaultMessageMigration bool = true
@@ -195,9 +201,6 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) Process(customResource *brokerv
 	if err != nil {
 		reconciler.log.Error(err, "error processing resources")
 	}
-
-	//empty the collected objects
-	reconciler.requestedResources = make(map[reflect.Type]map[string]rtclient.Object)
 
 	reconciler.log.V(1).Info("Reconciler Processing... complete", "CRD ver:", customResource.ObjectMeta.ResourceVersion, "CRD Gen:", customResource.ObjectMeta.Generation)
 
@@ -372,21 +375,147 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessCredentials(customResour
 	reconciler.sourceEnvVarFromSecret(customResource, namer, currentStatefulSet, &envVars, secretName, client)
 }
 
-func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessDeploymentPlan(customResource *brokerv1beta1.ActiveMQArtemis, namer common.Namers, client rtclient.Client, scheme *runtime.Scheme, currentStatefulSet *appsv1.StatefulSet) {
+func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessDeploymentPlan(customResource *brokerv1beta1.ActiveMQArtemis, theNamer common.Namers, client rtclient.Client, scheme *runtime.Scheme, currentStatefulSet *appsv1.StatefulSet) {
 
 	deploymentPlan := &customResource.Spec.DeploymentPlan
 
 	reconciler.log.V(2).Info("Processing deployment plan", "plan", deploymentPlan, "broker cr", customResource.Name)
-	// Ensure the StatefulSet size is the same as the spec
-	replicas := common.GetDeploymentSize(customResource)
-	currentStatefulSet.Spec.Replicas = &replicas
 
-	reconciler.log.V(2).Info("Now sync Message migration", "for cr", customResource.Name)
-	reconciler.syncMessageMigration(customResource, namer, client, scheme)
+	reqestedReplicas := common.GetDeploymentSize(customResource)
+
+	if nil == customResource.Spec.DeploymentPlan.MessageMigration {
+		customResource.Spec.DeploymentPlan.MessageMigration = &defaultMessageMigration
+	}
+
+	if reconciler.CrConfiguredForControllerManagedScaleDown() {
+		reconciler.controllerManagedScaledownViaConditions(customResource, currentStatefulSet, reqestedReplicas, client)
+	} else {
+		// Ensure the StatefulSet size is the same as the spec
+		currentStatefulSet.Spec.Replicas = &reqestedReplicas
+
+		reconciler.log.V(2).Info("Now sync Message migration", "for cr", customResource.Name)
+		reconciler.syncMessageMigration(customResource, theNamer, client, scheme)
+	}
 
 	if customResource.Spec.DeploymentPlan.PodDisruptionBudget != nil {
 		reconciler.applyPodDisruptionBudget(customResource)
 	}
+}
+
+func (reconciler *ActiveMQArtemisReconcilerImpl) controllerManagedScaledownViaConditions(customResource *brokerv1beta1.ActiveMQArtemis, currentStatefulSet *appsv1.StatefulSet, reqestedReplicas int32, client rtclient.Client) {
+	if isClustered(customResource) &&
+		*customResource.Spec.DeploymentPlan.MessageMigration &&
+		currentStatefulSet != nil &&
+		currentStatefulSet.Spec.Replicas != nil &&
+		*currentStatefulSet.Spec.Replicas > 1 &&
+		reqestedReplicas < *currentStatefulSet.Spec.Replicas {
+
+		ordinalToDrain := OrdinalToDrain(currentStatefulSet)
+		podName := namer.CrToSSOrdinal(customResource.Name, int(ordinalToDrain))
+
+		// state transition in the condition reason, so we need to find any existing to know the current state
+		condition := meta.FindStatusCondition(customResource.Status.Conditions, brokerv1beta1.ScaleDownPendingConditionType)
+		if condition == nil {
+			condition = &metav1.Condition{
+				Type:    brokerv1beta1.ScaleDownPendingConditionType,
+				Status:  metav1.ConditionTrue,
+				Reason:  brokerv1beta1.ScaleDownPendingConditionPendingConfigAppliedReason,
+				Message: podName,
+			}
+			reconciler.log.Info(fmt.Sprintf("scaledown starting on %s", podName))
+		}
+
+		switch condition.Reason {
+
+		case brokerv1beta1.ScaleDownPendingConditionPendingEmptyReason:
+			{
+				count, err := reconciler.GetTotalMessageCount(customResource, client, ordinalToDrain)
+				if err != nil {
+					condition.Message = fmt.Sprintf("%s failed to get total message count, reason: %v", podName, err)
+				} else if count == 0 {
+					// effect scaledown/resize by one
+					currentStatefulSet.Spec.Replicas = &ordinalToDrain
+					// transition
+					condition.Reason = brokerv1beta1.ScaleDownPendingConditionPendingDeleteReason
+					condition.Message = podName
+					reconciler.log.Info(fmt.Sprintf("scaledown complete on %s, empty pending delete", podName))
+				} else {
+					condition.Message = fmt.Sprintf("%s total pending count: %d", podName, count)
+					reconciler.log.Info(fmt.Sprintf("scaledown on %s with pending message count %d", podName, count))
+					if err := reconciler.shutdownWithScaledown(customResource, client, ordinalToDrain); err != nil {
+						condition.Message = fmt.Sprintf("%s failed to migrate messages via scaledown, pending message count %d, reason: %v", podName, count, err)
+					}
+				}
+			}
+		case brokerv1beta1.ScaleDownPendingConditionPendingDeleteReason:
+			{
+				if condition.Message == podName {
+					// resize of ss still pending
+					currentStatefulSet.Spec.Replicas = &ordinalToDrain
+				} else {
+					// transition for next ordinal
+					condition.Reason = brokerv1beta1.ScaleDownPendingConditionPendingConfigAppliedReason
+					condition.Message = podName
+					reconciler.log.Info(fmt.Sprintf("scaledown starting on %s", podName))
+				}
+			}
+		}
+		meta.SetStatusCondition(&customResource.Status.Conditions, *condition)
+
+	} else {
+
+		meta.RemoveStatusCondition(&customResource.Status.Conditions, brokerv1beta1.ScaleDownPendingConditionType)
+
+		// Ensure the StatefulSet size is the same as the spec
+		currentStatefulSet.Spec.Replicas = &reqestedReplicas
+	}
+}
+
+func OrdinalToDrain(currentStatefulSet *appsv1.StatefulSet) int32 {
+	return *currentStatefulSet.Spec.Replicas - 1
+}
+
+func (reconciler *ActiveMQArtemisReconcilerImpl) CrConfiguredForControllerManagedScaleDown() bool {
+	return slices.Contains(reconciler.customResource.Spec.BrokerProperties, ScaleDownConfigTrigger)
+}
+
+func (reconciler *ActiveMQArtemisReconcilerImpl) shutdownWithScaledown(customResource *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, ordinalToDrain int32) error {
+
+	if err := reconciler.resolveAndValidateJolokia(client, ordinalToDrain); err != nil {
+		return err
+	}
+
+	jk := reconciler.jolokiaEndpoints[ordinalToDrain]
+
+	if _, err := jk.Artemis.ScaleDown(); err != nil {
+		reconciler.log.Error(err, "failed to scaledown", "ordinal", ordinalToDrain)
+		return fmt.Errorf("error on scaledown %w ", err)
+	}
+	return nil
+}
+
+func (reconciler *ActiveMQArtemisReconcilerImpl) GetTotalMessageCount(customResource *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, ordinalToDrain int32) (int64, error) {
+	if err := reconciler.resolveAndValidateJolokia(client, ordinalToDrain); err != nil {
+		return -1, err
+	}
+	jk := reconciler.jolokiaEndpoints[ordinalToDrain]
+	result, err := jk.Artemis.GetTotalMessageCount()
+	if err != nil {
+		return -1, NewJolokiaClientsNotFoundError(fmt.Errorf("error on get total message count %w ", err))
+	}
+
+	return strconv.ParseInt(result, 10, 64)
+}
+
+func (reconciler *ActiveMQArtemisReconcilerImpl) resolveAndValidateJolokia(client rtclient.Client, ordinalOfInterest int32) error {
+	reconciler.resolveJolokiaEndpoints(reconciler.customResource, client)
+	if len(reconciler.jolokiaEndpoints) == 0 {
+		return NewJolokiaClientsNotFoundError(errors.New("waiting for jolokia endpoints to become available"))
+	}
+	if len(reconciler.jolokiaEndpoints) <= int(ordinalOfInterest) {
+		return NewJolokiaClientsNotFoundError(errors.New(fmt.Sprintf("waiting for jolokia endpoint for ordinal %d to become available", ordinalOfInterest)))
+	}
+	return nil
 }
 
 func (reconciler *ActiveMQArtemisReconcilerImpl) applyPodDisruptionBudget(customResource *brokerv1beta1.ActiveMQArtemis) {
@@ -976,6 +1105,14 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) trackDesired(desired rtclient.O
 	}
 	resName := desired.GetName()
 	resMap[resName] = desired
+}
+
+func (reconciler *ActiveMQArtemisReconcilerImpl) getFromDesired(kind reflect.Type, name string) rtclient.Object {
+	obj, found := reconciler.requestedResources[kind][name]
+	if found {
+		return obj
+	}
+	return nil
 }
 
 func (reconciler *ActiveMQArtemisReconcilerImpl) applyTemplates(desired rtclient.Object) (err error) {
@@ -1938,7 +2075,7 @@ func MakeContainerPorts(cr *brokerv1beta1.ActiveMQArtemis) []corev1.ContainerPor
 	return containerPorts
 }
 
-func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customResource *brokerv1beta1.ActiveMQArtemis, namer common.Namers, current *corev1.PodTemplateSpec, client rtclient.Client) (*corev1.PodTemplateSpec, error) {
+func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customResource *brokerv1beta1.ActiveMQArtemis, namer common.Namers, currentStatefulSet *appsv1.StatefulSet, client rtclient.Client) (*corev1.PodTemplateSpec, error) {
 
 	reqLogger := reconciler.log.WithName(customResource.Name)
 
@@ -1946,6 +2083,8 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		Name:      customResource.Name,
 		Namespace: customResource.Namespace,
 	}
+
+	current := &currentStatefulSet.Spec.Template
 
 	terminationGracePeriodSeconds := int64(60)
 	respectExistingJavaOpts := isExistingDeploymentWithJavaOpts(current) // check before we mutate
@@ -1985,7 +2124,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 
 	configMapsToMount := customResource.Spec.DeploymentPlan.ExtraMounts.ConfigMaps
 	secretsToMount := customResource.Spec.DeploymentPlan.ExtraMounts.Secrets
-	brokerPropertiesResourceName, isSecret, brokerPropertiesMapData, serr := reconciler.addResourceForBrokerProperties(customResource, namer)
+	brokerPropertiesResourceName, isSecret, brokerPropertiesMapData, serr := reconciler.addResourceForBrokerProperties(customResource, namer, currentStatefulSet)
 	if serr != nil {
 		return nil, serr
 	}
@@ -2415,7 +2554,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 	if !isSecret {
 		mountPoint = cfgMapPathBase
 	}
-	brokerPropsValue := brokerPropertiesConfigSystemPropValue(customResource, mountPoint, brokerPropertiesResourceName, brokerPropertiesMapData)
+	brokerPropsValue := reconciler.brokerPropertiesConfigSystemPropValue(mountPoint, brokerPropertiesResourceName, brokerPropertiesMapData)
 
 	// only use init container JAVA_OPTS on existing deployments and migrate to JDK_JAVA_OPTIONS for independence
 	// from init containers and broker run scripts
@@ -2581,9 +2720,9 @@ func newBufferWithHeader(commentChars string) *bytes.Buffer {
 	return buf
 }
 
-func brokerPropertiesConfigSystemPropValue(customResource *brokerv1beta1.ActiveMQArtemis, mountPoint, resourceName string, brokerPropertiesData map[string]string) string {
+func (reconciler *ActiveMQArtemisReconcilerImpl) brokerPropertiesConfigSystemPropValue(mountPoint, resourceName string, brokerPropertiesData map[string]string) string {
 	var result = ""
-	if len(brokerPropertiesData) == 1 {
+	if hasOrdinalPropertieKey(brokerPropertiesData) {
 		// single entry, no ordinal subpath - broker will log if arg is not found for the watcher so make conditional
 		result = fmt.Sprintf("-Dbroker.properties=%s%s/%s", mountPoint, resourceName, BrokerPropertiesName)
 	} else {
@@ -2591,12 +2730,17 @@ func brokerPropertiesConfigSystemPropValue(customResource *brokerv1beta1.ActiveM
 		result = fmt.Sprintf("-Dbroker.properties=%s%s/,%s%s/%s${STATEFUL_SET_ORDINAL}/", mountPoint, resourceName, mountPoint, resourceName, OrdinalPrefix)
 	}
 
-	for _, extraSecretName := range customResource.Spec.DeploymentPlan.ExtraMounts.Secrets {
+	for _, extraSecretName := range reconciler.customResource.Spec.DeploymentPlan.ExtraMounts.Secrets {
 		if strings.HasSuffix(extraSecretName, brokerPropsSuffix) {
 			// append to ordinal path
 			result = fmt.Sprintf("%s,%s%s/,%s%s/%s${STATEFUL_SET_ORDINAL}/", result, secretPathBase, extraSecretName, secretPathBase, extraSecretName, OrdinalPrefix)
 		}
 	}
+
+	if reconciler.CrConfiguredForControllerManagedScaleDown() {
+		result = fmt.Sprintf("%s,%s%s/?filter=.*\\.%s${STATEFUL_SET_ORDINAL}", result, mountPoint, resourceName, OrdinalPropertiesSuffix)
+	}
+
 	return result
 }
 
@@ -2781,7 +2925,7 @@ func getPropertiesResourceNsName(artemis *brokerv1beta1.ActiveMQArtemis) types.N
 	}
 }
 
-func (reconciler *ActiveMQArtemisReconcilerImpl) addResourceForBrokerProperties(customResource *brokerv1beta1.ActiveMQArtemis, namer common.Namers) (string, bool, map[string]string, error) {
+func (reconciler *ActiveMQArtemisReconcilerImpl) addResourceForBrokerProperties(customResource *brokerv1beta1.ActiveMQArtemis, namer common.Namers, ss *appsv1.StatefulSet) (string, bool, map[string]string, error) {
 
 	// fetch and do idempotent transform based on CR
 
@@ -2811,7 +2955,8 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) addResourceForBrokerProperties(
 		desired = obj.(*corev1.Secret)
 	}
 
-	data := BrokerPropertiesData(customResource.Spec.BrokerProperties)
+	data := BrokerPropertiesData(reconciler.customResource.Spec.BrokerProperties)
+	reconciler.ProcessBrokerPropertiess(data)
 
 	if desired == nil {
 		reconciler.log.V(1).Info("desired brokerprop secret nil, create new one", "name", resourceName.Name)
@@ -2826,6 +2971,32 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) addResourceForBrokerProperties(
 
 	reconciler.log.V(1).Info("Requesting mount for broker properties secret")
 	return resourceName.Name, true, data, nil
+}
+
+func (r *ActiveMQArtemisReconcilerImpl) ProcessBrokerPropertiess(m map[string]string) {
+	if condition := meta.FindStatusCondition(r.customResource.Status.Conditions, brokerv1beta1.ScaleDownPendingConditionType); condition != nil {
+		if ordinal, err := r.ordinalFromCondition(condition); err == nil {
+			buf := newPropsWithHeader()
+			fmt.Fprintln(buf, ScaleDownConfigTriggerOn)
+			propertyFileName := scaleDownOnSigTermPropsKey(ordinal)
+			m[propertyFileName] = buf.String()
+		} else {
+			r.log.V(1).Error(err, "no scaledown_on_sig_term config applied, failed to extract ordinal from pending scaledown condition", "condition", condition)
+		}
+	}
+}
+
+func scaleDownOnSigTermPropsKey(ordinal int) string {
+	propertyFileName := fmt.Sprintf(BrokerPropertiesOrdinalFormat, "scaledown_on_sig_term", ordinal)
+	return propertyFileName
+}
+
+func (r *ActiveMQArtemisReconcilerImpl) ordinalFromCondition(condition *metav1.Condition) (int, error) {
+	return namer.OrdinalFromPodName(r.customResource.Name, condition.Message)
+}
+
+func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessBrokerProperties(ss *appsv1.StatefulSet) []string {
+	return reconciler.customResource.Spec.BrokerProperties
 }
 
 func alder32StringValue(alder32Bytes []byte) string {
@@ -3006,7 +3177,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) createExtraConfigmapsAndSecrets
 			//now we have a secret. First create a volume
 			secretVol := volumes.MakeVolumeForSecret(secret)
 
-			if secret == brokePropertiesResourceName && len(brokerPropsData) > 1 {
+			if secret == brokePropertiesResourceName && hasOrdinalPropertieKey(brokerPropsData) {
 				// place ordinal data in subpath in order
 				for _, key := range sortedKeys(brokerPropsData) {
 					matches := ParseBrokerPropertyWithOrdinal(key)
@@ -3029,7 +3200,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) createExtraConfigmapsAndSecrets
 					return nil, nil, err
 				}
 
-				if len(bpSecret.Data) > 0 {
+				if len(bpSecret.Data) > 0 && hasOrdinalPropertieKeyInData(bpSecret.Data) {
 					for _, key := range sortedKeysStringKeyByteValue(bpSecret.Data) {
 						matches := ParseBrokerPropertyWithOrdinal(key)
 						if len(matches) > 0 {
@@ -3049,6 +3220,26 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) createExtraConfigmapsAndSecrets
 	}
 
 	return extraVolumes, extraVolumeMounts, nil
+}
+
+func hasOrdinalPropertieKey(brokerPropsData map[string]string) bool {
+	for _, key := range sortedKeys(brokerPropsData) {
+		matches := ParseBrokerPropertyWithOrdinal(key)
+		if len(matches) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func hasOrdinalPropertieKeyInData(brokerPropsData map[string][]byte) bool {
+	for _, key := range sortedKeysStringKeyByteValue(brokerPropsData) {
+		matches := ParseBrokerPropertyWithOrdinal(key)
+		if len(matches) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 var brokerPropertyWithOrdinalRegex *regexp.Regexp
@@ -3071,7 +3262,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) StatefulSetForCR(customResource
 	replicas := common.GetDeploymentSize(customResource)
 	currentStateFullSet = ss.MakeStatefulSet(currentStateFullSet, namer.SsNameBuilder.Name(), namer.SvcHeadlessNameBuilder.Name(), namespacedName, nil, namer.LabelBuilder.Labels(), &replicas)
 
-	podTemplateSpec, err := reconciler.PodTemplateSpecForCR(customResource, namer, &currentStateFullSet.Spec.Template, client)
+	podTemplateSpec, err := reconciler.PodTemplateSpecForCR(customResource, namer, currentStateFullSet, client)
 	if err != nil {
 		reqLogger.Error(err, "error creating pod template")
 		return nil, err
@@ -3239,11 +3430,15 @@ type applyError struct {
 func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessBrokerStatus(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, scheme *runtime.Scheme) (retry bool) {
 	var condition metav1.Condition
 
+	// we need to requeue till stable
+	retry = meta.IsStatusConditionTrue(cr.Status.Conditions, brokerv1beta1.ScaleDownPendingConditionType)
+
 	err := AssertBrokersAvailable(cr, client)
 	if err != nil {
 		condition = trapErrorAsCondition(err, brokerv1beta1.ConfigAppliedConditionType)
 		meta.SetStatusCondition(&cr.Status.Conditions, condition)
-		return err.Requeue()
+		retry = retry || err.Requeue()
+		return retry
 	}
 
 	err = reconciler.AssertBrokerImageVersion(cr, client)
@@ -3255,7 +3450,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessBrokerStatus(cr *brokerv
 		}
 	} else {
 		condition = trapErrorAsCondition(err, brokerv1beta1.BrokerVersionAlignedConditionType)
-		retry = err.Requeue()
+		retry = retry || err.Requeue()
 	}
 	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 
@@ -3268,7 +3463,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessBrokerStatus(cr *brokerv
 		}
 	} else {
 		condition = trapErrorAsCondition(err, brokerv1beta1.ConfigAppliedConditionType)
-		retry = err.Requeue()
+		retry = retry || err.Requeue()
 	}
 	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 
@@ -3286,6 +3481,39 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessBrokerStatus(cr *brokerv
 		}
 
 		meta.SetStatusCondition(&cr.Status.Conditions, condition)
+	}
+
+	// transition to check for empty after config for sig term updated
+	scaleDownCondtion := meta.FindStatusCondition(cr.Status.Conditions, brokerv1beta1.ScaleDownPendingConditionType)
+	if scaleDownCondtion != nil {
+
+		switch scaleDownCondtion.Reason {
+
+		case brokerv1beta1.ScaleDownPendingConditionPendingConfigAppliedReason:
+			if meta.IsStatusConditionTrue(cr.Status.Conditions, brokerv1beta1.ConfigAppliedConditionType) {
+				if ordinal, err := reconciler.ordinalFromCondition(scaleDownCondtion); err == nil {
+					reconciler.CheckStatusFromJolokia(reconciler.jolokiaEndpoints[ordinal],
+						func(BrokerStatus *brokerStatus, jk *jolokia_client.JkInfo) ArtemisError {
+							if _, exists := BrokerStatus.BrokerConfigStatus.PropertiesStatus[scaleDownOnSigTermPropsKey(ordinal)]; exists {
+								// restart for sig term config to take effect
+								if _, err := jk.Artemis.ScaleDown(); err == nil {
+									// transition
+									scaleDownCondtion.Reason = brokerv1beta1.ScaleDownPendingConditionPendingEmptyReason
+									scaleDownCondtion.Message = namer.CrToSSOrdinal(reconciler.customResource.Name, int(ordinal))
+								} else {
+									scaleDownCondtion.Message = fmt.Sprintf("%s scaledown to force reload of sig term scaledown properties failed, reason: %v", namer.CrToSSOrdinal(reconciler.customResource.Name, ordinal), err)
+								}
+							} else {
+								scaleDownCondtion.Message = fmt.Sprintf("%s pending presence of %s key in properties status", namer.CrToSSOrdinal(reconciler.customResource.Name, ordinal), scaleDownOnSigTermPropsKey(ordinal))
+							}
+							return nil
+						})
+				} else {
+					reconciler.log.V(1).Error(err, "unable to vaidate config applied condition, failed to extract ordinal from pending scaledown condition", "condition", scaleDownCondtion)
+				}
+			}
+		}
+		meta.SetStatusCondition(&cr.Status.Conditions, *scaleDownCondtion)
 	}
 	return retry
 }
@@ -3367,7 +3595,7 @@ func AssertBrokersAvailable(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.C
 func (reconciler *ActiveMQArtemisReconcilerImpl) AssertBrokerPropertiesStatus(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, scheme *runtime.Scheme) ArtemisError {
 	reqLogger := ctrl.Log.WithValues("ActiveMQArtemis Name", cr.Name)
 
-	secretProjection, err := getSecretProjection(getPropertiesResourceNsName(cr), client)
+	secretProjection, err := reconciler.getSecretProjection(getPropertiesResourceNsName(cr), client)
 	if err != nil {
 		reqLogger.V(2).Info("error retrieving config resources.")
 		return NewArtemisStatusError(err, false)
@@ -3381,7 +3609,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) AssertBrokerPropertiesStatus(cr
 	if errorStatus == nil {
 		for _, extraSecretName := range cr.Spec.DeploymentPlan.ExtraMounts.Secrets {
 			if strings.HasSuffix(extraSecretName, brokerPropsSuffix) {
-				secretProjection, err = getSecretProjection(types.NamespacedName{Name: extraSecretName, Namespace: cr.Namespace}, client)
+				secretProjection, err = reconciler.getSecretProjection(types.NamespacedName{Name: extraSecretName, Namespace: cr.Namespace}, client)
 				if err != nil {
 					reqLogger.V(2).Info("error retrieving -bp extra mount resource.")
 					return NewArtemisStatusError(err, false)
@@ -3406,7 +3634,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) AssertBrokerPropertiesStatus(cr
 func (reconciler *ActiveMQArtemisReconcilerImpl) AssertJaasPropertiesStatus(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, scheme *runtime.Scheme) ArtemisError {
 	reqLogger := ctrl.Log.WithValues("ActiveMQArtemis Name", cr.Name)
 
-	Projection, err := getConfigMappedJaasProperties(cr, client)
+	Projection, err := reconciler.getConfigMappedJaasProperties(cr, client)
 	if err != nil {
 		reqLogger.V(2).Info("error retrieving config resources.")
 		return NewArtemisStatusError(err, false)
@@ -3623,7 +3851,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) checkProjectionStatus(cr *broke
 		return checkErr
 	}
 
-	reqLogger.V(1).Info("successfully synced with broker", "status", statusMessageFromProjection(secretProjection))
+	reqLogger.V(1).Info("successfully synced with brokers", "status", statusMessageFromProjection(secretProjection))
 
 	return nil
 }
@@ -3654,18 +3882,25 @@ func updateExtraConfigStatus(cr *brokerv1beta1.ActiveMQArtemis, Projection *proj
 		brokerv1beta1.ExternalConfigStatus{Name: Projection.Name, ResourceVersion: Projection.ResourceVersion})
 }
 
-func getSecretProjection(secretName types.NamespacedName, client rtclient.Client) (*projection, error) {
-	resource := corev1.Secret{}
-	err := client.Get(context.TODO(), secretName, &resource)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to retrieve secret projection")
+func (reconciler *ActiveMQArtemisReconcilerImpl) getSecretProjection(secretName types.NamespacedName, client rtclient.Client) (*projection, error) {
+	resource := &corev1.Secret{}
+
+	// check our latest desired content
+	desired := reconciler.getFromDesired(reflect.TypeOf(resource), secretName.Name)
+	if desired != nil {
+		resource = desired.(*corev1.Secret)
+	} else {
+		err := client.Get(context.TODO(), secretName, resource)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to retrieve secret projection")
+		}
 	}
 	return newProjectionFromByteValues(resource.ObjectMeta, resource.Data), nil
 }
 
-func getConfigMappedJaasProperties(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client) (*projection, error) {
+func (reconciler *ActiveMQArtemisReconcilerImpl) getConfigMappedJaasProperties(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client) (*projection, error) {
 	if _, name, found := getConfigExtraMount(cr, jaasConfigSuffix); found {
-		return getSecretProjection(types.NamespacedName{Namespace: cr.Namespace, Name: name}, client)
+		return reconciler.getSecretProjection(types.NamespacedName{Namespace: cr.Namespace, Name: name}, client)
 	}
 	return nil, nil
 }
