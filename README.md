@@ -3,6 +3,12 @@
 This project is a [Kubernetes](https://kubernetes.io/) [operator](https://coreos.com/blog/introducing-operators.html)
 to manage the [Apache ActiveMQ Artemis](https://activemq.apache.org/artemis/) message broker.
 
+> [!NOTE]
+> **🤖 For AI Assistants**: This project has documentation optimized for AI
+> in [`AI_documentation/`](AI_documentation/). Start with
+> [`AI_KNOWLEDGE_INDEX.yaml`](AI_documentation/AI_KNOWLEDGE_INDEX.yaml) for
+> quick concept lookup and code navigation.
+
 ## Status ##
 
 The current api version of all main CRDs managed by the operator is **v1beta1**.
@@ -26,3 +32,14 @@ Install delve in the `builder` container, i.e. `RUN go install github.com/go-del
 Disable build optimization, i.e. `go build -gcflags="all=-N -l"`
 Copy delve to the `base-env` container, i.e. `COPY --from=builder /go/bin/dlv /bin`
 Execute operator using delve, i.e. `/bin/dlv exec --listen=0.0.0.0:40000 --headless=true --api-version=2 --accept-multiclient ${OPERATOR} $@`
+
+## AI-Optimized Documentation
+
+Developer documentation optimized for AI assistants is available in [`AI_documentation/`](AI_documentation/):
+
+- **[Knowledge Index](AI_documentation/AI_KNOWLEDGE_INDEX.yaml)** - Quick concept lookup with code locations
+- **[Contribution Guide](AI_documentation/contribution_guide.md)** - Development workflow, TDD, and testing
+
+**For AI assistants**: Start with `AI_KNOWLEDGE_INDEX.yaml` for concept navigation, then use `codebase_search` to discover patterns.
+
+
