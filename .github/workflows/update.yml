@@ -49,7 +49,7 @@ jobs:
           go-version: '1.23.9'
 
       - name: Checkout the repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.BOT_TOKEN }}
 
