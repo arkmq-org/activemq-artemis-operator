@@ -1185,19 +1185,20 @@ var _ = Describe("artemis controller", func() {
 				clusterUserFound := false
 				clusterPasswordFound := false
 				for _, envVar := range initContainer.Env {
-					if envVar.Name == "AMQ_USER" {
+					switch envVar.Name {
+					case "AMQ_USER":
 						userFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(credSecretKey.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_USER"))
-					} else if envVar.Name == "AMQ_PASSWORD" {
+					case "AMQ_PASSWORD":
 						passwordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(credSecretKey.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_PASSWORD"))
-					} else if envVar.Name == "AMQ_CLUSTER_USER" {
+					case "AMQ_CLUSTER_USER":
 						clusterUserFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(credSecretKey.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_USER"))
-					} else if envVar.Name == "AMQ_CLUSTER_PASSWORD" {
+					case "AMQ_CLUSTER_PASSWORD":
 						clusterPasswordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(credSecretKey.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_PASSWORD"))
@@ -1342,19 +1343,20 @@ var _ = Describe("artemis controller", func() {
 				clusterUserFound := false
 				clusterPasswordFound := false
 				for _, envVar := range initContainer.Env {
-					if envVar.Name == "AMQ_USER" {
+					switch envVar.Name {
+					case "AMQ_USER":
 						userFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_USER"))
-					} else if envVar.Name == "AMQ_PASSWORD" {
+					case "AMQ_PASSWORD":
 						passwordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_PASSWORD"))
-					} else if envVar.Name == "AMQ_CLUSTER_USER" {
+					case "AMQ_CLUSTER_USER":
 						clusterUserFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_USER"))
-					} else if envVar.Name == "AMQ_CLUSTER_PASSWORD" {
+					case "AMQ_CLUSTER_PASSWORD":
 						clusterPasswordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_PASSWORD"))
@@ -1413,19 +1415,20 @@ var _ = Describe("artemis controller", func() {
 				clusterUserFound := false
 				clusterPasswordFound := false
 				for _, envVar := range initContainer.Env {
-					if envVar.Name == "AMQ_USER" {
+					switch envVar.Name {
+					case "AMQ_USER":
 						userFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_USER"))
-					} else if envVar.Name == "AMQ_PASSWORD" {
+					case "AMQ_PASSWORD":
 						passwordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_PASSWORD"))
-					} else if envVar.Name == "AMQ_CLUSTER_USER" {
+					case "AMQ_CLUSTER_USER":
 						clusterUserFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_USER"))
-					} else if envVar.Name == "AMQ_CLUSTER_PASSWORD" {
+					case "AMQ_CLUSTER_PASSWORD":
 						clusterPasswordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_PASSWORD"))
@@ -1507,19 +1510,20 @@ var _ = Describe("artemis controller", func() {
 				clusterUserFound := false
 				clusterPasswordFound := false
 				for _, envVar := range initContainer.Env {
-					if envVar.Name == "AMQ_USER" {
+					switch envVar.Name {
+					case "AMQ_USER":
 						userFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_USER"))
-					} else if envVar.Name == "AMQ_PASSWORD" {
+					case "AMQ_PASSWORD":
 						passwordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_PASSWORD"))
-					} else if envVar.Name == "AMQ_CLUSTER_USER" {
+					case "AMQ_CLUSTER_USER":
 						clusterUserFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_USER"))
-					} else if envVar.Name == "AMQ_CLUSTER_PASSWORD" {
+					case "AMQ_CLUSTER_PASSWORD":
 						clusterPasswordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_PASSWORD"))
@@ -1575,19 +1579,20 @@ var _ = Describe("artemis controller", func() {
 				clusterUserFound := false
 				clusterPasswordFound := false
 				for _, envVar := range initContainer.Env {
-					if envVar.Name == "AMQ_USER" {
+					switch envVar.Name {
+					case "AMQ_USER":
 						userFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_USER"))
-					} else if envVar.Name == "AMQ_PASSWORD" {
+					case "AMQ_PASSWORD":
 						passwordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_PASSWORD"))
-					} else if envVar.Name == "AMQ_CLUSTER_USER" {
+					case "AMQ_CLUSTER_USER":
 						clusterUserFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_USER"))
-					} else if envVar.Name == "AMQ_CLUSTER_PASSWORD" {
+					case "AMQ_CLUSTER_PASSWORD":
 						clusterPasswordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_PASSWORD"))

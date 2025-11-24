@@ -33,6 +33,10 @@ function writeFile() {
         createFile "$crdsdir/broker_activemqartemisaddress_crd.yaml"
       elif [[ ${resource_name} =~ (activemqartemisscaledowns) ]]; then
         createFile "$crdsdir/broker_activemqartemisscaledown_crd.yaml"
+      elif [[ ${resource_name} =~ (activemqartemisservices) ]]; then
+        createFile "$crdsdir/broker_activemqartemisservice_crd.yaml"
+      elif [[ ${resource_name} =~ (activemqartemisapps) ]]; then
+        createFile "$crdsdir/broker_activemqartemisapp_crd.yaml"
       else
         createFile "$crdsdir/${resource_name}.yaml"
       fi

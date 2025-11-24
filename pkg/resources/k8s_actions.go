@@ -73,6 +73,7 @@ func Update(client client.Client, clientObject client.Object) error {
 				statusError.ErrStatus.Code == http.StatusUnprocessableEntity &&
 				statusError.ErrStatus.Reason == v1.StatusReasonInvalid {
 
+				// TODO: limit to just stateful set type
 				// "StatefulSet.apps is invalid: spec: Forbidden: updates to statefulset spec for fields other than 'replicas', 'template', 'updateStrategy' and 'minReadySeconds' are forbidden"}
 				reqLogger.V(1).Info("Deleting on failed updating "+objectTypeString, "obj", clientObject, "Forbidden", err)
 				err = Delete(client, clientObject)

@@ -1,0 +1,18 @@
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemisApp
+metadata:
+  name: wq-app
+spec:
+  auth: [
+    mtls
+  ]
+  capabilities: [
+    producerandconsumerof: [
+      queuename: APP.JOBS
+    ]
+  ]
+  selector:
+    matchLabels:
+      - forWorkQueue: true
+status:
+  conditions: []
