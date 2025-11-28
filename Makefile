@@ -168,6 +168,46 @@ test-mk test-mk-v test-mk-do test-mk-do-v test-mk-do-fast test-mk-do-fast-v: TES
 test-mk test-mk-v test-mk-do test-mk-do-v test-mk-do-fast test-mk-do-fast-v: manifests generate fmt vet envtest helm
 	$(TEST_VARS) go test ./... -p 1 $(TEST_ARGS) $(TEST_EXTRA_ARGS)
 
+##@ Debugging
+
+.PHONY: debug-setup
+debug-setup: manifests generate debug-install ## Setup for local debugging: install CRDs on cluster
+	@echo ""
+	@echo "\033[32mDebug setup complete!\033[0m"
+	@echo "CRDs have been installed on your cluster."
+	@echo ""
+	@echo "You can now:"
+	@echo "  - Run 'make debug' to start the operator locally"
+	@echo "  - Or press F5 in your IDE to debug with breakpoints"
+	@echo ""
+	@echo "Operator namespace: $(OPERATOR_NAMESPACE)"
+
+.PHONY: debug
+debug: manifests generate ## Run the operator with Delve in interactive mode
+	OPERATOR_NAMESPACE="$(OPERATOR_NAMESPACE)" \
+	WATCH_NAMESPACE="$(WATCH_NAMESPACE)" \
+	POD_NAME="local-debug" \
+	OPERATOR_NAME="activemq-artemis-operator" \
+	dlv debug ./main.go -- --leader-elect=false
+
+.PHONY: debug-remote
+debug-remote: manifests generate ## Run the operator with Delve exposing a socket for IDE (localhost:2345)
+	@echo ""
+	@echo "\033[32mStarting Delve debugger on localhost:2345\033[0m"
+	@echo "Connect your IDE: Run > Start Debugging > 'Attach to Delve'"
+	@echo ""
+	OPERATOR_NAMESPACE="$(OPERATOR_NAMESPACE)" \
+	WATCH_NAMESPACE="$(WATCH_NAMESPACE)" \
+	POD_NAME="local-debug" \
+	OPERATOR_NAME="activemq-artemis-operator" \
+	dlv debug ./main.go --headless --listen=:2345 --api-version=2 --accept-multiclient -- --leader-elect=false
+
+.PHONY: debug-clean
+debug-clean: ## Clean up: uninstall CRDs from cluster
+	@echo "Uninstalling CRDs from cluster..."
+	$(KUSTOMIZE) build config/crd | $(KUBE_CLI) delete --ignore-not-found -f -
+	@echo "Debug cleanup complete!"
+
 ##@ Build
 
 .PHONY: build
@@ -219,6 +259,10 @@ endif
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | $(KUBE_CLI) apply -f -
+
+.PHONY: debug-install
+debug-install: manifests kustomize ## Install CRDs using server-side apply (handles large CRDs)
+	$(KUSTOMIZE) build config/crd | $(KUBE_CLI) apply --server-side -f -
 
 .PHONY: uninstall
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.

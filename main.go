@@ -152,10 +152,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Support local debugging via OPERATOR_NAMESPACE env var
 	oprNamespace, err := sdkk8sutil.GetOperatorNamespace()
 	if err != nil {
-		setupLog.Error(err, "failed to get operator namespace")
-		os.Exit(1)
+		// Fallback to environment variable for local development
+		oprNamespace = os.Getenv("OPERATOR_NAMESPACE")
+		if oprNamespace == "" {
+			setupLog.Error(err, "failed to get operator namespace (set OPERATOR_NAMESPACE env var for local debugging)")
+			os.Exit(1)
+		}
+		setupLog.Info("Using OPERATOR_NAMESPACE from environment (local debug mode)")
 	}
 	setupLog.Info("Got operator namespace", "operator ns", oprNamespace)
 
