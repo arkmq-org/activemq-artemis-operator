@@ -16,7 +16,7 @@ var CredentialsNameBuilder namer.NamerData
 var ConsoleNameBuilder namer.NamerData
 var NettyNameBuilder namer.NamerData
 
-func MakeSecret(namespacedName types.NamespacedName, stringData map[string]string, labels map[string]string) corev1.Secret {
+func MakeSecret(namespacedName types.NamespacedName, data map[string][]byte, labels map[string]string) corev1.Secret {
 
 	secretDefinition := corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -28,20 +28,20 @@ func MakeSecret(namespacedName types.NamespacedName, stringData map[string]strin
 			Name:      namespacedName.Name,
 			Namespace: namespacedName.Namespace,
 		},
-		StringData: stringData,
+		Data: data,
 	}
 
 	return secretDefinition
 }
 
-func NewSecret(namespacedName types.NamespacedName, stringData map[string]string, labels map[string]string) *corev1.Secret {
+func NewSecret(namespacedName types.NamespacedName, stringData map[string][]byte, labels map[string]string) *corev1.Secret {
 
 	secretDefinition := MakeSecret(namespacedName, stringData, labels)
 
 	return &secretDefinition
 }
 
-func CreateOrUpdate(owner metav1.Object, namespacedName types.NamespacedName, stringDataMap map[string]string, labels map[string]string, client client.Client, scheme *runtime.Scheme) error {
+func CreateOrUpdate(owner metav1.Object, namespacedName types.NamespacedName, stringDataMap map[string][]byte, labels map[string]string, client client.Client, scheme *runtime.Scheme) error {
 	log := ctrl.Log.WithName("util_secrets")
 	var err error = nil
 	secretDefinition := NewSecret(namespacedName, stringDataMap, labels)
@@ -66,7 +66,7 @@ func CreateOrUpdate(owner metav1.Object, namespacedName types.NamespacedName, st
 	return err
 }
 
-func Create(owner metav1.Object, namespacedName types.NamespacedName, stringDataMap map[string]string, labels map[string]string, client client.Client, scheme *runtime.Scheme) *corev1.Secret {
+func Create(owner metav1.Object, namespacedName types.NamespacedName, stringDataMap map[string][]byte, labels map[string]string, client client.Client, scheme *runtime.Scheme) *corev1.Secret {
 	log := ctrl.Log.WithName("util_secrets")
 
 	var err error = nil
@@ -84,13 +84,13 @@ func Create(owner metav1.Object, namespacedName types.NamespacedName, stringData
 	return secretDefinition
 }
 
-func Delete(namespacedName types.NamespacedName, stringDataMap map[string]string, labels map[string]string, client client.Client) {
+func Delete(namespacedName types.NamespacedName, stringDataMap map[string][]byte, labels map[string]string, client client.Client) {
 	secretDefinition := NewSecret(namespacedName, stringDataMap, labels)
 	resources.Delete(client, secretDefinition)
 }
 
 func RetriveSecret(namespacedName types.NamespacedName, labels map[string]string, client client.Client) (*corev1.Secret, error) {
-	stringData := make(map[string]string)
+	stringData := make(map[string][]byte)
 	secretDefinition := MakeSecret(namespacedName, stringData, labels)
 	if err := resources.Retrieve(namespacedName, client, &secretDefinition); err != nil {
 		return nil, err
@@ -108,9 +108,9 @@ func GetValueFromSecret(namespace string,
 		Namespace: namespace,
 	}
 	// Attempt to retrieve the secret
-	stringDataMap := make(map[string]string)
+	dataMap := make(map[string][]byte)
 
-	secretDefinition := NewSecret(namespacedName, stringDataMap, labels)
+	secretDefinition := NewSecret(namespacedName, dataMap, labels)
 
 	if err := resources.Retrieve(namespacedName, client, secretDefinition); err != nil {
 		if errors.IsNotFound(err) {

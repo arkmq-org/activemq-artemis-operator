@@ -840,6 +840,11 @@ const (
 	BrokerVersionAlignedConditionMatchReason    = "VersionMatch"
 	BrokerVersionAlignedConditionMismatchReason = "VersionMismatch"
 
+	ScaleDownPendingConditionType                       = "ScalingDown"
+	ScaleDownPendingConditionPendingConfigAppliedReason = "PendingConfigApplied"
+	ScaleDownPendingConditionPendingEmptyReason         = "PendingEmpty" // no messages
+	ScaleDownPendingConditionPendingDeleteReason        = "PendingDelete"
+
 	ReconcileBlockedType   = "ReconcileBlocked"
 	ReconcileBlockedReason = "AnnotationPresent"
 )
