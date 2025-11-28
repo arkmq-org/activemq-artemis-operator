@@ -154,8 +154,12 @@ func main() {
 
 	oprNamespace, err := sdkk8sutil.GetOperatorNamespace()
 	if err != nil {
-		setupLog.Error(err, "failed to get operator namespace")
-		os.Exit(1)
+		setupLog.Error(err, "failed to get operator namespace, falling back to the environment DEFAULT_OPERATOR_NAMESPACE")
+		oprNamespace = os.Getenv("DEFAULT_OPERATOR_NAMESPACE")
+		if oprNamespace == "" {
+			setupLog.Error(err, "failed to get operator namespace using the DEFAULT_OPERATOR_NAMESPACE env var")
+			os.Exit(1)
+		}
 	}
 	setupLog.Info("Got operator namespace", "operator ns", oprNamespace)
 

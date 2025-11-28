@@ -168,6 +168,28 @@ test-mk test-mk-v test-mk-do test-mk-do-v test-mk-do-fast test-mk-do-fast-v: TES
 test-mk test-mk-v test-mk-do test-mk-do-v test-mk-do-fast test-mk-do-fast-v: manifests generate fmt vet envtest helm
 	$(TEST_VARS) go test ./... -p 1 $(TEST_ARGS) $(TEST_EXTRA_ARGS)
 
+##@ Debugging
+
+.PHONY: debug
+debug: manifests generate ## Run the operator with Delve in interactive mode
+	DEFAULT_OPERATOR_NAMESPACE="$(OPERATOR_NAMESPACE)" \
+	WATCH_NAMESPACE="$(WATCH_NAMESPACE)" \
+	POD_NAME="local-debug" \
+	OPERATOR_NAME="activemq-artemis-operator" \
+	dlv debug ./main.go -- --leader-elect=false
+
+.PHONY: debug-remote
+debug-remote: manifests generate ## Run the operator with Delve exposing a socket for IDE (localhost:2345)
+	@echo ""
+	@echo "\033[32mStarting Delve debugger on localhost:2345\033[0m"
+	@echo "Connect your IDE: Run > Start Debugging > 'Attach to Delve'"
+	@echo ""
+	DEFAULT_OPERATOR_NAMESPACE="$(OPERATOR_NAMESPACE)" \
+	WATCH_NAMESPACE="$(WATCH_NAMESPACE)" \
+	POD_NAME="local-debug" \
+	OPERATOR_NAME="activemq-artemis-operator" \
+	dlv debug ./main.go --headless --listen=:2345 --api-version=2 --accept-multiclient -- --leader-elect=false
+
 ##@ Build
 
 .PHONY: build
@@ -218,7 +240,7 @@ endif
 
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/crd | $(KUBE_CLI) apply -f -
+	$(KUSTOMIZE) build config/crd | $(KUBE_CLI) apply --server-side -f -
 
 .PHONY: uninstall
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
