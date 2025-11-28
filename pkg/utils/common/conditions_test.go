@@ -122,7 +122,7 @@ var _ = Describe("Common Conditions", func() {
 					Status: metav1.ConditionTrue,
 					Reason: "BazIsOK",
 				},
-				newReadyCondition(),
+				NewReadyCondition(),
 			}
 
 			SetReadyCondition(&conditions)
@@ -185,7 +185,7 @@ var _ = Describe("Common Conditions", func() {
 					Status: metav1.ConditionTrue,
 					Reason: "BazIsOK",
 				},
-				newReadyCondition(),
+				NewReadyCondition(),
 				current,
 			}
 
@@ -213,7 +213,7 @@ var _ = Describe("Common Conditions", func() {
 					Status: metav1.ConditionTrue,
 					Reason: "BazIsOK",
 				},
-				newReadyCondition(),
+				NewReadyCondition(),
 			}
 
 			Expect(IsConditionPresentAndEqual(conditions, other)).To(BeTrue())
@@ -241,7 +241,7 @@ var _ = Describe("Common Conditions", func() {
 					Status: metav1.ConditionTrue,
 					Reason: "BazIsOK",
 				},
-				newReadyCondition(),
+				NewReadyCondition(),
 				current,
 			}
 
@@ -269,7 +269,7 @@ var _ = Describe("Common Conditions", func() {
 					Status: metav1.ConditionTrue,
 					Reason: "BazIsOK",
 				},
-				newReadyCondition(),
+				NewReadyCondition(),
 			}
 
 			Expect(IsConditionPresentAndEqualIgnoringMessage(conditions, other)).To(BeTrue())

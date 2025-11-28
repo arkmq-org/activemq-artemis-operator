@@ -1,0 +1,64 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: activemq-artemis-manager-cert
+spec:
+  secretName: activemq-artemis-manager-cert
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  commonName: artemis-operator
+  issuerRef:
+    name: my-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: broker-cert
+spec:
+  secretName: broker-cert
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  commonName: artemis-broker
+  dnsNames:
+   - artemis-broker-ss-0.artemis-broker-hdls-svc.activemq-artemis-operator.svc.cluster.local  
+  issuerRef:
+    name: my-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: custom-logging-config
+data:
+  logging.properties: |2
+    appender.stdout.name = STDOUT
+    appender.stdout.type = Console
+    rootLogger = info, STDOUT
+    logger.activemq.name=org.apache.activemq.artemis.core.config.impl.ConfigurationImpl
+    logger.activemq.level=TRACE
+    logger.jaas.name=org.apache.activemq.artemis.spi.core.security.jaas
+    logger.jaas.level=TRACE
+    logger.rest.name=org.apache.activemq.artemis.core
+    logger.rest.level=ERROR
+---
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemis
+metadata:
+  name: artemis-broker
+spec:
+  restricted: true
+  deploymentPlan:
+    size: 1
+    extraMounts:
+      configMaps:
+        - custom-logging-config
+  brokerProperties:
+   - addressConfigurations.COMMANDS.routingTypes=ANYCAST
+   - addressConfigurations.COMMANDS.queueConfigs.myLastValueQ.lastValue=true
+   - addressConfigurations.COMMANDS.queueConfigs.myLastValueQ.address=COMMANDS
+   - key.surround=$$
+   - addressSettings.#.redeliveryMultiplier=5
+   - addressSettings.$$dsp.#$$.redeliveryMultiplier=2

@@ -74,7 +74,7 @@ const (
 	TCPLivenessPort                  = 8161
 	jaasConfigSuffix                 = "-jaas-config"
 	loggingConfigSuffix              = "-logging-config"
-	brokerPropsSuffix                = "-bp"
+	BrokerPropsSuffix                = "-bp"
 
 	cfgMapPathBase = "/amq/extra/configmaps/"
 	secretPathBase = "/amq/extra/secrets/"
@@ -161,8 +161,8 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) Process(customResource *brokerv
 	// comparisons should not be necessary, leave that to process resources
 	desiredStatefulSet, err := reconciler.ProcessStatefulSet(customResource, namer, client)
 	if err != nil {
-		reconciler.log.Error(err, "Error processing stafulset")
-		return err
+		//reconciler.log.Error(err, "Error processing stafulset")
+		return fmt.Errorf("failed to process stateful set, %w", err)
 	}
 
 	reconciler.ProcessDeploymentPlan(customResource, namer, client, scheme, desiredStatefulSet)
@@ -274,8 +274,8 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessStatefulSet(customResour
 	reqLogger.V(2).Info("Reconciling desired statefulset", "name", ssNamespacedName, "current", currentStatefulSet)
 	currentStatefulSet, err = reconciler.StatefulSetForCR(customResource, namer, currentStatefulSet, client)
 	if err != nil {
-		reqLogger.Error(err, "Error creating new stafulset")
-		return nil, err
+		//reqLogger.Error(err, "Error creating new stafulset")
+		return nil, fmt.Errorf("error creating stateful set, %w", err)
 	}
 
 	var headlessServiceDefinition *corev1.Service
@@ -1999,7 +1999,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 	if common.IsRestricted(customResource) {
 
 		mountPathRoot := secretPathBase + getPropertiesResourceNsName(customResource).Name
-		security_properties := newPropsWithHeader()
+		security_properties := NewPropsWithHeader()
 		fmt.Fprintf(security_properties, "login.config.url.1=file:%s/login.config\n", mountPathRoot)
 		fmt.Fprintf(security_properties, "security.provider.13=de.dentrassi.crypto.pem.PemKeyStoreProvider\n")
 		fmt.Fprintf(security_properties, "fips.provider.8=de.dentrassi.crypto.pem.PemKeyStoreProvider\n")
@@ -2009,12 +2009,13 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		additionalSystemPropsForRestricted = append(additionalSystemPropsForRestricted, fmt.Sprintf("-Djava.security.properties=%s/_security.config", mountPathRoot))
 
 		login_config := newBufferWithHeader("//")
-		fmt.Fprintln(login_config, "http_server_authenticator {")
+		fmt.Fprintf(login_config, "%s {\n", common.HttpAuthenticatorRealm)
 		fmt.Fprintln(login_config, "  org.apache.activemq.artemis.spi.core.security.jaas.TextFileCertificateLoginModule required")
 		fmt.Fprintln(login_config, "   reload=true")
-		fmt.Fprintln(login_config, "   debug=false")
-		fmt.Fprintln(login_config, "   org.apache.activemq.jaas.textfiledn.user=_cert-users")
-		fmt.Fprintln(login_config, "   org.apache.activemq.jaas.textfiledn.role=_cert-roles")
+		fmt.Fprintln(login_config, "   debug=true")
+		// underscore prefix for cert-[user|roles] b/c they are in the broker properties secret
+		fmt.Fprintf(login_config, "   org.apache.activemq.jaas.textfiledn.user=_%s\n", common.GetCertUsersKey(common.HttpAuthenticatorRealm))
+		fmt.Fprintf(login_config, "   org.apache.activemq.jaas.textfiledn.role=_%s\n", common.GetCertRolesKey(common.HttpAuthenticatorRealm))
 		fmt.Fprintf(login_config, "   baseDir=\"%v\"\n", mountPathRoot)
 		fmt.Fprintln(login_config, "  ;")
 		fmt.Fprintln(login_config, "};")
@@ -2023,27 +2024,27 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		operandCertSecretName := common.GetOperandCertSecretName(customResource, client)
 		operandCertSubject, err := common.ExtractCertSubjectFromSecret(operandCertSecretName, customResource.Namespace, client)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to extract operand subject from certificate, %w", err)
 		}
 
 		var caCertSecret *corev1.Secret
 		if caCertSecret, err = common.GetOperatorCASecret(client); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get operator ca secret, %w", err)
 		}
 
 		caSecretKey, err := common.GetOperatorCASecretKey(client, caCertSecret)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get operator ca secret key, %w", err)
 		}
 
 		var operatorCert *tls.Certificate
 		if operatorCert, err = common.GetOperatorClientCertificate(client, nil); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get operator client cert, %w", err)
 		}
 
 		var operatorCertSubject *pkix.Name
 		if operatorCertSubject, err = common.ExtractCertSubject(operatorCert); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to extract operator subject from client cert, %w", err)
 		}
 
 		prometheusCertSecretName := common.GetPrometheusCertSecretName(customResource, client)
@@ -2055,23 +2056,27 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		// TODO - make configuable
 		// support <crNname->control-plane-auth-secret, maybe a suffix for the http_server_authenticator realm login.config
 
-		cert_user := newPropsWithHeader()
+		cert_user := NewPropsWithHeader()
 		fmt.Fprintln(cert_user, "hawtio=/CN = hawtio-online\\.hawtio\\.svc.*/")
 		fmt.Fprintf(cert_user, "operator=/.*%s.*/\n", operatorCertSubject.CommonName) // regexp syntax start and with /
 		// can and should use the full DN after https://issues.apache.org/jira/browse/ARTEMIS-5102
 		fmt.Fprintf(cert_user, "probe=/.*%s.*/\n", operandCertSubject.CommonName)
 		fmt.Fprintf(cert_user, "prometheus=/.*%s.*/\n", prometheusCertSubject.CommonName)
-		brokerPropertiesMapData["_cert-users"] = cert_user.String()
+		brokerPropertiesMapData["_"+common.GetCertUsersKey(common.HttpAuthenticatorRealm)] = cert_user.String()
 
-		cert_roles := newPropsWithHeader()
+		cert_roles := NewPropsWithHeader()
 		fmt.Fprintln(cert_roles, "status=operator,probe")
 		fmt.Fprintln(cert_roles, "metrics=operator,prometheus")
 		fmt.Fprintln(cert_roles, "hawtio=hawtio")
-		brokerPropertiesMapData["_cert-roles"] = cert_roles.String()
+		brokerPropertiesMapData["_"+common.GetCertRolesKey(common.HttpAuthenticatorRealm)] = cert_roles.String()
 
-		foundationalProps := newPropsWithHeader()
+		foundationalProps := NewPropsWithHeader()
 		fmt.Fprintf(foundationalProps, "name=%s\n", environments.ResolveBrokerNameFromEnvs(customResource.Spec.Env, customResource.Name))
 		fmt.Fprintln(foundationalProps, "criticalAnalyzer=false")
+
+		// with cert or token, jaas is cheap and a token will be cached while valid
+		fmt.Fprintln(foundationalProps, "authenticationCacheSize=0")
+
 		fmt.Fprintln(foundationalProps, "messageCounterEnabled=true")
 		fmt.Fprintln(foundationalProps, "journalDirectory=/app/data")
 		fmt.Fprintln(foundationalProps, "bindingsDirectory=/app/data/bindings")
@@ -2080,7 +2085,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 
 		brokerPropertiesMapData["aa_restricted.properties"] = foundationalProps.String()
 
-		rbac := newPropsWithHeader()
+		rbac := NewPropsWithHeader()
 		// operator status check
 		fmt.Fprintln(rbac, "securityRoles.\"mops.broker.getStatus\".status.view=true")
 
@@ -2097,7 +2102,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		caSecret := common.GetOperatorCASecretName()
 		secretsToMount = append(secretsToMount, caSecret)
 
-		jolokia_config := newPropsWithHeader()
+		jolokia_config := NewPropsWithHeader()
 		fmt.Fprintln(jolokia_config, "protocol=https")
 		fmt.Fprintln(jolokia_config, "authClass=org.apache.activemq.artemis.spi.core.security.jaas.HttpServerAuthenticator")
 		fmt.Fprintf(jolokia_config, "caCert=%s%s/%s\n", secretPathBase, caSecret, caSecretKey)
@@ -2112,14 +2117,14 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 
 		brokerPropertiesMapData["_jolokia.config"] = jolokia_config.String()
 
-		pem_cfg := newPropsWithHeader()
+		pem_cfg := NewPropsWithHeader()
 
 		fmt.Fprintf(pem_cfg, "alias=alias\n")
 		fmt.Fprintf(pem_cfg, "source.cert=%s%s/tls.crt\n", secretPathBase, operandCertSecretName)
 		fmt.Fprintf(pem_cfg, "source.key=%s%s/tls.key\n", secretPathBase, operandCertSecretName)
 		brokerPropertiesMapData["_cert.pemcfg"] = pem_cfg.String()
 
-		prometheus_config := newPropsWithHeader() // yaml
+		prometheus_config := NewPropsWithHeader() // yaml
 		fmt.Fprintf(prometheus_config, "httpServer:\n")
 		fmt.Fprintf(prometheus_config, "  authentication:\n")
 		fmt.Fprintf(prometheus_config, "    plugin:\n")
@@ -2207,7 +2212,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 	}
 	extraVolumes, extraVolumeMounts, err := reconciler.createExtraConfigmapsAndSecretsVolumeMounts(configMapsToMount, secretsToMount, brokerPropertiesResourceName, brokerPropertiesMapData, client)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to createExtraConfigmapsAndSecretsVolumeMounts, %w", err)
 	}
 
 	reqLogger.V(2).Info("Extra volumes", "volumes", extraVolumes)
@@ -2215,7 +2220,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 
 	container.VolumeMounts, err = reconciler.MakeVolumeMounts(customResource, namer)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to make volume mounts, %w", err)
 	}
 	if len(extraVolumeMounts) > 0 {
 		container.VolumeMounts = append(container.VolumeMounts, extraVolumeMounts...)
@@ -2243,7 +2248,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 	podSpec.Containers = append(newContainersArray, *container)
 	brokerVolumes, err := reconciler.MakeVolumes(customResource, namer)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to make volumes, %w", err)
 	}
 	if len(extraVolumes) > 0 {
 		brokerVolumes = append(brokerVolumes, extraVolumes...)
@@ -2505,26 +2510,11 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 	if common.IsRestricted(customResource) {
 		pts.Spec.InitContainers = nil
 
-		// restricted env
-		currentEnv := environments.Retrieve(pts.Spec.Containers, jdkJavaOptionsEnvVarName)
-		pts.Spec.Containers[0].Env = nil
-
-		var commandLineString string = ""
-		if currentEnv != nil {
-			commandLineString += currentEnv.Value
-		}
-		for _, v := range additionalSystemPropsForRestricted {
-			commandLineString += " " + v
-		}
-
-		// env from CR can override
-		pts.Spec.Containers[0].Env = append(pts.Spec.Containers[0].Env, customResource.Spec.Env...)
-
 		reEvalJdkOpts := generateReEvalOrdinaEnvReplacement(customResource.Spec.Env)
 
 		pts.Spec.Containers[0].Command = []string{
 			"/bin/bash", "-c",
-			fmt.Sprintf("export STATEFUL_SET_ORDINAL=${HOSTNAME##*-}; %s exec java %s $JAVA_ARGS_APPEND org.apache.activemq.artemis.core.server.embedded.Main", reEvalJdkOpts, commandLineString),
+			fmt.Sprintf("export STATEFUL_SET_ORDINAL=${HOSTNAME##*-}; %s exec java %s $JAVA_ARGS_APPEND org.apache.activemq.artemis.core.server.embedded.Main", reEvalJdkOpts, strings.Join(additionalSystemPropsForRestricted, " ")),
 		}
 	}
 
@@ -2570,7 +2560,7 @@ func getLoginConfigEnvVarName(customResource *brokerv1beta1.ActiveMQArtemis) str
 	return jdkJavaOptionsEnvVarName
 }
 
-func newPropsWithHeader() *bytes.Buffer {
+func NewPropsWithHeader() *bytes.Buffer {
 	return newBufferWithHeader("#")
 }
 
@@ -2592,7 +2582,7 @@ func brokerPropertiesConfigSystemPropValue(customResource *brokerv1beta1.ActiveM
 	}
 
 	for _, extraSecretName := range customResource.Spec.DeploymentPlan.ExtraMounts.Secrets {
-		if strings.HasSuffix(extraSecretName, brokerPropsSuffix) {
+		if strings.HasSuffix(extraSecretName, BrokerPropsSuffix) {
 			// append to ordinal path
 			result = fmt.Sprintf("%s,%s%s/,%s%s/%s${STATEFUL_SET_ORDINAL}/", result, secretPathBase, extraSecretName, secretPathBase, extraSecretName, OrdinalPrefix)
 		}
@@ -3019,7 +3009,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) createExtraConfigmapsAndSecrets
 				}
 			}
 
-			if strings.HasSuffix(secret, brokerPropsSuffix) {
+			if strings.HasSuffix(secret, BrokerPropsSuffix) {
 				bpSecret := &corev1.Secret{}
 				bpSecretKey := types.NamespacedName{
 					Name:      secret,
@@ -3062,7 +3052,7 @@ func ParseBrokerPropertyWithOrdinal(property string) []string {
 
 func (reconciler *ActiveMQArtemisReconcilerImpl) StatefulSetForCR(customResource *brokerv1beta1.ActiveMQArtemis, namer common.Namers, currentStateFullSet *appsv1.StatefulSet, client rtclient.Client) (*appsv1.StatefulSet, error) {
 
-	reqLogger := reconciler.log.WithName(customResource.Name)
+	//	reqLogger := reconciler.log.WithName(customResource.Name)
 
 	namespacedName := types.NamespacedName{
 		Name:      customResource.Name,
@@ -3073,8 +3063,8 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) StatefulSetForCR(customResource
 
 	podTemplateSpec, err := reconciler.PodTemplateSpecForCR(customResource, namer, &currentStateFullSet.Spec.Template, client)
 	if err != nil {
-		reqLogger.Error(err, "error creating pod template")
-		return nil, err
+		//reqLogger.Error(err, "error creating pod template")
+		return nil, fmt.Errorf("error creating pod template, %w", err)
 	}
 	currentStateFullSet.Spec.Template = *podTemplateSpec
 
@@ -3380,7 +3370,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) AssertBrokerPropertiesStatus(cr
 
 	if errorStatus == nil {
 		for _, extraSecretName := range cr.Spec.DeploymentPlan.ExtraMounts.Secrets {
-			if strings.HasSuffix(extraSecretName, brokerPropsSuffix) {
+			if strings.HasSuffix(extraSecretName, BrokerPropsSuffix) {
 				secretProjection, err = getSecretProjection(types.NamespacedName{Name: extraSecretName, Namespace: cr.Namespace}, client)
 				if err != nil {
 					reqLogger.V(2).Info("error retrieving -bp extra mount resource.")
@@ -3717,7 +3707,33 @@ func KeyValuePairsFromMap(parentKey string, dataMap map[string]interface{}, pair
 }
 
 func alder32FromData(data []byte) string {
-	return alder32StringValue(alder32Of(KeyValuePairs(data)))
+	return alder32StringValue(alder32Of(ReadReplaceEscapes(KeyValuePairs(data))))
+}
+
+func ReadReplaceEscapes(values []string) []string {
+	result := []string{}
+	for _, keyAndValue := range values {
+
+		// need to trim space arround the '=' in x = y to match properties loader check sum
+
+		// need to ignore \=
+		equalsSeparator := "="
+		keyAndValueTokens := strings.SplitN(keyAndValue, equalsSeparator, 2)
+		numTokens := len(keyAndValueTokens)
+		if numTokens == 2 {
+			keyAndValue =
+				strings.TrimRightFunc(keyAndValueTokens[0], unicode.IsSpace) +
+					equalsSeparator +
+					strings.TrimLeftFunc(keyAndValueTokens[1], unicode.IsSpace)
+		}
+		// escaped x will converted on read, need to replace for check sum
+		keyAndValue = strings.ReplaceAll(keyAndValue, `\ `, ` `)
+		keyAndValue = strings.ReplaceAll(keyAndValue, `\:`, `:`)
+		keyAndValue = strings.ReplaceAll(keyAndValue, `\=`, `=`)
+		keyAndValue = strings.ReplaceAll(keyAndValue, `\"`, `"`)
+		result = append(result, keyAndValue)
+	}
+	return result
 }
 
 func KeyValuePairs(data []byte) []string {
@@ -3739,24 +3755,7 @@ func KeyValuePairs(data []byte) []string {
 func appendNonEmpty(propsKvs []string, data string) []string {
 	keyAndValue := strings.TrimSpace(string(data))
 	if keyAndValue != "" {
-		// need to trim space arround the '=' in x = y to match properties loader check sum
-		equalsSeparator := "="
-		keyAndValueTokens := strings.SplitN(keyAndValue, equalsSeparator, 2)
-		numTokens := len(keyAndValueTokens)
-		if numTokens == 2 {
-			keyAndValue =
-				strings.TrimRightFunc(keyAndValueTokens[0], unicode.IsSpace) +
-					equalsSeparator +
-					strings.TrimLeftFunc(keyAndValueTokens[1], unicode.IsSpace)
-		}
-		// escaped x will converted on read, need to replace for check sum
-		keyAndValue = strings.ReplaceAll(keyAndValue, `\ `, ` `)
-		keyAndValue = strings.ReplaceAll(keyAndValue, `\:`, `:`)
-		keyAndValue = strings.ReplaceAll(keyAndValue, `\=`, `=`)
-		keyAndValue = strings.ReplaceAll(keyAndValue, `\"`, `"`)
-		if keyAndValue != "" {
-			propsKvs = append(propsKvs, keyAndValue)
-		}
+		propsKvs = append(propsKvs, keyAndValue)
 	}
 	return propsKvs
 }
