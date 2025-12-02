@@ -874,13 +874,16 @@ func GetOperatorSecret(client rtclient.Client, secretName string) (*corev1.Secre
 		return nil, err
 	}
 
-	secretNamespacedName := types.NamespacedName{Name: secretName, Namespace: operatorNamespace}
+	return GetNamespacedSecret(client, secretName, operatorNamespace)
+}
+
+func GetNamespacedSecret(client rtclient.Client, secretName string, secretNamespace string) (*corev1.Secret, error) {
+	secretNamespacedName := types.NamespacedName{Name: secretName, Namespace: secretNamespace}
 	secret := corev1.Secret{}
 	if err := resources.Retrieve(secretNamespacedName, client, &secret); err != nil {
-		ctrl.Log.V(1).Info("operator secret not found", "name", secretNamespacedName, "err", err)
+		ctrl.Log.V(1).Info("secret not found", "name", secretNamespacedName, "err", err)
 		return nil, errors.Errorf("failed to get secret %s, %v", secretNamespacedName, err)
 	}
-
 	return &secret, nil
 }
 
@@ -919,12 +922,7 @@ func ExtractCertFromSecret(certSecret *corev1.Secret) (*tls.Certificate, error) 
 	return &cert, nil
 }
 
-func ExtractCertSubjectFromSecret(certSecretName string, namespace string, client rtclient.Client) (*pkix.Name, error) {
-
-	secret, err := GetOperatorSecret(client, certSecretName)
-	if err != nil {
-		return nil, err
-	}
+func ExtractCertSubjectFromSecret(secret *corev1.Secret) (*pkix.Name, error) {
 	cert, err := ExtractCertFromSecret(secret)
 	if err != nil {
 		return nil, err

@@ -2021,7 +2021,12 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		brokerPropertiesMapData["login.config"] = login_config.String()
 
 		operandCertSecretName := common.GetOperandCertSecretName(customResource, client)
-		operandCertSubject, err := common.ExtractCertSubjectFromSecret(operandCertSecretName, customResource.Namespace, client)
+		operandCertSecret, err := common.GetNamespacedSecret(client, operandCertSecretName, customResource.Namespace)
+		if err != nil {
+			return nil, err
+		}
+
+		operandCertSubject, err := common.ExtractCertSubjectFromSecret(operandCertSecret)
 		if err != nil {
 			return nil, err
 		}
@@ -2047,9 +2052,15 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		}
 
 		prometheusCertSecretName := common.GetPrometheusCertSecretName(customResource, client)
-		prometheusCertSubject, err := common.ExtractCertSubjectFromSecret(prometheusCertSecretName, customResource.Namespace, client)
-		if err != nil {
-			return nil, err
+		prometheusCertSecret, err := common.GetNamespacedSecret(client, prometheusCertSecretName, customResource.Namespace)
+		var prometheusCertSubject *pkix.Name
+		if err == nil {
+			prometheusCertSubject, err = common.ExtractCertSubjectFromSecret(prometheusCertSecret)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			ctrl.Log.V(1).Info("prometheus secret not found", "err", err)
 		}
 
 		// TODO - make configuable
@@ -2060,7 +2071,9 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		fmt.Fprintf(cert_user, "operator=/.*%s.*/\n", operatorCertSubject.CommonName) // regexp syntax start and with /
 		// can and should use the full DN after https://issues.apache.org/jira/browse/ARTEMIS-5102
 		fmt.Fprintf(cert_user, "probe=/.*%s.*/\n", operandCertSubject.CommonName)
-		fmt.Fprintf(cert_user, "prometheus=/.*%s.*/\n", prometheusCertSubject.CommonName)
+		if prometheusCertSubject != nil {
+			fmt.Fprintf(cert_user, "prometheus=/.*%s.*/\n", prometheusCertSubject.CommonName)
+		}
 		brokerPropertiesMapData["_cert-users"] = cert_user.String()
 
 		cert_roles := newPropsWithHeader()

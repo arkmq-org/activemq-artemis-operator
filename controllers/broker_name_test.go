@@ -142,75 +142,155 @@ var _ = Describe("broker name", func() {
 			Expect(k8sClient.Delete(ctx, createdCrd)).Should(Succeed())
 		})
 
-		It("restricted", func() {
+		Context("restricted", func() {
 
-			if os.Getenv("USE_EXISTING_CLUSTER") != "true" {
-				return
-			}
-
-			By("installing operator cert")
-			InstallCert(common.DefaultOperatorCertSecretName, defaultNamespace, func(candidate *cmv1.Certificate) {
-				candidate.Spec.SecretName = common.DefaultOperatorCertSecretName
-				candidate.Spec.CommonName = "activemq-artemis-operator"
-				candidate.Spec.IssuerRef = cmmetav1.ObjectReference{
-					Name: caIssuer.Name,
-					Kind: "ClusterIssuer",
+			BeforeEach(func() {
+				if os.Getenv("USE_EXISTING_CLUSTER") != "true" {
+					Skip("MST be run with USE_EXISTING_CLUSTER=true")
 				}
+
+				By("installing operator cert in operator namespace")
+				InstallCert(common.DefaultOperatorCertSecretName, defaultNamespace, func(candidate *cmv1.Certificate) {
+					candidate.Spec.SecretName = common.DefaultOperatorCertSecretName
+					candidate.Spec.CommonName = "activemq-artemis-operator"
+					candidate.Spec.IssuerRef = cmmetav1.ObjectReference{
+						Name: caIssuer.Name,
+						Kind: "ClusterIssuer",
+					}
+				})
 			})
 
-			ctx := context.Background()
-
-			// empty CRD, name is used for cert subject to match the headless service
-			crd := brokerv1beta1.ActiveMQArtemis{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "ActiveMQArtemis",
-					APIVersion: brokerv1beta1.GroupVersion.Identifier(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      NextSpecResourceName(),
-					Namespace: defaultNamespace,
-				},
-			}
-
-			sharedOperandCertName := common.DefaultOperandCertSecretName
-			By("installing restricted mtls broker cert")
-			InstallCert(sharedOperandCertName, defaultNamespace, func(candidate *cmv1.Certificate) {
-				candidate.Spec.SecretName = sharedOperandCertName
-				candidate.Spec.CommonName = "activemq-artemis-operand"
-				candidate.Spec.DNSNames = []string{common.OrdinalFQDNS(crd.Name, defaultNamespace, 0)}
-				candidate.Spec.IssuerRef = cmmetav1.ObjectReference{
-					Name: caIssuer.Name,
-					Kind: "ClusterIssuer",
+			AfterEach(func() {
+				if os.Getenv("USE_EXISTING_CLUSTER") != "true" {
+					return
 				}
+
+				By("uninstalling operator cert")
+				UninstallCert(common.DefaultOperatorCertSecretName, defaultNamespace)
 			})
 
-			crd.Spec.Restricted = common.NewTrue()
-			crd.Spec.Env = []corev1.EnvVar{
-				{Name: "AMQ_NAME", Value: "tom"},
-			}
+			It("in same namespace as operator", func() {
+				ctx := context.Background()
 
-			By("Deploying the CRD " + crd.ObjectMeta.Name)
-			Expect(k8sClient.Create(ctx, &crd)).Should(Succeed())
-
-			brokerKey := types.NamespacedName{Name: crd.Name, Namespace: crd.Namespace}
-			createdCrd := &brokerv1beta1.ActiveMQArtemis{}
-
-			By("Checking ready, operator can access broker status via jmx")
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, brokerKey, createdCrd)).Should(Succeed())
-
-				if verbose {
-					fmt.Printf("STATUS: %v\n\n", createdCrd.Status.Conditions)
+				crd := brokerv1beta1.ActiveMQArtemis{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "ActiveMQArtemis",
+						APIVersion: brokerv1beta1.GroupVersion.Identifier(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      NextSpecResourceName(),
+						Namespace: defaultNamespace,
+					},
 				}
-				g.Expect(meta.IsStatusConditionTrue(createdCrd.Status.Conditions, brokerv1beta1.ReadyConditionType)).Should(BeTrue())
-				g.Expect(meta.IsStatusConditionTrue(createdCrd.Status.Conditions, brokerv1beta1.ConfigAppliedConditionType)).Should(BeTrue())
 
-			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+				operandCertName := crd.Name + "-" + common.DefaultOperandCertSecretName
+				By("installing restricted mtls broker cert for: " + crd.Name)
+				InstallCert(operandCertName, defaultNamespace, func(candidate *cmv1.Certificate) {
+					candidate.Spec.SecretName = operandCertName
+					candidate.Spec.CommonName = "activemq-artemis-operand"
+					candidate.Spec.DNSNames = []string{common.OrdinalFQDNS(crd.Name, defaultNamespace, 0)}
+					candidate.Spec.IssuerRef = cmmetav1.ObjectReference{
+						Name: caIssuer.Name,
+						Kind: "ClusterIssuer",
+					}
+				})
 
-			Expect(k8sClient.Delete(ctx, createdCrd)).Should(Succeed())
+				crd.Spec.Restricted = common.NewTrue()
+				crd.Spec.Env = []corev1.EnvVar{
+					{Name: "AMQ_NAME", Value: "broker-same-ns"},
+				}
 
-			UninstallCert(common.DefaultOperatorCertSecretName, defaultNamespace)
-			UninstallCert(sharedOperandCertName, defaultNamespace)
+				By("Deploying the CRD " + crd.ObjectMeta.Name + " in " + defaultNamespace)
+				Expect(k8sClient.Create(ctx, &crd)).Should(Succeed())
+
+				brokerKey := types.NamespacedName{Name: crd.Name, Namespace: crd.Namespace}
+				createdCrd := &brokerv1beta1.ActiveMQArtemis{}
+
+				By("Checking broker is ready")
+				Eventually(func(g Gomega) {
+					g.Expect(k8sClient.Get(ctx, brokerKey, createdCrd)).Should(Succeed())
+
+					if verbose {
+						fmt.Printf("STATUS: %v\n\n", createdCrd.Status.Conditions)
+					}
+					g.Expect(meta.IsStatusConditionTrue(createdCrd.Status.Conditions, brokerv1beta1.ReadyConditionType)).Should(BeTrue())
+					g.Expect(meta.IsStatusConditionTrue(createdCrd.Status.Conditions, brokerv1beta1.ConfigAppliedConditionType)).Should(BeTrue())
+
+				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+				By("Cleaning up")
+				Expect(k8sClient.Delete(ctx, createdCrd)).Should(Succeed())
+				UninstallCert(operandCertName, defaultNamespace)
+			})
+
+			It("in different namespace from operator", func() {
+				ctx := context.Background()
+				brokerNamespace := "other-test"
+
+				By("creating broker namespace " + brokerNamespace + " with restricted security policy")
+				restrictedSecurityPolicy := "restricted"
+				Expect(createNamespace(brokerNamespace, &restrictedSecurityPolicy)).To(Succeed())
+
+				By("waiting for CA bundle to be synced to broker namespace " + brokerNamespace)
+				caSecretKey := types.NamespacedName{Name: common.DefaultOperatorCASecretName, Namespace: brokerNamespace}
+				Eventually(func(g Gomega) {
+					caSecret := &corev1.Secret{}
+					g.Expect(k8sClient.Get(ctx, caSecretKey, caSecret)).Should(Succeed())
+				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+				crd := brokerv1beta1.ActiveMQArtemis{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "ActiveMQArtemis",
+						APIVersion: brokerv1beta1.GroupVersion.Identifier(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      NextSpecResourceName(),
+						Namespace: brokerNamespace,
+					},
+				}
+
+				operandCertName := crd.Name + "-" + common.DefaultOperandCertSecretName
+				By("installing restricted mtls broker cert for: " + crd.Name)
+				InstallCert(operandCertName, brokerNamespace, func(candidate *cmv1.Certificate) {
+					candidate.Spec.SecretName = operandCertName
+					candidate.Spec.CommonName = "activemq-artemis-operand"
+					candidate.Spec.DNSNames = []string{common.OrdinalFQDNS(crd.Name, brokerNamespace, 0)}
+					candidate.Spec.IssuerRef = cmmetav1.ObjectReference{
+						Name: caIssuer.Name,
+						Kind: "ClusterIssuer",
+					}
+				})
+
+				crd.Spec.Restricted = common.NewTrue()
+				crd.Spec.Env = []corev1.EnvVar{
+					{Name: "AMQ_NAME", Value: "broker-other-ns"},
+				}
+
+				By("Deploying the CRD " + crd.ObjectMeta.Name + " in " + brokerNamespace)
+				Expect(k8sClient.Create(ctx, &crd)).Should(Succeed())
+
+				brokerKey := types.NamespacedName{Name: crd.Name, Namespace: crd.Namespace}
+				createdCrd := &brokerv1beta1.ActiveMQArtemis{}
+
+				By("Checking broker is ready")
+				Eventually(func(g Gomega) {
+					g.Expect(k8sClient.Get(ctx, brokerKey, createdCrd)).Should(Succeed())
+
+					if verbose {
+						fmt.Printf("STATUS: %v\n\n", createdCrd.Status.Conditions)
+					}
+					g.Expect(meta.IsStatusConditionTrue(createdCrd.Status.Conditions, brokerv1beta1.ReadyConditionType)).Should(BeTrue())
+					g.Expect(meta.IsStatusConditionTrue(createdCrd.Status.Conditions, brokerv1beta1.ConfigAppliedConditionType)).Should(BeTrue())
+
+				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+				By("Cleaning up")
+				Expect(k8sClient.Delete(ctx, createdCrd)).Should(Succeed())
+				UninstallCert(operandCertName, brokerNamespace)
+
+				By("deleting broker namespace " + brokerNamespace)
+				deleteNamespace(brokerNamespace, Default)
+			})
 		})
 	})
 })
