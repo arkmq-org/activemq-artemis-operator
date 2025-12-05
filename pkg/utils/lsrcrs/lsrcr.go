@@ -42,11 +42,11 @@ func StoreLastSuccessfulReconciledCR(owner v1.Object,
 		Name:      secretName,
 		Namespace: namespace,
 	}
-	secretData := make(map[string]string)
-	secretData["CR"] = cr
-	secretData["Data"] = data
-	secretData["Checksum"] = checksum
-	secretData["Timestamp"] = time.Now().String()
+	secretData := make(map[string][]byte)
+	secretData["CR"] = []byte(cr)
+	secretData["Data"] = []byte(data)
+	secretData["Checksum"] = []byte(checksum)
+	secretData["Timestamp"] = []byte(time.Now().String())
 	err := secrets.CreateOrUpdate(owner, secretNn, secretData, labels, client, scheme)
 	if err != nil {
 		log.Error(err, "failed to save lsrcr", "for cr", name, "secret", secretName, "ns", namespace)
@@ -60,11 +60,11 @@ func deleteLastSuccessfulReconciledCR(scr *StoredCR, labels map[string]string) {
 		Name:      secretName,
 		Namespace: scr.Namespace,
 	}
-	secretData := make(map[string]string)
-	secretData["CR"] = scr.CR
-	secretData["Data"] = scr.Data
-	secretData["Checksum"] = scr.Checksum
-	secretData["Timestamp"] = time.Now().String()
+	secretData := make(map[string][]byte)
+	secretData["CR"] = []byte(scr.CR)
+	secretData["Data"] = []byte(scr.Data)
+	secretData["Checksum"] = []byte(scr.Checksum)
+	secretData["Timestamp"] = []byte(time.Now().String())
 
 	secrets.Delete(secretNn, secretData, labels, scr.UpdateClient)
 }

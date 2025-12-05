@@ -241,6 +241,39 @@ Connection brokerURL = tcp://artemis-broker-ss-0.artemis-broker-hdls-svc.activem
 
 ## Draining messages on scale down
 
+### Using the broker controller
+This has the benefit of keeping a scaling down broker alive and the pod visible till it is empty and of automatically choosing an available broker in the cluster to migrate messages to.
+
+Additional CR spec.brokerProperties are used to indicate that the broker operator should manage scaledown. These properties configure the broker scaledown policy and the use of the cluster discovery group to locate a scaledown target. The enabled flag is false, such that normal rollout of changes or termination does not trigger scaledown. The operator flips HAPolicyConfiguration.scaleDownConfiguration.enabled to true, via a brokerProperties update for each broker, to trigger actual scaledown.
+
+NOTE: the key=value: `HAPolicyConfiguration.scaleDownConfiguration.enabled=false` is mandatory, it is the trigger for the broker operator to manage scaledown.
+
+
+An operand with version >= 2.43.0 is necessary when jgroups discovery (the default) is used.
+
+
+```$yaml
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemis
+metadata:
+  name: artemis-broker
+spec:
+  deploymentPlan:
+    size: 2
+    persistenceEnabled: true
+    messageMigration: true
+  brokerProperties:
+   - "HAPolicyConfiguration=PRIMARY_ONLY"
+   - "HAPolicyConfiguration.scaleDownConfiguration.discoveryGroup=my-discovery-group"
+   - "HAPolicyConfiguration.scaleDownConfiguration.enabled=false"
+```
+
+When the CR spec.brokerProperties contain the key=value: `HAPolicyConfiguration.scaleDownConfiguration.enabled=false`, the broker controller manages scaling down of the cluster. The spec.deploymentPlan.size is decremented by one as each of the requred brokers are removed from the stateful set, till the desired size is reached.
+
+NOTE: the scaling down broker remains in the statefull set until it has no pending messages. The operator uses the cr.Status Conditions to indicate that scaledown is pending, which allows a user to track the progress of scaledown. In the event of a failure to fully migrate messages before shutdown, the pod is restarted and the procedure is repeated until the broker is empty. Only when the broker is empty will it be removed from the stataful set and it's PV will be available for reclaim.
+
+### Using the scaledown controller (deprecated)
+
 When a broker pod is being scaled down, a scaledown controller can be deployed aumatically to handle message migration from the scaled down broker pod to an active broker.
 
 When the scale down controller detects the event it starts a drainer pod.

@@ -66,7 +66,6 @@ func MakeStatefulSet(currentStateFulSet *appsv1.StatefulSet, ssName string, svcH
 	currentStateFulSet.ObjectMeta.Labels = labels
 	common.ApplyAnnotations(&currentStateFulSet.ObjectMeta, annotations)
 
-	currentStateFulSet.Spec.Replicas = replicas
 	currentStateFulSet.Spec.Template = *pods.MakePodTemplateSpec(&currentStateFulSet.Spec.Template, namespacedName, labels, nil)
 
 	return currentStateFulSet

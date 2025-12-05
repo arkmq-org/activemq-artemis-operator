@@ -3846,8 +3846,8 @@ var _ = Describe("artemis controller", func() {
 					}
 					if secret.Name == internalSecretName {
 						foundInternalSecret = true
-						consoleSslValue := secret.StringData[consoleArgs]
-						Expect(consoleSslValue).To(Equal(defaultSslArgs))
+						consoleSslValue := secret.Data[consoleArgs]
+						Expect(consoleSslValue).To(Equal([]byte(defaultSslArgs)))
 					}
 				}
 			}
@@ -6031,6 +6031,10 @@ var _ = Describe("artemis controller", func() {
 					condition := meta.FindStatusCondition(createdCrd.Status.Conditions, brokerv1beta1.BrokerVersionAlignedConditionType)
 					g.Expect(condition).NotTo(BeNil())
 
+					if verbose {
+						fmt.Printf("\nSTATUS: %v\n", createdCrd.Status)
+					}
+
 					g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
 
 					g.Expect(condition.Reason).Should(Equal(brokerv1beta1.BrokerVersionAlignedConditionMatchReason))
@@ -6371,9 +6375,9 @@ var _ = Describe("artemis controller", func() {
 			ctx := context.Background()
 
 			loggingSecretName := "my-secret-logging-config"
-			loggingData := make(map[string]string)
+			loggingData := make(map[string][]byte)
 			// it requires the key to be logging.properties
-			loggingData["logging-configuration"] = "someproperty=somevalue"
+			loggingData["logging-configuration"] = []byte("someproperty=somevalue")
 			loggingSecretKey := types.NamespacedName{Name: loggingSecretName, Namespace: defaultNamespace}
 			loggingSecret := secrets.NewSecret(loggingSecretKey, loggingData, nil)
 			Eventually(func() bool {
@@ -6404,9 +6408,9 @@ var _ = Describe("artemis controller", func() {
 			By("still invalid, referencing two configs, secret and config map")
 			loggingConfigMapName := "my-logging-config"
 
-			loggingData = make(map[string]string)
-			loggingData[LoggingConfigKey] = "someproperty=somevalue"
-			loggingConfigMap := configmaps.MakeConfigMap(defaultNamespace, loggingConfigMapName, loggingData)
+			loggingStringData := make(map[string]string)
+			loggingStringData[LoggingConfigKey] = "someproperty=somevalue"
+			loggingConfigMap := configmaps.MakeConfigMap(defaultNamespace, loggingConfigMapName, loggingStringData)
 			By("creating valid config map")
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Create(ctx, loggingConfigMap, &client.CreateOptions{})).To(Succeed())
@@ -6536,8 +6540,8 @@ var _ = Describe("artemis controller", func() {
 
 			loggingSecretName := "my-secret-logging-config"
 
-			loggingData := make(map[string]string)
-			loggingData[LoggingConfigKey] = "someproperty=somevalue"
+			loggingData := make(map[string][]byte)
+			loggingData[LoggingConfigKey] = []byte("someproperty=somevalue")
 			secret := secrets.NewSecret(types.NamespacedName{Name: loggingSecretName, Namespace: defaultNamespace}, loggingData, nil)
 			Eventually(func() bool {
 				err := k8sClient.Create(ctx, secret, &client.CreateOptions{})
