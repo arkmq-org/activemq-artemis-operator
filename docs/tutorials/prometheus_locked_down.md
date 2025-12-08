@@ -815,6 +815,7 @@ spec:
   deploymentPlan:
     extraMounts:
       secrets: [artemis-broker-jaas-config, amqps-pem]
+    persistenceEnabled: true
 EOF
 ```
 ```shell markdown_runner
