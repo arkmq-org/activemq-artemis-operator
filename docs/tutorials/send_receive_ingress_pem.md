@@ -333,6 +333,8 @@ metadata:
   name: send-receive
   namespace: send-receive-project
 spec:
+  deploymentPlan:
+    persistenceEnabled: true
   ingressDomain: ${CLUSTER_IP}.nip.io
   acceptors:
     - name: sslacceptor

@@ -110,6 +110,7 @@ deployment.apps/activemq-artemis-controller-manager created
 Wait for the Operator to start (status: `running`).
 
 ```{"stage":"init", "runtime":"bash", "label":"wait for the operator to be running"}
+kubectl wait deployment activemq-artemis-controller-manager --for=create --timeout=240s
 kubectl wait pod --all --for=condition=Ready --namespace=send-receive-project --timeout=600s
 ```
 ```shell markdown_runner
@@ -213,6 +214,8 @@ metadata:
   name: send-receive
   namespace: send-receive-project
 spec:
+  deploymentPlan:
+    persistenceEnabled: true
   ingressDomain: ${CLUSTER_IP}.nip.io
   acceptors:
     - name: sslacceptor
@@ -299,7 +302,7 @@ export BROKER_URL="tcp://${INGRESS_URL}:443?forceSSLParameters=true&sslEnabled=t
 ##### Test the connection
 
 ```{"stage":"test0", "rootdir":"$tmpdir.1/apache-artemis/bin", "runtime":"bash", "label":"test connection"}
-./artemis check queue --name TEST --produce 10 --browse 10 --consume 10 --url ${BROKER_URL} --verbose --timeout 120000
+./artemis check queue --name TEST --produce 10 --browse 10 --consume 10 --url ${BROKER_URL} --verbose --timeout 60000
 ```
 ```shell markdown_runner
 Executing org.apache.activemq.artemis.cli.commands.check.QueueCheck check queue --name TEST --produce 10 --browse 10 --consume 10 --url tcp://send-receive-sslacceptor-0-svc-ing-send-receive-project.192.168.50.5.nip.io:443?forceSSLParameters=true&sslEnabled=true&verifyHost=false&trustStorePath=/tmp/2821826002/broker.ks&trustStorePassword=000000&useTopologyForLoadBalancing=false --verbose 
