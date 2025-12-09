@@ -44,6 +44,21 @@ jobs:
         run: |
           echo "HOSTNAME=${HOSTNAME}" >> ${GITHUB_ENV}
 
+      - name: Free up disk space
+        run: |
+          echo "Initial disk space:"
+          df -h
+          # Standard cleanup
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/hostedtoolcache/Android
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /opt/hostedtoolcache/Ruby
+          sudo rm -rf /usr/share/swift
+          # sudo rm -rf /usr/local/share/powershell
+          echo "Disk space after cleanup:"
+          df -h
+
       - name: Set up Docker
         uses: docker/setup-docker-action@v4
         with:
@@ -155,6 +170,7 @@ jobs:
           podman login --username=${{ secrets.QUAY_USERNAME }} --password=${{ secrets.QUAY_PASSWORD }} quay.io
           podman manifest push $IMAGE_NAME:dev.latest docker://quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME:$COMMIT_TAG
           podman manifest push $IMAGE_NAME:dev.latest docker://quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME:dev.latest
+          df -h
 
       - name: Build the bundle image
         run: podman build --file bundle.Dockerfile --label quay.expires-after=90d --label git-sha=$GITHUB_SHA --tag $IMAGE_NAME-bundle:dev.latest .
@@ -205,7 +221,10 @@ jobs:
       - name: run the tutorials on the image
         if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.runTutorials) || (github.event_name == 'pull_request' && steps.changed-tutorial-files.outputs.any_changed == 'true')
         run: |
+          minikube ssh -- docker system prune -f
           minikube delete
+          docker system df
+          df -h
           find docs/tutorials -type f -exec sed -i "s|^minikube start|minikube start --insecure-registry=$HOSTNAME:5000|" {} +
           sed -i "s|image: quay.io/arkmq-org/activemq-artemis-operator:.*|image: ${HOSTNAME}:5000/$IMAGE_NAME:dev.latest|" deploy/operator.yaml
-          markdown-runner docs/tutorials -v
+          markdown-runner docs/tutorials/ -v

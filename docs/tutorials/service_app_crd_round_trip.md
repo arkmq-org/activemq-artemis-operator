@@ -161,7 +161,7 @@ EOF
 kubectl wait bundle activemq-artemis-manager-ca -n cert-manager --for=condition=Synced --timeout=300s
 ```
 
-##### Create the certificate for the operator
+##### Create the certificate for the operator control plane
 
 ```bash {"stage":"deploy_certs", "label":"create operator cert", "runtime":"bash"}
 kubectl apply -f - <<EOF
@@ -188,7 +188,7 @@ kubectl wait certificate activemq-artemis-manager-cert -n service-app-project --
 #### Create Service Certificate
 
 The service needs a certificate customized with a matching common name to enable
-mTLS communication.
+mTLS communication for the control plane.
 
 ```bash {"stage":"deploy_service", "label":"create broker cert", "runtime":"bash"}
 kubectl apply -f - <<EOF
@@ -244,7 +244,7 @@ Wait for the resource to be ready.
 kubectl wait ActiveMQArtemisService messaging-service -n service-app-project --for=condition=Ready --timeout=300s
 ```
 
-#### Create Service Certificate
+#### Create Application Certificate
 
 ```bash {"stage":"deploy_app", "label":"create app cert", "runtime":"bash"}
 kubectl apply -f - <<EOF
