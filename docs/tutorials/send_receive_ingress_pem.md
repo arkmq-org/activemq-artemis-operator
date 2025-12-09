@@ -358,6 +358,8 @@ spec:
                 - ing.sslacceptor.send-receive-0.send-receive-project.${CLUSTER_IP}.nip.io
               secretName: send-receive-sslacceptor-0-svc-ing-ptls
   brokerProperties:
+    - maxDiskUsage=99
+    - journalPoolFiles=2
     - addressConfigurations."APP.JOBS".routingTypes=ANYCAST
     - addressConfigurations."APP.JOBS".queueConfigs."APP.JOBS".routingType=ANYCAST
     - addressConfigurations."APP.COMMANDS".routingTypes=MULTICAST

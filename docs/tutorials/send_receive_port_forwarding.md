@@ -80,11 +80,11 @@ Wait for the Operator to be deployed.
 
 ```bash {"stage":"init", "runtime":"bash", "label":"wait for the operator to be running"}
 kubectl wait deployment activemq-artemis-controller-manager --for=create --timeout=240s
-kubectl wait pod --all --for=condition=Ready --namespace=send-receive-project --timeout=600s
+kubectl wait deployment activemq-artemis-controller-manager --for=condition=available --timeout=300s
 ```
 ```shell markdown_runner
-Waiting for deployment "activemq-artemis-controller-manager" rollout to finish: 0 of 1 updated replicas are available...
-deployment "activemq-artemis-controller-manager" successfully rolled out
+deployment.apps/activemq-artemis-controller-manager condition met
+deployment.apps/activemq-artemis-controller-manager condition met
 ```
 
 ### Deploying the Apache ActiveMQ Artemis Broker
