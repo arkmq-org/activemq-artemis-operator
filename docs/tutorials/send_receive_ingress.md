@@ -64,6 +64,13 @@ deployment.apps/ingress-nginx-controller patched
 export CLUSTER_IP=$(minikube ip --profile tutorialtester)
 ```
 
+#### Check disk
+
+```{"stage":"init",  "runtime":"bash", "label":"check disk"}
+minikube ssh -- df -h
+df -h
+```
+
 #### Make sure the domain of your cluster is resolvable
 
 If you are running your OpenShift cluster locally, you might not be able to
@@ -110,6 +117,7 @@ deployment.apps/activemq-artemis-controller-manager created
 Wait for the Operator to start (status: `running`).
 
 ```{"stage":"init", "runtime":"bash", "label":"wait for the operator to be running"}
+kubectl wait deployment activemq-artemis-controller-manager --for=create --timeout=240s
 kubectl wait pod --all --for=condition=Ready --namespace=send-receive-project --timeout=600s
 ```
 ```shell markdown_runner
@@ -213,6 +221,8 @@ metadata:
   name: send-receive
   namespace: send-receive-project
 spec:
+  deploymentPlan:
+    persistenceEnabled: true
   ingressDomain: ${CLUSTER_IP}.nip.io
   acceptors:
     - name: sslacceptor
@@ -221,6 +231,8 @@ spec:
       sslEnabled: true
       sslSecret: send-receive-sslacceptor-secret
   brokerProperties:
+    - maxDiskUsage=99
+    - journalPoolFiles=2
     - addressConfigurations."APP.JOBS".routingTypes=ANYCAST
     - addressConfigurations."APP.JOBS".queueConfigs."APP.JOBS".routingType=ANYCAST
     - addressConfigurations."APP.COMMANDS".routingTypes=MULTICAST
@@ -270,6 +282,7 @@ wget --quiet https://repo1.maven.org/maven2/org/apache/activemq/apache-artemis/$
 tar -zxf apache-artemis-${BROKER_VERSION}-bin.tar.gz apache-artemis-${BROKER_VERSION}/
 # make the rest of commands version agnostic
 mv apache-artemis-${BROKER_VERSION}/ apache-artemis/
+rm apache-artemis-${BROKER_VERSION}-bin.tar.gz
 ```
 
 #### Figure out the broker endpoint
@@ -299,7 +312,8 @@ export BROKER_URL="tcp://${INGRESS_URL}:443?forceSSLParameters=true&sslEnabled=t
 ##### Test the connection
 
 ```{"stage":"test0", "rootdir":"$tmpdir.1/apache-artemis/bin", "runtime":"bash", "label":"test connection"}
-./artemis check queue --name TEST --produce 10 --browse 10 --consume 10 --url ${BROKER_URL} --verbose --timeout 120000
+COUNT=0
+until [ $COUNT -gt 3 ] || ./artemis check queue --name TEST --produce 10 --browse 10 --consume 10 --url ${BROKER_URL} --verbose --timeout 10000; do COUNT=$[COUNT + 1]; kubectl logs send-receive-ss-0; kubectl exec send-receive-ss-0 -- df -h; done
 ```
 ```shell markdown_runner
 Executing org.apache.activemq.artemis.cli.commands.check.QueueCheck check queue --name TEST --produce 10 --browse 10 --consume 10 --url tcp://send-receive-sslacceptor-0-svc-ing-send-receive-project.192.168.50.5.nip.io:443?forceSSLParameters=true&sslEnabled=true&verifyHost=false&trustStorePath=/tmp/2821826002/broker.ks&trustStorePassword=000000&useTopologyForLoadBalancing=false --verbose 

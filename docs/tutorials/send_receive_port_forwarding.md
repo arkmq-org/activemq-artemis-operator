@@ -104,6 +104,7 @@ deployment.apps/activemq-artemis-controller-manager created
 Wait for the Operator to start (status: `running`).
 
 ```bash {"stage":"init", "runtime":"bash", "label":"wait for the operator to be running"}
+kubectl wait deployment activemq-artemis-controller-manager --for=create --timeout=240s
 kubectl wait pod --all --for=condition=Ready --namespace=send-receive-project --timeout=600s
 ```
 ```shell markdown_runner
