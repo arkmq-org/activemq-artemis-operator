@@ -41,7 +41,7 @@ minikube profile tutorialtester
 * minikube profile was successfully set to tutorialtester
 ```
 
-### Deploy the operator
+### Deploy the operator 
 
 #### create the namespace
 
