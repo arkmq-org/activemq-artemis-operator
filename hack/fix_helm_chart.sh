@@ -47,3 +47,7 @@ sed -i 's~resources: {}~resources: {{- toYaml .Values.controllerManager.manager.
 # ENABLE_WEBHOOKS always false
 $YQ -i 'del(.controllerManager.manager.env.enableWebhooks)' ${dir}/values.yaml
 sed -i "s~.Values.controllerManager.manager.env.enableWebhooks~false~" ${dir}/templates/deployment.yaml
+
+# imagePullPolicy (null preserves Kubernetes default behavior)
+$YQ -i '.controllerManager.manager.image.pullPolicy=null' ${dir}/values.yaml
+sed -i '/name: manager/a\        {{- with .Values.controllerManager.manager.image.pullPolicy }}\n        imagePullPolicy: {{ . }}\n        {{- end }}' ${dir}/templates/deployment.yaml
