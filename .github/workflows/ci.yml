@@ -156,6 +156,21 @@ jobs:
           podman manifest push $IMAGE_NAME:dev.latest docker://quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME:$COMMIT_TAG
           podman manifest push $IMAGE_NAME:dev.latest docker://quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME:dev.latest
 
+      - name: Push dev-latest helm chart
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          # Create a temporary copy for the dev chart
+          cp -r helm-charts/arkmq-org-broker-operator helm-charts/arkmq-org-broker-operator-dev
+          # Update version and image tag for dev-latest
+          yq -i '.version="0.0.0-dev.latest"' helm-charts/arkmq-org-broker-operator-dev/Chart.yaml
+          yq -i '.appVersion="dev.latest"' helm-charts/arkmq-org-broker-operator-dev/Chart.yaml
+          yq -i '.controllerManager.manager.image.tag="dev.latest"' helm-charts/arkmq-org-broker-operator-dev/values.yaml
+          yq -i '.controllerManager.manager.image.pullPolicy="Always"' helm-charts/arkmq-org-broker-operator-dev/values.yaml
+          # Package and push
+          helm package helm-charts/arkmq-org-broker-operator-dev/
+          helm registry login --username=${{ secrets.QUAY_USERNAME }} --password=${{ secrets.QUAY_PASSWORD }} quay.io
+          helm push arkmq-org-broker-operator-dev-*.tgz oci://quay.io/${{ secrets.QUAY_NAMESPACE }}/helm-charts
+
       - name: Build the bundle image
         run: podman build --file bundle.Dockerfile --label quay.expires-after=90d --label git-sha=$GITHUB_SHA --tag $IMAGE_NAME-bundle:dev.latest .
 
