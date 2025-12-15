@@ -1,6 +1,6 @@
 ---
 title: "Exchanging messages using port forwarding"  
-description: "Steps to get a producer and a consummer exchanging messages over a deployed broker on OpenShift using port forwwarding"
+description: "Steps to get a producer and a consummer exchanging messages over a deployed broker on OpenShift using port forwarding"
 draft: false
 images: []
 menu:
@@ -41,32 +41,7 @@ minikube profile tutorialtester
 * minikube profile was successfully set to tutorialtester
 ```
 
-#### Enable nginx and ssl passthrough for minikube
-
-```{"stage":"init"}
-minikube addons enable ingress
-minikube kubectl -- patch deployment -n ingress-nginx ingress-nginx-controller --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value":"--enable-ssl-passthrough"}]'
-```
-```shell markdown_runner
-* ingress is an addon maintained by Kubernetes. For any concerns contact minikube on GitHub.
-You can view the list of minikube maintainers at: https://github.com/kubernetes/minikube/blob/master/OWNERS
-  - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3
-  - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3
-  - Using image registry.k8s.io/ingress-nginx/controller:v1.12.2
-* Verifying ingress addon...
-* The 'ingress' addon is enabled
-deployment.apps/ingress-nginx-controller patched
-```
-
-#### Make sure the domain of your cluster is resolvable
-
-If you are running your OpenShift cluster locally, you might not be able to
-resolve the urls to IPs out of the blue. Follow [this guide](../help/hostname_resolution.md) to configure your setup.
-
-This tutorial will follow the simple /etc/hosts approach, but feel free to use
-the most appropriate one for you.
-
-### Deploy the operator
+### Deploy the operator 
 
 #### create the namespace
 
