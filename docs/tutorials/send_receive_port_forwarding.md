@@ -1,6 +1,6 @@
 ---
 title: "Exchanging messages using port forwarding"  
-description: "Steps to get a producer and a consummer exchanging messages over a deployed broker on OpenShift using port forwwarding"
+description: "Steps to get a producer and a consummer exchanging messages over a deployed broker on OpenShift using port forwarding"
 draft: false
 images: []
 menu:
@@ -40,24 +40,6 @@ minikube profile tutorialtester
 ! Image was not built for the current minikube version. To resolve this you can delete and recreate your minikube cluster using the latest images. Expected minikube version: v1.35.0 -> Actual minikube version: v1.36.0
 * minikube profile was successfully set to tutorialtester
 ```
-
-#### Enable nginx and ssl passthrough for minikube
-
-```{"stage":"init"}
-minikube addons enable ingress
-minikube kubectl -- patch deployment -n ingress-nginx ingress-nginx-controller --type='json' -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value":"--enable-ssl-passthrough"}]'
-```
-```shell markdown_runner
-* ingress is an addon maintained by Kubernetes. For any concerns contact minikube on GitHub.
-You can view the list of minikube maintainers at: https://github.com/kubernetes/minikube/blob/master/OWNERS
-  - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3
-  - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3
-  - Using image registry.k8s.io/ingress-nginx/controller:v1.12.2
-* Verifying ingress addon...
-* The 'ingress' addon is enabled
-deployment.apps/ingress-nginx-controller patched
-```
-
 
 ### Deploy the operator
 
