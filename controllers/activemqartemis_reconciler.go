@@ -1959,13 +1959,10 @@ func addNewVolumeMounts(existingNames map[string]string, existing *[]corev1.Volu
 	}
 }
 
-func (reconciler *ActiveMQArtemisReconcilerImpl) MakeVolumeMounts(customResource *brokerv1beta1.ActiveMQArtemis, namer common.Namers) ([]corev1.VolumeMount, error) {
-
+// MakeExtraVolumeMounts creates volume mounts for ExtraVolumes and ExtraVolumeClaimTemplates
+// This is used by both the main container and init container
+func MakeExtraVolumeMounts(customResource *brokerv1beta1.ActiveMQArtemis) []corev1.VolumeMount {
 	volumeMounts := []corev1.VolumeMount{}
-	if customResource.Spec.DeploymentPlan.PersistenceEnabled || common.IsRestricted(customResource) {
-		persistentCRVlMnt := volumes.MakePersistentVolumeMount(customResource.Name, getDataMountPath(customResource, namer))
-		volumeMounts = append(volumeMounts, persistentCRVlMnt...)
-	}
 
 	for _, volume := range customResource.Spec.DeploymentPlan.ExtraVolumes {
 		var volumeMount corev1.VolumeMount
@@ -2001,6 +1998,21 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) MakeVolumeMounts(customResource
 		}
 		volumeMounts = append(volumeMounts, vMount)
 	}
+
+	return volumeMounts
+}
+
+func (reconciler *ActiveMQArtemisReconcilerImpl) MakeVolumeMounts(customResource *brokerv1beta1.ActiveMQArtemis, namer common.Namers) ([]corev1.VolumeMount, error) {
+
+	volumeMounts := []corev1.VolumeMount{}
+	if customResource.Spec.DeploymentPlan.PersistenceEnabled || common.IsRestricted(customResource) {
+		persistentCRVlMnt := volumes.MakePersistentVolumeMount(customResource.Name, getDataMountPath(customResource, namer))
+		volumeMounts = append(volumeMounts, persistentCRVlMnt...)
+	}
+
+	// Add extra volumes and extra volume claim templates
+	extraVolumeMounts := MakeExtraVolumeMounts(customResource)
+	volumeMounts = append(volumeMounts, extraVolumeMounts...)
 
 	// Scan acceptors for any with sslEnabled
 	secretVolumeMounts := make(map[string]string)
@@ -2634,6 +2646,13 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 	if len(extraVolumeMounts) > 0 {
 		podSpec.InitContainers[0].VolumeMounts = append(podSpec.InitContainers[0].VolumeMounts, extraVolumeMounts...)
 		reqLogger.V(2).Info("Added some extra mounts to init", "total mounts: ", podSpec.InitContainers[0].VolumeMounts)
+	}
+
+	// Add extra volumes and extra volume claim templates to init container
+	crExtraVolumeMounts := MakeExtraVolumeMounts(customResource)
+	if len(crExtraVolumeMounts) > 0 {
+		podSpec.InitContainers[0].VolumeMounts = append(podSpec.InitContainers[0].VolumeMounts, crExtraVolumeMounts...)
+		reqLogger.V(2).Info("Added CR extra volume mounts to init", "total mounts: ", podSpec.InitContainers[0].VolumeMounts)
 	}
 
 	dontRun := corev1.EnvVar{

@@ -1218,6 +1218,166 @@ func TestNewPodTemplateSpecForCR_IncludesContainerSecurityContext(t *testing.T) 
 	assert.Equal(t, newSpec.Spec.InitContainers[0].SecurityContext, expectedSecurityContext)
 }
 
+func TestNewPodTemplateSpecForCR_IncludesExtraVolumes(t *testing.T) {
+	cr := &brokerv1beta1.ActiveMQArtemis{
+		Spec: brokerv1beta1.ActiveMQArtemisSpec{
+			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+				ExtraVolumes: []v1.Volume{
+					{
+						Name: "my-extra-volume",
+						VolumeSource: v1.VolumeSource{
+							EmptyDir: &v1.EmptyDirVolumeSource{},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	reconciler := &ActiveMQArtemisReconcilerImpl{
+		log:            ctrl.Log.WithName("test"),
+		customResource: cr,
+	}
+
+	newSpec, err := reconciler.PodTemplateSpecForCR(cr, common.Namers{}, &appsv1.StatefulSet{}, k8sClient)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, newSpec)
+
+	// Verify main container has the extra volume mount
+	mainContainerHasMount := false
+	for _, mount := range newSpec.Spec.Containers[0].VolumeMounts {
+		if mount.Name == "my-extra-volume" {
+			mainContainerHasMount = true
+			assert.Equal(t, "/amq/extra/volumes/my-extra-volume", mount.MountPath)
+			break
+		}
+	}
+	assert.True(t, mainContainerHasMount, "Main container should have the extra volume mount")
+
+	// Verify init container has the extra volume mount
+	assert.NotEmpty(t, newSpec.Spec.InitContainers, "Should have init containers")
+	initContainerHasMount := false
+	for _, mount := range newSpec.Spec.InitContainers[0].VolumeMounts {
+		if mount.Name == "my-extra-volume" {
+			initContainerHasMount = true
+			assert.Equal(t, "/amq/extra/volumes/my-extra-volume", mount.MountPath)
+			break
+		}
+	}
+	assert.True(t, initContainerHasMount, "Init container should have the extra volume mount")
+}
+
+func TestNewPodTemplateSpecForCR_IncludesExtraVolumesWithCustomMount(t *testing.T) {
+	cr := &brokerv1beta1.ActiveMQArtemis{
+		Spec: brokerv1beta1.ActiveMQArtemisSpec{
+			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+				ExtraVolumes: []v1.Volume{
+					{
+						Name: "my-extra-volume",
+						VolumeSource: v1.VolumeSource{
+							EmptyDir: &v1.EmptyDirVolumeSource{},
+						},
+					},
+				},
+				ExtraVolumeMounts: []v1.VolumeMount{
+					{
+						Name:      "my-extra-volume",
+						MountPath: "/custom/path",
+					},
+				},
+			},
+		},
+	}
+
+	reconciler := &ActiveMQArtemisReconcilerImpl{
+		log:            ctrl.Log.WithName("test"),
+		customResource: cr,
+	}
+
+	newSpec, err := reconciler.PodTemplateSpecForCR(cr, common.Namers{}, &appsv1.StatefulSet{}, k8sClient)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, newSpec)
+
+	// Verify main container has the extra volume mount with custom path
+	mainContainerHasMount := false
+	for _, mount := range newSpec.Spec.Containers[0].VolumeMounts {
+		if mount.Name == "my-extra-volume" {
+			mainContainerHasMount = true
+			assert.Equal(t, "/custom/path", mount.MountPath)
+			break
+		}
+	}
+	assert.True(t, mainContainerHasMount, "Main container should have the extra volume mount")
+
+	// Verify init container has the extra volume mount with custom path
+	assert.NotEmpty(t, newSpec.Spec.InitContainers, "Should have init containers")
+	initContainerHasMount := false
+	for _, mount := range newSpec.Spec.InitContainers[0].VolumeMounts {
+		if mount.Name == "my-extra-volume" {
+			initContainerHasMount = true
+			assert.Equal(t, "/custom/path", mount.MountPath)
+			break
+		}
+	}
+	assert.True(t, initContainerHasMount, "Init container should have the extra volume mount with custom path")
+}
+
+func TestNewPodTemplateSpecForCR_IncludesExtraVolumeClaimTemplates(t *testing.T) {
+	cr := &brokerv1beta1.ActiveMQArtemis{
+		Spec: brokerv1beta1.ActiveMQArtemisSpec{
+			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+				ExtraVolumeClaimTemplates: []brokerv1beta1.VolumeClaimTemplate{
+					{
+						ObjectMeta: brokerv1beta1.ObjectMeta{
+							Name: "my-pvc",
+						},
+						Spec: v1.PersistentVolumeClaimSpec{
+							AccessModes: []v1.PersistentVolumeAccessMode{
+								v1.ReadWriteOnce,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	reconciler := &ActiveMQArtemisReconcilerImpl{
+		log:            ctrl.Log.WithName("test"),
+		customResource: cr,
+	}
+
+	newSpec, err := reconciler.PodTemplateSpecForCR(cr, common.Namers{}, &appsv1.StatefulSet{}, k8sClient)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, newSpec)
+
+	// Verify main container has the extra volume claim mount
+	mainContainerHasMount := false
+	for _, mount := range newSpec.Spec.Containers[0].VolumeMounts {
+		if mount.Name == "my-pvc" {
+			mainContainerHasMount = true
+			assert.Equal(t, "/opt/my-pvc/data", mount.MountPath)
+			break
+		}
+	}
+	assert.True(t, mainContainerHasMount, "Main container should have the extra PVC mount")
+
+	// Verify init container has the extra volume claim mount
+	assert.NotEmpty(t, newSpec.Spec.InitContainers, "Should have init containers")
+	initContainerHasMount := false
+	for _, mount := range newSpec.Spec.InitContainers[0].VolumeMounts {
+		if mount.Name == "my-pvc" {
+			initContainerHasMount = true
+			assert.Equal(t, "/opt/my-pvc/data", mount.MountPath)
+			break
+		}
+	}
+	assert.True(t, initContainerHasMount, "Init container should have the extra PVC mount")
+}
+
 func TestLoginConfigSyntaxCheck(t *testing.T) {
 	good := map[string][]byte{
 		"simple": []byte(`a {

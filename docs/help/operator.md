@@ -1405,7 +1405,7 @@ spec:
       - name: mydata
         mountPath: /opt/mydata
 ```
-When deploying the above CR, the PVC volume will be mounted to path **/opt/mydata** in the broker container of both broker pods. The **extraVolumeMounts** is optional. If not specified a default mountPath is given based on the type of the volume, following the pattern:
+When deploying the above CR, the PVC volume will be mounted to path **/opt/mydata** in both the broker container and the init container of all broker pods. This allows the init container to access the extra volumes during broker configuration. The **extraVolumeMounts** is optional. If not specified a default mountPath is given based on the type of the volume, following the pattern:
 
 /amq/extra/volumes/`<volume.name>`
 
@@ -1438,7 +1438,7 @@ spec:
 ```
 The **extraVolumeClaimTemplates** is a list of PVC specs. The key is the **pvc name base** of the PVC. The value is of type [persistentVolumeClaimSpec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#persistentvolumeclaimspec-v1-core)
 
-When deploying the above CR, the operator will append the external PVC to the statefulset's PersistentVolumeClaimTemplate field. When the StatesulSet rolls out the pods it will mount matching PVCs to each pod.
+When deploying the above CR, the operator will append the external PVC to the statefulset's PersistentVolumeClaimTemplate field. When the StatefulSet rolls out the pods it will mount matching PVCs to each pod. The volumes are mounted to both the broker container and the init container, allowing the init container to access the extra volumes during broker configuration.
 
 Note for each pod the PVC's name must follow the pattern `<volumeName>-<statefulset-name>-<ordinal>`.
 For the above CR the matching PVC names are **mydata-artemis-broker-ss-0** for pod0 and **mydata-artemis-broker-ss-1** for pod1 respectively. You can configure an optional VolumeMount for each PVC under **extraVolumeMounts**. If not specified the default mount path is **/opt/`<volumeName>`/data**.
