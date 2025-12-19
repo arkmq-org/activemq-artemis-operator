@@ -16,13 +16,20 @@ limitations under the License.
 package common
 
 import (
+	"context"
+	"errors"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/RHsyseng/operator-utils/pkg/olm"
 	"github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -80,4 +87,116 @@ var _ = Describe("Common Test", func() {
 		condition = getDeploymentCondition(cr, nil, true, nil)
 		Expect(condition.Status).Should(BeEquivalentTo(metav1.ConditionFalse))
 	})
+
+	Describe("ResolveSecret", func() {
+		var (
+			scheme    *runtime.Scheme
+			namespace string
+			crName    string
+		)
+
+		BeforeEach(func() {
+			scheme = runtime.NewScheme()
+			Expect(corev1.AddToScheme(scheme)).To(Succeed())
+			namespace = "test-ns"
+			crName = "test-broker"
+		})
+
+		It("should return CR-specific secret when it exists", func() {
+			crSpecificSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      crName + "-control-plane-override",
+					Namespace: namespace,
+				},
+				Data: map[string][]byte{
+					"key": []byte("cr-specific-value"),
+				},
+			}
+
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crSpecificSecret).Build()
+
+			secret, err := ResolveSecret(crName, namespace, "control-plane-override", fakeClient)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(secret).NotTo(BeNil())
+			Expect(secret.Name).To(Equal(crName + "-control-plane-override"))
+			Expect(secret.Data["key"]).To(Equal([]byte("cr-specific-value")))
+		})
+
+		It("should fallback to shared secret when CR-specific doesn't exist", func() {
+			sharedSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "control-plane-override",
+					Namespace: namespace,
+				},
+				Data: map[string][]byte{
+					"key": []byte("shared-value"),
+				},
+			}
+
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(sharedSecret).Build()
+
+			secret, err := ResolveSecret(crName, namespace, "control-plane-override", fakeClient)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(secret).NotTo(BeNil())
+			Expect(secret.Name).To(Equal("control-plane-override"))
+			Expect(secret.Data["key"]).To(Equal([]byte("shared-value")))
+		})
+
+		It("should return nil when no secret exists", func() {
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+			secret, err := ResolveSecret(crName, namespace, "control-plane-override", fakeClient)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(secret).To(BeNil())
+		})
+
+		It("should prefer CR-specific over shared when both exist", func() {
+			crSpecificSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      crName + "-control-plane-override",
+					Namespace: namespace,
+				},
+				Data: map[string][]byte{
+					"key": []byte("cr-specific-value"),
+				},
+			}
+
+			sharedSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "control-plane-override",
+					Namespace: namespace,
+				},
+				Data: map[string][]byte{
+					"key": []byte("shared-value"),
+				},
+			}
+
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(crSpecificSecret, sharedSecret).Build()
+
+			secret, err := ResolveSecret(crName, namespace, "control-plane-override", fakeClient)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(secret).NotTo(BeNil())
+			Expect(secret.Name).To(Equal(crName + "-control-plane-override"))
+			Expect(secret.Data["key"]).To(Equal([]byte("cr-specific-value")))
+		})
+
+		It("should return error when Get fails with non-NotFound error", func() {
+			fakeClient := &errorClient{
+				Client: fake.NewClientBuilder().WithScheme(scheme).Build(),
+			}
+
+			secret, err := ResolveSecret(crName, namespace, "control-plane-override", fakeClient)
+			Expect(err).To(HaveOccurred())
+			Expect(secret).To(BeNil())
+		})
+	})
 })
+
+// errorClient is a fake client that returns errors for Get operations
+type errorClient struct {
+	client.Client
+}
+
+func (e *errorClient) Get(ctx context.Context, key types.NamespacedName, obj client.Object, opts ...client.GetOption) error {
+	return errors.New("simulated error")
+}

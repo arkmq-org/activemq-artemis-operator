@@ -40,7 +40,67 @@ import (
 
 	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
+	rtclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// installOperatorCert installs the operator certificate
+func installOperatorCert(namespace string) {
+	By("installing operator cert")
+	InstallCert(common.DefaultOperatorCertSecretName, namespace, func(candidate *cmv1.Certificate) {
+		candidate.Spec.SecretName = common.DefaultOperatorCertSecretName
+		candidate.Spec.CommonName = "activemq-artemis-operator"
+		candidate.Spec.IssuerRef = cmmetav1.ObjectReference{
+			Name: caIssuer.Name,
+			Kind: "ClusterIssuer",
+		}
+	})
+}
+
+// installOperandCert installs the operand (broker) certificate and returns the cert name
+func installOperandCert(crdName, namespace string) string {
+	sharedOperandCertName := common.DefaultOperandCertSecretName
+	By("installing restricted mtls broker cert")
+	InstallCert(sharedOperandCertName, namespace, func(candidate *cmv1.Certificate) {
+		candidate.Spec.SecretName = sharedOperandCertName
+		candidate.Spec.CommonName = "activemq-artemis-operand"
+		candidate.Spec.DNSNames = []string{common.OrdinalFQDNS(crdName, namespace, 0)}
+		candidate.Spec.IssuerRef = cmmetav1.ObjectReference{
+			Name: caIssuer.Name,
+			Kind: "ClusterIssuer",
+		}
+	})
+	return sharedOperandCertName
+}
+
+// createBaseCRD creates a basic ActiveMQArtemis CRD with minimal configuration
+func createBaseCRD(namespace string) brokerv1beta1.ActiveMQArtemis {
+	return brokerv1beta1.ActiveMQArtemis{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ActiveMQArtemis",
+			APIVersion: brokerv1beta1.GroupVersion.Identifier(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      NextSpecResourceName(),
+			Namespace: namespace,
+		},
+	}
+}
+
+// waitForBrokerReady waits for the broker to be in Ready and ConfigApplied state
+func waitForBrokerReady(ctx context.Context, k8sClient rtclient.Client, brokerKey types.NamespacedName) {
+	createdCrd := &brokerv1beta1.ActiveMQArtemis{}
+	By("Checking ready, operator can access broker status via jmx")
+	Eventually(func(g Gomega) {
+		g.Expect(k8sClient.Get(ctx, brokerKey, createdCrd)).Should(Succeed())
+
+		if verbose {
+			fmt.Printf("STATUS: %v\n\n", createdCrd.Status.Conditions)
+		}
+		g.Expect(meta.IsStatusConditionTrue(createdCrd.Status.Conditions, brokerv1beta1.ReadyConditionType)).Should(BeTrue())
+		g.Expect(meta.IsStatusConditionTrue(createdCrd.Status.Conditions, brokerv1beta1.ConfigAppliedConditionType)).Should(BeTrue())
+
+	}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+}
 
 var _ = Describe("minimal", func() {
 
@@ -108,41 +168,14 @@ var _ = Describe("minimal", func() {
 				return
 			}
 
-			By("installing operator cert")
-			InstallCert(common.DefaultOperatorCertSecretName, defaultNamespace, func(candidate *cmv1.Certificate) {
-				candidate.Spec.SecretName = common.DefaultOperatorCertSecretName
-				candidate.Spec.CommonName = "activemq-artemis-operator"
-				candidate.Spec.IssuerRef = cmmetav1.ObjectReference{
-					Name: caIssuer.Name,
-					Kind: "ClusterIssuer",
-				}
-			})
+			installOperatorCert(defaultNamespace)
 
 			ctx := context.Background()
 
 			// empty CRD, name is used for cert subject to match the headless service
-			crd := brokerv1beta1.ActiveMQArtemis{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "ActiveMQArtemis",
-					APIVersion: brokerv1beta1.GroupVersion.Identifier(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      NextSpecResourceName(),
-					Namespace: defaultNamespace,
-				},
-			}
+			crd := createBaseCRD(defaultNamespace)
 
-			sharedOperandCertName := common.DefaultOperandCertSecretName
-			By("installing restricted mtls broker cert")
-			InstallCert(sharedOperandCertName, defaultNamespace, func(candidate *cmv1.Certificate) {
-				candidate.Spec.SecretName = sharedOperandCertName
-				candidate.Spec.CommonName = "activemq-artemis-operand"
-				candidate.Spec.DNSNames = []string{common.OrdinalFQDNS(crd.Name, defaultNamespace, 0)}
-				candidate.Spec.IssuerRef = cmmetav1.ObjectReference{
-					Name: caIssuer.Name,
-					Kind: "ClusterIssuer",
-				}
-			})
+			sharedOperandCertName := installOperandCert(crd.Name, defaultNamespace)
 
 			prometheusCertName := common.DefaultPrometheusCertSecretName
 			By("installing prometheus cert")
@@ -172,17 +205,7 @@ var _ = Describe("minimal", func() {
 			brokerKey := types.NamespacedName{Name: crd.Name, Namespace: crd.Namespace}
 			createdCrd := &brokerv1beta1.ActiveMQArtemis{}
 
-			By("Checking ready, operator can access broker status via jmx")
-			Eventually(func(g Gomega) {
-				g.Expect(k8sClient.Get(ctx, brokerKey, createdCrd)).Should(Succeed())
-
-				if verbose {
-					fmt.Printf("STATUS: %v\n\n", createdCrd.Status.Conditions)
-				}
-				g.Expect(meta.IsStatusConditionTrue(createdCrd.Status.Conditions, brokerv1beta1.ReadyConditionType)).Should(BeTrue())
-				g.Expect(meta.IsStatusConditionTrue(createdCrd.Status.Conditions, brokerv1beta1.ConfigAppliedConditionType)).Should(BeTrue())
-
-			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+			waitForBrokerReady(ctx, k8sClient, brokerKey)
 
 			serverName := common.OrdinalFQDNS(crd.Name, defaultNamespace, 0)
 			By("setting up operator identity on http client")
@@ -240,5 +263,254 @@ var _ = Describe("minimal", func() {
 			UninstallCert(common.DefaultOperatorCertSecretName, defaultNamespace)
 			UninstallCert(sharedOperandCertName, defaultNamespace)
 		})
+
+		// Define the inputs you want to test
+		sharedOverrides := []bool{true, false}
+
+		for _, sharedOverride := range sharedOverrides {
+			Context(fmt.Sprintf("when using shared override is %t", sharedOverride), func() {
+				It("control plane override - custom metrics access", func() {
+
+					if os.Getenv("USE_EXISTING_CLUSTER") != "true" {
+						return
+					}
+
+					installOperatorCert(defaultNamespace)
+
+					newUserCert := "new-user-cert"
+					By("installing new-user cert (should be allowed via override)")
+					InstallCert(newUserCert, defaultNamespace, func(candidate *cmv1.Certificate) {
+						candidate.Spec.SecretName = newUserCert
+						candidate.Spec.CommonName = "new-user"
+						candidate.Spec.IssuerRef = cmmetav1.ObjectReference{
+							Name: caIssuer.Name,
+							Kind: "ClusterIssuer",
+						}
+					})
+					newUserCertName := newUserCert
+
+					randomCert := "random-cert"
+					By("installing random cert (should be denied)")
+					InstallCert(randomCert, defaultNamespace, func(candidate *cmv1.Certificate) {
+						candidate.Spec.SecretName = randomCert
+						candidate.Spec.CommonName = "random"
+						candidate.Spec.IssuerRef = cmmetav1.ObjectReference{
+							Name: caIssuer.Name,
+							Kind: "ClusterIssuer",
+						}
+					})
+					randomCertName := randomCert
+
+					ctx := context.Background()
+
+					crd := createBaseCRD(defaultNamespace)
+
+					sharedOperandCertName := installOperandCert(crd.Name, defaultNamespace)
+
+					overrideSecretName := "control-plane-override"
+					if sharedOverride {
+						overrideSecretName = crd.Name + "-control-plane-override"
+					}
+					By("creating control-plane-override secret with custom cert-users and cert-roles")
+					overrideSecret := &corev1.Secret{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "Secret",
+							APIVersion: "v1",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      overrideSecretName,
+							Namespace: defaultNamespace,
+						},
+						StringData: map[string]string{
+							"_cert-users": `# generated by test
+#
+					hawtio=/CN = hawtio-online\.hawtio\.svc.*/
+					operator=/.*activemq-artemis-operator.*/
+					probe=/.*activemq-artemis-operand.*/
+					new-user=/.*new-user.*/
+					`,
+							"_cert-roles": `# generated by test
+#
+					status=operator,probe
+					metrics=operator,new-user
+					hawtio=hawtio
+					`,
+						},
+					}
+					Expect(k8sClient.Create(ctx, overrideSecret)).Should(Succeed())
+					DeferCleanup(func() {
+						k8sClient.Delete(ctx, overrideSecret)
+					})
+
+					crd.Spec.Restricted = common.NewTrue()
+					crd.Spec.BrokerProperties = []string{
+						"messageCounterSamplePeriod=500",
+					}
+
+					By("Deploying the CRD " + crd.ObjectMeta.Name)
+					Expect(k8sClient.Create(ctx, &crd)).Should(Succeed())
+
+					brokerKey := types.NamespacedName{Name: crd.Name, Namespace: crd.Namespace}
+					createdCrd := &brokerv1beta1.ActiveMQArtemis{}
+
+					waitForBrokerReady(ctx, k8sClient, brokerKey)
+
+					serverName := common.OrdinalFQDNS(crd.Name, defaultNamespace, 0)
+
+					By("Test 1: Operator cert can scrape metrics (default behavior)")
+					Eventually(func(g Gomega) {
+						transport := http.DefaultTransport.(*http.Transport).Clone()
+						httpClient := http.Client{
+							Transport: transport,
+							Timeout:   time.Second * 3,
+						}
+
+						httpClientTransport := httpClient.Transport.(*http.Transport)
+						httpClientTransport.TLSClientConfig = &tls.Config{
+							ServerName:         serverName,
+							InsecureSkipVerify: false,
+						}
+						httpClientTransport.TLSClientConfig.GetClientCertificate =
+							func(cri *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+								return common.GetOperatorClientCertificate(k8sClient, cri)
+							}
+
+						if rootCas, err := common.GetRootCAs(k8sClient); err == nil {
+							httpClientTransport.TLSClientConfig.RootCAs = rootCas
+						}
+
+						resp, err := httpClient.Get("https://" + serverName + ":8888/metrics")
+						fmt.Printf("Test 1 - Operator cert: status=%d, err=%v\n", resp.StatusCode, err)
+						g.Expect(err).Should(Succeed())
+						g.Expect(resp.StatusCode).Should(Equal(200))
+
+						defer resp.Body.Close()
+						body, err := io.ReadAll(resp.Body)
+						g.Expect(err).Should(Succeed())
+
+						bodyStr := string(body)
+						g.Expect(bodyStr).Should(ContainSubstring("artemis_total_pending_message_count"))
+
+					}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+					By("Test 2: New-user cert can scrape metrics (added via override)")
+					Eventually(func(g Gomega) {
+						transport := http.DefaultTransport.(*http.Transport).Clone()
+						httpClient := http.Client{
+							Transport: transport,
+							Timeout:   time.Second * 3,
+						}
+
+						httpClientTransport := httpClient.Transport.(*http.Transport)
+						httpClientTransport.TLSClientConfig = &tls.Config{
+							ServerName:         serverName,
+							InsecureSkipVerify: false,
+						}
+						httpClientTransport.TLSClientConfig.GetClientCertificate =
+							func(cri *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+								secretKey := types.NamespacedName{Name: newUserCertName, Namespace: defaultNamespace}
+								secret := &corev1.Secret{}
+								if err := k8sClient.Get(ctx, secretKey, secret); err != nil {
+									return nil, err
+								}
+
+								certPEM, ok := secret.Data["tls.crt"]
+								if !ok {
+									return nil, fmt.Errorf("tls.crt not found in secret %s", newUserCertName)
+								}
+
+								keyPEM, ok := secret.Data["tls.key"]
+								if !ok {
+									return nil, fmt.Errorf("tls.key not found in secret %s", newUserCertName)
+								}
+
+								cert, err := tls.X509KeyPair(certPEM, keyPEM)
+								if err != nil {
+									return nil, err
+								}
+
+								return &cert, nil
+							}
+
+						if rootCas, err := common.GetRootCAs(k8sClient); err == nil {
+							httpClientTransport.TLSClientConfig.RootCAs = rootCas
+						}
+
+						resp, err := httpClient.Get("https://" + serverName + ":8888/metrics")
+						fmt.Printf("Test 2 - New-user cert: status=%d, err=%v\n", resp.StatusCode, err)
+						g.Expect(err).Should(Succeed())
+						g.Expect(resp.StatusCode).Should(Equal(200))
+
+						defer resp.Body.Close()
+						body, err := io.ReadAll(resp.Body)
+						g.Expect(err).Should(Succeed())
+
+						bodyStr := string(body)
+						g.Expect(bodyStr).Should(ContainSubstring("artemis_total_pending_message_count"))
+
+					}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+					By("Test 3: Random cert cannot scrape metrics (should be denied)")
+					Eventually(func(g Gomega) {
+						transport := http.DefaultTransport.(*http.Transport).Clone()
+						httpClient := http.Client{
+							Transport: transport,
+							Timeout:   time.Second * 3,
+						}
+
+						httpClientTransport := httpClient.Transport.(*http.Transport)
+						httpClientTransport.TLSClientConfig = &tls.Config{
+							ServerName:         serverName,
+							InsecureSkipVerify: false,
+						}
+						httpClientTransport.TLSClientConfig.GetClientCertificate =
+							func(cri *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+								secretKey := types.NamespacedName{Name: randomCertName, Namespace: defaultNamespace}
+								secret := &corev1.Secret{}
+								if err := k8sClient.Get(ctx, secretKey, secret); err != nil {
+									return nil, err
+								}
+
+								certPEM, ok := secret.Data["tls.crt"]
+								if !ok {
+									return nil, fmt.Errorf("tls.crt not found in secret %s", randomCertName)
+								}
+
+								keyPEM, ok := secret.Data["tls.key"]
+								if !ok {
+									return nil, fmt.Errorf("tls.key not found in secret %s", randomCertName)
+								}
+
+								cert, err := tls.X509KeyPair(certPEM, keyPEM)
+								if err != nil {
+									return nil, err
+								}
+
+								return &cert, nil
+							}
+
+						if rootCas, err := common.GetRootCAs(k8sClient); err == nil {
+							httpClientTransport.TLSClientConfig.RootCAs = rootCas
+						}
+
+						resp, err := httpClient.Get("https://" + serverName + ":8888/metrics")
+						fmt.Printf("Test 3 - Random cert: status=%d, err=%v\n", resp.StatusCode, err)
+						g.Expect(err).Should(Succeed())
+						// Should get 401 Unauthorized or 403 Forbidden
+						g.Expect(resp.StatusCode).Should(Or(Equal(401), Equal(403)))
+
+					}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+					By("Cleaning up")
+					Expect(k8sClient.Delete(ctx, createdCrd)).Should(Succeed())
+					Expect(k8sClient.Delete(ctx, overrideSecret)).Should(Succeed())
+
+					UninstallCert(common.DefaultOperatorCertSecretName, defaultNamespace)
+					UninstallCert(sharedOperandCertName, defaultNamespace)
+					UninstallCert(newUserCertName, defaultNamespace)
+					UninstallCert(randomCertName, defaultNamespace)
+				})
+			})
+		}
 	})
 })

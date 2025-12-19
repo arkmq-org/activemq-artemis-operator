@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/adler32"
+	"maps"
 	"regexp"
 	"slices"
 	"sort"
@@ -2323,6 +2324,18 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		fmt.Fprintf(prometheus_config, "    type: COUNTER\n")
 
 		brokerPropertiesMapData["_prometheus_exporter.yaml"] = prometheus_config.Bytes()
+
+		// Apply control plane overrides if they exist
+		overrideSecret, err := common.ResolveSecret(customResource.Name, customResource.Namespace, "control-plane-override", client)
+		if err != nil {
+			return nil, err
+		}
+
+		// ignore if no override secret is found
+		if overrideSecret != nil {
+			// Apply overrides - complete replacement per key
+			maps.Copy(brokerPropertiesMapData, overrideSecret.Data)
+		}
 
 		// adapt jolokia and prometheus authentication
 		additionalSystemPropsForRestricted = append(additionalSystemPropsForRestricted, "-DhttpServerAuthenticator.requestSubjectAttribute=org.jolokia.jaasSubject")
