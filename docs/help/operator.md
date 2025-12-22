@@ -1178,6 +1178,113 @@ spec:
   - port: http-metrics
 ```
 
+## Configuring Operator Manager Resources
+
+The operator manager container has default resource limits and requests configured to ensure stable operation:
+
+| Resource | Request | Limit |
+|----------|---------|-------|
+| CPU | 200m | 1000m |
+| Memory | 128Mi | 384Mi |
+
+These defaults are suitable for most deployments. However, you can customize these values based on your cluster's requirements and the number of broker CRs the operator manages.
+
+### Customizing via Helm
+
+When deploying the operator using Helm, you can override the manager resources in your `values.yaml`:
+
+```yaml
+controllerManager:
+  manager:
+    resources:
+      limits:
+        cpu: "2"
+        memory: 512Mi
+      requests:
+        cpu: 500m
+        memory: 256Mi
+```
+
+Alternatively, you can use the `--set` command line option to override specific resource values:
+
+```shell script
+$ helm install my-operator ./arkmq-org-broker-operator \
+    --set controllerManager.manager.resources.limits.cpu=2 \
+    --set controllerManager.manager.resources.limits.memory=512Mi \
+    --set controllerManager.manager.resources.requests.cpu=500m \
+    --set controllerManager.manager.resources.requests.memory=256Mi
+```
+
+Or to override all resources at once using `--set-json`:
+
+```shell script
+$ helm install my-operator ./arkmq-org-broker-operator \
+    --set-json 'controllerManager.manager.resources={"limits":{"cpu":"2","memory":"512Mi"},"requests":{"cpu":"500m","memory":"256Mi"}}'
+```
+
+### Customizing via Operator Deployment YAML
+
+When deploying the operator using the deployment manifests directly, edit the `deploy/operator.yaml` file to modify the manager container's resources:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: activemq-artemis-controller-manager
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        resources:
+          limits:
+            cpu: 2
+            memory: 512Mi
+          requests:
+            cpu: 500m
+            memory: 128Mi
+```
+
+### Customizing via OperatorHub
+
+If you install the operator from OperatorHub, you don't have direct control over the deployment resources. In that case, you can customize the operator's resource requirements by editing the Subscription resource after the operator is installed.
+
+The Subscription spec has a `config` option that allows you to specify resource requirements for the operator container. To configure custom resources, add or edit the `config.resources` option as shown below:
+
+```yaml
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: activemq-artemis-operator
+  namespace: operators
+spec:
+  channel: stable
+  name: activemq-artemis-operator
+  source: operatorhubio-catalog
+  sourceNamespace: olm
+  config:
+    resources:
+      limits:
+        cpu: "2"
+        memory: 512Mi
+      requests:
+        cpu: 500m
+        memory: 256Mi
+```
+
+After editing the Subscription, save it and the operator pod will be recreated with the new resource configuration.
+
+Note: The `config.resources` option in the Subscription applies to all containers in the operator deployment. If you need more granular control, you may need to create a custom CatalogSource with modified operator manifests.
+
+### Resource Sizing Guidelines
+
+Consider increasing resources if:
+- You manage a large number of broker CRs (e.g., 1000+)
+- You observe OOMKilled events or frequent restarts of the operator pod
+- You notice slow reconciliation times
+
+The memory limit should be set high enough to accommodate the operator's working set, which grows with the number of managed resources.
+
 ## Configuring PodDisruptionBudget for broker deployment
 
 The ActiveMQArtemis custom resource offers a PodDisruptionBudget option

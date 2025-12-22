@@ -289,7 +289,7 @@ var _ = Describe("broker name", func() {
 				UninstallCert(operandCertName, brokerNamespace)
 
 				By("deleting broker namespace " + brokerNamespace)
-				deleteNamespace(brokerNamespace, Default)
+				deleteNamespace(brokerNamespace, true, Default)
 			})
 		})
 	})

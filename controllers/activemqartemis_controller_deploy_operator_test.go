@@ -20,7 +20,10 @@ package controllers
 
 import (
 	"bytes"
+	"context"
+	_ "embed"
 	"os"
+	"strconv"
 	"strings"
 
 	"bufio"
@@ -34,8 +37,15 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+//go:embed testdata/dummy_broker.py
+var dummyPythonScript string
 
 var _ = Describe("artemis controller", Label("do"), func() {
 
@@ -243,10 +253,146 @@ var _ = Describe("artemis controller", Label("do"), func() {
 				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
 				uninstallOperator(false, restrictedNs)
-				deleteNamespace(restrictedNs, Default)
+				deleteNamespace(restrictedNs, true, Default)
 				Expect(installOperator(nil, defaultNamespace)).To(Succeed())
 			}
 		})
 	})
 
+	Context("operator deployment under high load", Label("do-operator-high-load"), Label("slow"), func() {
+		It("maintains memory usage below threshold when managing 1000 broker CRs", func() {
+			if os.Getenv("DEPLOY_OPERATOR") == "true" {
+				tempNs := NextSpecResourceName()
+				uninstallOperator(false, defaultNamespace)
+				By("creating a temp namespace " + tempNs)
+				createNamespace(tempNs, nil)
+				Expect(installOperator(nil, tempNs)).To(Succeed())
+
+				By("checking operator deployment")
+				Eventually(func(g Gomega) {
+					deployment := appsv1.Deployment{}
+					g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: depName,
+						Namespace: tempNs}, &deployment)).Should(Succeed())
+					g.Expect(deployment.Status.ReadyReplicas).Should(Equal(int32(1)))
+				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+				count := 1000
+				ssKind := "StatefulSet"
+				crNamePrefix := NextSpecResourceName()
+
+				for i := 0; i < count; i++ {
+					crName := crNamePrefix + "-" + strconv.Itoa(i)
+
+					statefulSetPatch := &unstructured.Unstructured{
+						Object: map[string]interface{}{
+							"kind": "StatefulSet",
+							"spec": map[string]interface{}{
+								"template": map[string]interface{}{
+									"spec": map[string]interface{}{
+										"initContainers": []interface{}{
+											map[string]interface{}{
+												"name":    crName + "-container-init",
+												"command": []interface{}{"/bin/bash"},
+												"args":    []interface{}{"-c", "echo 'Dummy init container'"},
+												"image":   "registry.access.redhat.com/ubi9/python-312-minimal",
+											},
+										},
+										"containers": []interface{}{
+											map[string]interface{}{
+												"name":    crName + "-container",
+												"command": []interface{}{"python3"},
+												"args":    []interface{}{"-c", dummyPythonScript},
+												"image":   "registry.access.redhat.com/ubi9/python-312-minimal",
+											},
+										},
+									},
+								},
+							},
+						},
+					}
+
+					By("deploying dummy broker with cr: " + crName)
+					cr := brokerv1beta1.ActiveMQArtemis{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "ActiveMQArtemis",
+							APIVersion: brokerv1beta1.GroupVersion.Identifier(),
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      crName,
+							Namespace: tempNs,
+						},
+						Spec: brokerv1beta1.ActiveMQArtemisSpec{
+							DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+								ReadinessProbe: &corev1.Probe{
+									ProbeHandler: corev1.ProbeHandler{
+										TCPSocket: &corev1.TCPSocketAction{
+											Port: intstr.IntOrString{
+												IntVal: 8161,
+											},
+										},
+									},
+								},
+							},
+							ResourceTemplates: []brokerv1beta1.ResourceTemplate{
+								{
+									Selector: &brokerv1beta1.ResourceSelector{Kind: &ssKind},
+									Patch:    statefulSetPatch,
+								},
+							},
+						},
+					}
+
+					Expect(k8sClient.Create(ctx, &cr)).Should(Succeed())
+				}
+
+				createdSs := &appsv1.StatefulSet{}
+				createdCr := &brokerv1beta1.ActiveMQArtemis{}
+
+				for i := 0; i < count; i++ {
+					crName := crNamePrefix + "-" + strconv.Itoa(i)
+
+					By("checking dummy broker with cr: " + crName)
+					ssKey := types.NamespacedName{Name: namer.CrToSS(crName), Namespace: tempNs}
+					Eventually(func(g Gomega) {
+						g.Expect(k8sClient.Get(ctx, ssKey, createdSs)).Should(Succeed())
+					}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+					crKey := types.NamespacedName{Name: crName, Namespace: tempNs}
+					Eventually(func(g Gomega) {
+						g.Expect(k8sClient.Get(ctx, crKey, createdCr)).Should(Succeed())
+						g.Expect(meta.IsStatusConditionTrue(createdCr.Status.Conditions, brokerv1beta1.ValidConditionType)).Should(BeTrue())
+					}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+				}
+
+				podList := &corev1.PodList{}
+				Expect(k8sClient.List(context.Background(), podList, client.InNamespace(tempNs),
+					client.MatchingLabels{"control-plane": "controller-manager", "name": oprName})).To(Succeed())
+				Expect(len(podList.Items) > 0).To(BeTrue())
+
+				By("checking manager container memory")
+				Eventually(func(g Gomega) {
+					currentMemoryText, err := RunCommandInPodWithNamespace(
+						podList.Items[0].Name, tempNs, "manager",
+						[]string{"cat", "/sys/fs/cgroup/memory.current"})
+					g.Expect(err).To(BeNil())
+
+					currentMemoryBytes, err := strconv.ParseInt(
+						strings.TrimSpace(*currentMemoryText), 10, 64)
+					g.Expect(err).To(BeNil())
+
+					// 256Mi threshold is set below the 384Mi limit to ensure adequate
+					// headroom for memory spikes and to verify the operator runs
+					// efficiently when managing 1000 broker CRs
+					thresholdMemoryMegaBytes := int64(256 * 1024 * 1024)
+					g.Expect(currentMemoryBytes < thresholdMemoryMegaBytes).Should(BeTrue(),
+						"memory usage %d bytes exceeds threshold of %d bytes",
+						currentMemoryBytes, thresholdMemoryMegaBytes)
+				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+				uninstallOperator(false, tempNs)
+				deleteNamespace(tempNs, false, Default)
+				Expect(installOperator(nil, defaultNamespace)).To(Succeed())
+			}
+		})
+	})
 })
