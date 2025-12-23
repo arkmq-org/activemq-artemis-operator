@@ -6973,11 +6973,15 @@ var _ = Describe("artemis controller", func() {
 			Expect(previousCompactVersion).ShouldNot(Equal(version.GetDefaultCompactVersion()))
 
 			previousImageEnvVar := common.ImageNamePrefix + "Kubernetes_" + previousCompactVersion
-			os.Setenv(previousImageEnvVar, strings.Replace(version.GetDefaultKubeImage(), version.GetDefaultVersion(), previousVersion.String(), 1))
+			previousImageEnvValue, err := getOperatorEnv(previousImageEnvVar)
+			Expect(err).To(BeNil())
+			os.Setenv(previousImageEnvVar, previousImageEnvValue)
 			defer os.Unsetenv(previousImageEnvVar)
 
 			perviousInitImageEnvVar := common.ImageNamePrefix + "Init_" + previousCompactVersion
-			os.Setenv(perviousInitImageEnvVar, strings.Replace(version.GetDefaultInitImage(), version.GetDefaultVersion(), previousVersion.String(), 1))
+			perviousInitImageEnvValue, err := getOperatorEnv(perviousInitImageEnvVar)
+			Expect(err).To(BeNil())
+			os.Setenv(perviousInitImageEnvVar, perviousInitImageEnvValue)
 			defer os.Unsetenv(perviousInitImageEnvVar)
 
 			By("By creating a crd without persistence")
