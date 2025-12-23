@@ -783,6 +783,20 @@ func putEnv(envs []corev1.EnvVar, envName string, envValue string) []corev1.EnvV
 	return envs
 }
 
+func getOperatorEnv(envName string) (string, error) {
+	robj, _, err := loadYamlResource("../deploy/operator.yaml")
+	if err != nil {
+		return "", err
+	}
+	oprObj := robj.(*appsv1.Deployment)
+	for _, env := range oprObj.Spec.Template.Spec.Containers[0].Env {
+		if env.Name == envName {
+			return env.Value, nil
+		}
+	}
+	return "", fmt.Errorf("environment variable %s not found", envName)
+}
+
 func setUpK8sClient() {
 
 	ctrl.Log.Info("Setting up k8s client")
