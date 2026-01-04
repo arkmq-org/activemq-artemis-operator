@@ -76,13 +76,14 @@ rolebinding.rbac.authorization.k8s.io/activemq-artemis-leader-election-rolebindi
 deployment.apps/activemq-artemis-controller-manager created
 ```
 
-Wait for the Operator to start (status: `running`).
+Wait for the Operator to be deployed.
 
-```bash {"stage":"init", "runtime":"bash", "label":"wait for the operator to be running"}
-kubectl wait pod --all --for=condition=Ready --namespace=send-receive-project --timeout=600s
+```bash {"stage":"init", "runtime":"bash", "label":"wait for the operator to be deployed"}
+kubectl rollout status deployment/activemq-artemis-controller-manager --timeout=600s
 ```
 ```shell markdown_runner
-pod/activemq-artemis-controller-manager-fdd64476f-kclrm condition met
+Waiting for deployment "activemq-artemis-controller-manager" rollout to finish: 0 of 1 updated replicas are available...
+deployment "activemq-artemis-controller-manager" successfully rolled out
 ```
 
 ### Deploying the Apache ActiveMQ Artemis Broker

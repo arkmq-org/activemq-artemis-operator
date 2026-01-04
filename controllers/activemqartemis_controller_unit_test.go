@@ -23,6 +23,7 @@ import (
 	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -240,4 +241,123 @@ func TestJolokiaStatusCached(t *testing.T) {
 	assert.NotNil(t, valid)
 	assert.True(t, strings.Contains(valid.Error(), "AttributeNotFoundException"))
 
+}
+
+func TestMakeExtraVolumeMounts_NoExtraVolumes(t *testing.T) {
+	cr := &brokerv1beta1.ActiveMQArtemis{
+		Spec: brokerv1beta1.ActiveMQArtemisSpec{},
+	}
+
+	volumeMounts := MakeExtraVolumeMounts(cr)
+	assert.Empty(t, volumeMounts)
+}
+
+func TestMakeExtraVolumeMounts_WithExtraVolumes(t *testing.T) {
+	cr := &brokerv1beta1.ActiveMQArtemis{
+		Spec: brokerv1beta1.ActiveMQArtemisSpec{
+			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+				ExtraVolumes: []corev1.Volume{
+					{
+						Name: "my-volume",
+						VolumeSource: corev1.VolumeSource{
+							EmptyDir: &corev1.EmptyDirVolumeSource{},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	volumeMounts := MakeExtraVolumeMounts(cr)
+	assert.Len(t, volumeMounts, 1)
+	assert.Equal(t, "my-volume", volumeMounts[0].Name)
+	assert.Equal(t, "/amq/extra/volumes/my-volume", volumeMounts[0].MountPath)
+}
+
+func TestMakeExtraVolumeMounts_WithExtraVolumesAndMountOverride(t *testing.T) {
+	cr := &brokerv1beta1.ActiveMQArtemis{
+		Spec: brokerv1beta1.ActiveMQArtemisSpec{
+			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+				ExtraVolumes: []corev1.Volume{
+					{
+						Name: "my-volume",
+						VolumeSource: corev1.VolumeSource{
+							EmptyDir: &corev1.EmptyDirVolumeSource{},
+						},
+					},
+				},
+				ExtraVolumeMounts: []corev1.VolumeMount{
+					{
+						Name:      "my-volume",
+						MountPath: "/custom/path",
+					},
+				},
+			},
+		},
+	}
+
+	volumeMounts := MakeExtraVolumeMounts(cr)
+	assert.Len(t, volumeMounts, 1)
+	assert.Equal(t, "my-volume", volumeMounts[0].Name)
+	assert.Equal(t, "/custom/path", volumeMounts[0].MountPath)
+}
+
+func TestMakeExtraVolumeMounts_WithExtraVolumeClaimTemplates(t *testing.T) {
+	cr := &brokerv1beta1.ActiveMQArtemis{
+		Spec: brokerv1beta1.ActiveMQArtemisSpec{
+			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+				ExtraVolumeClaimTemplates: []brokerv1beta1.VolumeClaimTemplate{
+					{
+						ObjectMeta: brokerv1beta1.ObjectMeta{
+							Name: "my-pvc",
+						},
+						Spec: corev1.PersistentVolumeClaimSpec{
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	volumeMounts := MakeExtraVolumeMounts(cr)
+	assert.Len(t, volumeMounts, 1)
+	assert.Equal(t, "my-pvc", volumeMounts[0].Name)
+	assert.Equal(t, "/opt/my-pvc/data", volumeMounts[0].MountPath)
+}
+
+func TestMakeExtraVolumeMounts_WithBothExtraVolumesAndClaims(t *testing.T) {
+	cr := &brokerv1beta1.ActiveMQArtemis{
+		Spec: brokerv1beta1.ActiveMQArtemisSpec{
+			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+				ExtraVolumes: []corev1.Volume{
+					{
+						Name: "my-volume",
+						VolumeSource: corev1.VolumeSource{
+							EmptyDir: &corev1.EmptyDirVolumeSource{},
+						},
+					},
+				},
+				ExtraVolumeClaimTemplates: []brokerv1beta1.VolumeClaimTemplate{
+					{
+						ObjectMeta: brokerv1beta1.ObjectMeta{
+							Name: "my-pvc",
+						},
+						Spec: corev1.PersistentVolumeClaimSpec{
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	volumeMounts := MakeExtraVolumeMounts(cr)
+	assert.Len(t, volumeMounts, 2)
+	assert.Equal(t, "my-volume", volumeMounts[0].Name)
+	assert.Equal(t, "my-pvc", volumeMounts[1].Name)
 }

@@ -40,6 +40,11 @@ jobs:
         ports:
           - 5000:5000
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          large-packages: false
+
       - name: Set up env
         run: |
           echo "HOSTNAME=${HOSTNAME}" >> ${GITHUB_ENV}
@@ -66,7 +71,7 @@ jobs:
         uses: medyagh/setup-minikube@master
         with:
           cpus: 2
-          memory: 4g
+          memory: 8g
           addons: ingress
           insecure-registry: ${{env.HOSTNAME}}:5000
 
@@ -169,7 +174,7 @@ jobs:
           # Package and push
           helm package helm-charts/arkmq-org-broker-operator-dev/
           helm registry login --username=${{ secrets.QUAY_USERNAME }} --password=${{ secrets.QUAY_PASSWORD }} quay.io
-          helm push arkmq-org-broker-operator-dev-*.tgz oci://quay.io/${{ secrets.QUAY_NAMESPACE }}/helm-charts
+          helm push arkmq-org-broker-operator-0.0.0-dev.latest.tgz oci://quay.io/${{ secrets.QUAY_NAMESPACE }}/helm-charts
 
       - name: Build the bundle image
         run: podman build --file bundle.Dockerfile --label quay.expires-after=90d --label git-sha=$GITHUB_SHA --tag $IMAGE_NAME-bundle:dev.latest .
@@ -221,6 +226,6 @@ jobs:
         if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.runTutorials) || (github.event_name == 'pull_request' && steps.changed-tutorial-files.outputs.any_changed == 'true')
         run: |
           minikube delete
-          find docs/tutorials -type f -exec sed -i "s|^minikube start|minikube start --insecure-registry=$HOSTNAME:5000|" {} +
+          find docs/tutorials -type f -exec sed -i "s|^minikube start|minikube start  --cpus 2 --memory 8000 --insecure-registry=$HOSTNAME:5000|" {} +
           sed -i "s|image: quay.io/arkmq-org/activemq-artemis-operator:.*|image: ${HOSTNAME}:5000/$IMAGE_NAME:dev.latest|" deploy/operator.yaml
           markdown-runner docs/tutorials -v

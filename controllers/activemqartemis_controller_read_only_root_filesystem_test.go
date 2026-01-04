@@ -302,4 +302,110 @@ var _ = Describe("Read-only root filesystem support", Label("read-only-root-file
 			CleanResource(cr, cr.Name, cr.Namespace)
 		})
 	})
+
+	Context("using container security context to enable read-only root filesystem and extra volumes to patch StatefulSet", Label("resource-templates"), func() {
+		It("successfully deploys and connects 2 clustered brokers", func() {
+
+			By("deploy a broker cr")
+			cr, _ := DeployCustomBroker(defaultNamespace, func(candidate *brokerv1beta1.ActiveMQArtemis) {
+				candidate.Spec.DeploymentPlan.JolokiaAgentEnabled = true
+				candidate.Spec.DeploymentPlan.MessageMigration = ptr.To(true)
+				candidate.Spec.DeploymentPlan.PersistenceEnabled = true
+				candidate.Spec.DeploymentPlan.Size = ptr.To(int32(2))
+
+				candidate.Spec.DeploymentPlan.ContainerSecurityContext = &corev1.SecurityContext{
+					AllowPrivilegeEscalation: ptr.To(false),
+					Capabilities:             &corev1.Capabilities{Drop: []corev1.Capability{"ALL"}},
+					SeccompProfile:           &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault},
+					RunAsNonRoot:             ptr.To(true),
+					ReadOnlyRootFilesystem:   ptr.To(true),
+				}
+
+				// Use ExtraVolumes and ExtraVolumeMounts to add volumes needed for read-only root filesystem
+				candidate.Spec.DeploymentPlan.ExtraVolumes = []corev1.Volume{
+					{
+						Name: "jboss-home",
+						VolumeSource: corev1.VolumeSource{
+							EmptyDir: &corev1.EmptyDirVolumeSource{},
+						},
+					},
+					{
+						Name: "jolokia-config",
+						VolumeSource: corev1.VolumeSource{
+							EmptyDir: &corev1.EmptyDirVolumeSource{},
+						},
+					},
+					{
+						Name: "tmp-dir",
+						VolumeSource: corev1.VolumeSource{
+							EmptyDir: &corev1.EmptyDirVolumeSource{},
+						},
+					},
+				}
+				candidate.Spec.DeploymentPlan.ExtraVolumeMounts = []corev1.VolumeMount{
+					{
+						Name:      "jboss-home",
+						MountPath: "/home/jboss",
+					},
+					{
+						Name:      "jolokia-config",
+						MountPath: "/opt/jboss/container/jolokia/etc",
+					},
+					{
+						Name:      "tmp-dir",
+						MountPath: "/tmp",
+					},
+				}
+
+				// These env vars are needed because the lauch script
+				// fails to substitute them in the jgroups-ping.xml file
+				// when the root filesystem is read-only
+				candidate.Spec.Env = []corev1.EnvVar{
+					{
+						Name: "APPLICATION_NAME",
+						ValueFrom: &corev1.EnvVarSource{
+							FieldRef: &corev1.ObjectFieldSelector{
+								FieldPath: "metadata.labels['ActiveMQArtemis']",
+							},
+						},
+					},
+					{
+						Name:  "PING_SVC_NAME",
+						Value: "ping-svc",
+					},
+				}
+			})
+
+			By("checking containers have read-only root filesystem")
+			Eventually(func(g Gomega) {
+				brokerStatefulSet := &appsv1.StatefulSet{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: cr.Name + "-ss", Namespace: cr.Namespace}, brokerStatefulSet)).Should(Succeed())
+				for _, initContainer := range brokerStatefulSet.Spec.Template.Spec.InitContainers {
+					g.Expect(*initContainer.SecurityContext.ReadOnlyRootFilesystem).To(BeTrue())
+				}
+				for _, container := range brokerStatefulSet.Spec.Template.Spec.Containers {
+					g.Expect(*container.SecurityContext.ReadOnlyRootFilesystem).To(BeTrue())
+				}
+			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+			if os.Getenv("USE_EXISTING_CLUSTER") == "true" {
+				By("checking ready condition is true")
+				Eventually(func(g Gomega) {
+					g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace}, cr)).Should(Succeed())
+					g.Expect(meta.IsStatusConditionTrue(cr.Status.Conditions, brokerv1beta1.ReadyConditionType)).To(BeTrue())
+				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+				By("checking cluster connections")
+				for _, ordinal := range []string{"0", "1"} {
+					Eventually(func(g Gomega) {
+						stdOutContent := ExecOnPod(cr.Name+"-ss-"+ordinal, cr.Name, cr.Namespace,
+							[]string{"amq-broker/bin/artemis", "check", "node", "--peers", "2"}, g)
+						g.Expect(stdOutContent).Should(ContainSubstring("success"))
+					}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+				}
+			}
+
+			CleanResource(cr, cr.Name, cr.Namespace)
+		})
+	})
 })
