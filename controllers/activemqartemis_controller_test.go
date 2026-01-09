@@ -10715,7 +10715,11 @@ var _ = Describe("artemis controller", func() {
 
 				tlsSecretName := crd.Name + "tls-secret"
 				tlsSecret, err := CreateTlsSecret(tlsSecretName, defaultNamespace, defaultPassword, []string{
+					// ref https://datatracker.ietf.org/doc/html/rfc6125#section-6.4.3
+					// any ordinal of a single service
 					"*." + crd.Name + "-hdls-svc." + defaultNamespace + ".svc.cluster.local",
+					// any service
+					"*." + defaultNamespace + ".svc.cluster.local",
 				})
 				Expect(err).To(BeNil())
 				Expect(k8sClient.Create(ctx, tlsSecret)).Should(Succeed())
@@ -10740,8 +10744,18 @@ var _ = Describe("artemis controller", func() {
 				By("Deploying broker" + crd.Name)
 				Expect(k8sClient.Create(ctx, &crd)).Should(Succeed())
 
+				By("validating jolokia ordinal")
 				Eventually(func(g Gomega) {
 					jolokia := jolokia.GetJolokia(k8sClient, crd.Name+"-ss-0."+crd.Name+"-hdls-svc.test.svc.cluster.local", "8161", "/console/jolokia", "", "", "http")
+					data, err := jolokia.Read("org.apache.activemq.artemis:broker=\"amq-broker\",component=cluster-connections,name=\"my-cluster\"/Nodes")
+					g.Expect(err).To(BeNil())
+					g.Expect(data.Value).Should(ContainSubstring(crd.Name+"-ss-1"), data.Value)
+
+				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+				By("validating jolokia service")
+				Eventually(func(g Gomega) {
+					jolokia := jolokia.GetJolokia(k8sClient, crd.Name+"-hdls-svc.test.svc.cluster.local", "8161", "/console/jolokia", "", "", "http")
 					data, err := jolokia.Read("org.apache.activemq.artemis:broker=\"amq-broker\",component=cluster-connections,name=\"my-cluster\"/Nodes")
 					g.Expect(err).To(BeNil())
 					g.Expect(data.Value).Should(ContainSubstring(crd.Name+"-ss-1"), data.Value)
