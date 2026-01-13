@@ -22,6 +22,6 @@ COPY bundle/tests/scorecard /tests/scorecard/
 
 LABEL name="arkmq-org/activemq-artemis-operator-bundle"
 LABEL description="ArkMQ Broker Operator Bundle"
-LABEL maintainer="arkmq-org <info@arkmq.org>"
+LABEL maintainer="ArkMQ <info@arkmq.org>"
 LABEL version="2.1.1"
 LABEL com.redhat.openshift.versions="v4.12"
