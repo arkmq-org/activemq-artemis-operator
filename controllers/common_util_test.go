@@ -84,7 +84,6 @@ func GetHelmCmd() string {
 }
 
 func randStringWithPrefix(prefix string) string {
-	rand.Seed(time.Now().UnixNano())
 	length := 6
 	var b strings.Builder
 	b.WriteString(prefix)
@@ -227,20 +226,9 @@ func newArtemisSpecWithFastProbes() brokerv1beta1.ActiveMQArtemisSpec {
 }
 
 func generateArtemisSpec(namespace string) brokerv1beta1.ActiveMQArtemis {
-
-	toCreate := brokerv1beta1.ActiveMQArtemis{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ActiveMQArtemis",
-			APIVersion: brokerv1beta1.GroupVersion.Identifier(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      NextSpecResourceName(),
-			Namespace: namespace,
-		},
-		Spec: newArtemisSpecWithFastProbes(),
-	}
-
-	return toCreate
+	toCreate := common.GenerateArtemis(NextSpecResourceName(), namespace)
+	toCreate.Spec = newArtemisSpecWithFastProbes()
+	return *toCreate
 }
 
 func DeployCustomBroker(targetNamespace string, customFunc func(candidate *brokerv1beta1.ActiveMQArtemis)) (*brokerv1beta1.ActiveMQArtemis, *brokerv1beta1.ActiveMQArtemis) {
