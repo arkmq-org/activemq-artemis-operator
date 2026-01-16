@@ -2324,6 +2324,11 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 
 		brokerPropertiesMapData["_prometheus_exporter.yaml"] = prometheus_config.Bytes()
 
+		// Apply control plane overrides if they exist
+		if err := applyControlPlaneOverrides(customResource, client, brokerPropertiesMapData); err != nil {
+			return nil, err
+		}
+
 		// adapt jolokia and prometheus authentication
 		additionalSystemPropsForRestricted = append(additionalSystemPropsForRestricted, "-DhttpServerAuthenticator.requestSubjectAttribute=org.jolokia.jaasSubject")
 
@@ -2949,6 +2954,47 @@ func conditionallyApplyValuesToPreserveDefaults(readinessProbe *corev1.Probe, pr
 	if probeFromCr.FailureThreshold > 0 {
 		readinessProbe.FailureThreshold = probeFromCr.FailureThreshold
 	}
+}
+
+// applyControlPlaneOverrides applies control plane configuration overrides from secrets.
+// It first checks for CR-specific override secret ([cr-name]-control-plane-override),
+// then falls back to shared override secret (control-plane-override).
+// Each key in the override secret completely replaces the corresponding key in brokerPropertiesMapData.
+func applyControlPlaneOverrides(customResource *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, brokerPropertiesMapData map[string][]byte) error {
+	ctx := context.Background()
+
+	// Try CR-specific override secret first
+	crSpecificSecretName := customResource.Name + "-control-plane-override"
+	overrideSecret := &corev1.Secret{}
+	secretKey := types.NamespacedName{
+		Name:      crSpecificSecretName,
+		Namespace: customResource.Namespace,
+	}
+
+	err := client.Get(ctx, secretKey, overrideSecret)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			// Try shared override secret as fallback
+			secretKey.Name = "control-plane-override"
+			err = client.Get(ctx, secretKey, overrideSecret)
+			if err != nil {
+				if k8serrors.IsNotFound(err) {
+					// No override secret found, this is OK
+					return nil
+				}
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+
+	// Apply overrides - complete replacement per key
+	for key, value := range overrideSecret.Data {
+		brokerPropertiesMapData[key] = value
+	}
+
+	return nil
 }
 
 func getPropertiesResourceNsName(artemis *brokerv1beta1.ActiveMQArtemis) types.NamespacedName {

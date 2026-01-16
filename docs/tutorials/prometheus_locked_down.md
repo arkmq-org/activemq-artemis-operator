@@ -565,6 +565,10 @@ EOF
 certificate.cert-manager.io/root-ca created
 ```
 
+```bash {"stage":"certs", "label":"wait for root-ca ready", "runtime":"bash"}
+kubectl wait certificate root-ca -n cert-manager --for=condition=Ready --timeout=300s
+```
+
 ### Create a CA Bundle
 
 Create a `trust-manager` `Bundle`. This will read the root CA's secret and

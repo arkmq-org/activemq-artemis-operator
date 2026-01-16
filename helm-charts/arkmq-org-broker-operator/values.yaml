@@ -18,6 +18,13 @@ controllerManager:
       repository: quay.io/arkmq-org/activemq-artemis-operator
       tag: 2.1.1
       pullPolicy: null
+    resources:
+      limits:
+        cpu: "1"
+        memory: 384Mi
+      requests:
+        cpu: 200m
+        memory: 128Mi
     relatedImages:
       activemqArtemisBrokerInitRepository: quay.io/arkmq-org/activemq-artemis-broker-init
       activemqArtemisBrokerKubernetesRepository: quay.io/arkmq-org/activemq-artemis-broker-kubernetes
@@ -137,7 +144,6 @@ controllerManager:
         digest: sha256:0acbcc75f2d83d54dc10fcf3f59c35979d27085265f13869184d1ea5c372fd25
       activemqArtemisBrokerKubernetes2440:
         digest: sha256:fd94e89353cbfb282f3716da7862e087348e41a81033f5e90c45552938217c55
-    resources: null
   podSecurityContext:
     runAsNonRoot: true
     seccompProfile:

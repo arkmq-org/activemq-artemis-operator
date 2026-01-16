@@ -415,7 +415,7 @@ func createNamespace(namespace string, securityPolicy *string) error {
 	return err
 }
 
-func deleteNamespace(namespace string, g Gomega) {
+func deleteNamespace(namespace string, wait bool, g Gomega) {
 
 	// envTest won't delete, get stuck in Terminating state
 	// https://github.com/kubernetes-sigs/controller-runtime/issues/880
@@ -439,6 +439,10 @@ func deleteNamespace(namespace string, g Gomega) {
 
 	zeroGracePeriodSeconds := int64(0) // immediate delete
 	g.Expect(k8sClient.Delete(ctx, &ns, &client.DeleteOptions{GracePeriodSeconds: &zeroGracePeriodSeconds})).To(Succeed())
+
+	if !wait {
+		return
+	}
 
 	By("verifying gone: " + namespace)
 	g.Eventually(func(g Gomega) {
@@ -478,10 +482,10 @@ func testWatchNamespace(kind string, g Gomega, testFunc func(g Gomega)) {
 
 	shutdownControllerManager()
 
-	deleteNamespace(namespace1, g)
-	deleteNamespace(namespace2, g)
-	deleteNamespace(namespace3, g)
-	deleteNamespace(restrictedNamespace, g)
+	deleteNamespace(namespace1, true, g)
+	deleteNamespace(namespace2, true, g)
+	deleteNamespace(namespace3, true, g)
+	deleteNamespace(restrictedNamespace, true, g)
 
 	createControllerManagerForSuite()
 }

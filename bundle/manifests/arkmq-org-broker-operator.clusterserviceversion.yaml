@@ -5708,7 +5708,13 @@ spec:
                     port: 8081
                   initialDelaySeconds: 5
                   periodSeconds: 10
-                resources: {}
+                resources:
+                  limits:
+                    cpu: "1"
+                    memory: 384Mi
+                  requests:
+                    cpu: 200m
+                    memory: 128Mi
                 securityContext:
                   allowPrivilegeEscalation: false
                   capabilities:
@@ -5921,19 +5927,13 @@ spec:
   - name: Repository
     url: https://github.com/arkmq-org/activemq-artemis-operator
   maintainers:
-  - email: dbruscin@redhat.com
-    name: Domenico Francesco Bruscino
-  - email: gtully@redhat.com
-    name: Gary Tully
-  - email: hgao@redhat.com
-    name: Howard Gao
-  - email: rkieley@redhat.com
-    name: Roderick Kieley
+  - email: info@arkmq.org
+    name: ArkMQ
   maturity: beta
   minKubeVersion: 1.22.0
   provider:
-    name: Arkmq-org
-    url: https://arkmq-org.io
+    name: ArkMQ
+    url: https://arkmq.org
   relatedImages:
   - image: quay.io/arkmq-org/activemq-artemis-broker-init@sha256:edbec2276270c2f890572daf9141390bc33b5cf75621eca6e10f11bb144944f3
     name: activemq-artemis-broker-init-2150
