@@ -233,12 +233,9 @@ kubectl config use-context tutorialtester
 minikube addons enable metrics-server --profile tutorialtester
 ```
 ```shell markdown_runner
-* [tutorialtester] minikube v1.36.0 on Fedora 41
+* [tutorialtester] minikube v1.36.0 on Fedora 43
   - MINIKUBE_ROOTLESS=true
-* minikube 1.37.0 is available! Download it: https://github.com/kubernetes/minikube/releases/tag/v1.37.0
-* To disable this notice, run: 'minikube config set WantUpdateNotification false'
-
-* Automatically selected the kvm2 driver. Other choices: qemu2, podman, ssh
+* Automatically selected the kvm2 driver. Other choices: podman, qemu2, ssh
 * Starting "tutorialtester" primary control-plane node in "tutorialtester" cluster
 * Creating kvm2 VM (CPUs=2, Memory=6000MB, Disk=20000MB) ...
 * Preparing Kubernetes v1.33.1 on Docker 28.0.4 ...
@@ -273,8 +270,8 @@ minikube kubectl -- patch deployment -n ingress-nginx ingress-nginx-controller -
 ```shell markdown_runner
 * ingress is an addon maintained by Kubernetes. For any concerns contact minikube on GitHub.
 You can view the list of minikube maintainers at: https://github.com/kubernetes/minikube/blob/master/OWNERS
-  - Using image registry.k8s.io/ingress-nginx/controller:v1.12.2
   - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3
+  - Using image registry.k8s.io/ingress-nginx/controller:v1.12.2
   - Using image registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.3
 * Verifying ingress addon...
 * The 'ingress' addon is enabled
@@ -335,7 +332,8 @@ kubectl wait deployment activemq-artemis-controller-manager --for=create --timeo
 kubectl wait pod --all --for=condition=Ready --namespace=locked-down-broker --timeout=600s
 ```
 ```shell markdown_runner
-pod/activemq-artemis-controller-manager-fdd64476f-xgt4v condition met
+deployment.apps/activemq-artemis-controller-manager condition met
+pod/activemq-artemis-controller-manager-54fbb4f7df-k2kd9 condition met
 ```
 
 ## Install the dependencies
@@ -373,7 +371,7 @@ helm upgrade -i prometheus prometheus-community/kube-prometheus-stack \
 "prometheus-community" already exists with the same configuration, skipping
 Release "prometheus" does not exist. Installing it now.
 NAME: prometheus
-LAST DEPLOYED: Fri Nov 14 10:51:49 2025
+LAST DEPLOYED: Fri Jan 16 10:16:20 2026
 NAMESPACE: locked-down-broker
 STATUS: deployed
 REVISION: 1
@@ -389,6 +387,11 @@ Access Grafana local instance:
 
   export POD_NAME=$(kubectl --namespace locked-down-broker get pod -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=prometheus" -oname)
   kubectl --namespace locked-down-broker port-forward $POD_NAME 3000
+
+Get your grafana admin user password by running:
+
+  kubectl get secret --namespace locked-down-broker -l app.kubernetes.io/component=admin-secret -o jsonpath="{.items[0].data.admin-password}" | base64 --decode ; echo
+
 
 Visit https://github.com/prometheus-operator/kube-prometheus for instructions on how to create & configure Alertmanager and Prometheus instances using the Operator.
 ```
@@ -455,9 +458,9 @@ Wait for `cert-manager` to be ready.
 kubectl wait pod --all --for=condition=Ready --namespace=cert-manager --timeout=600s
 ```
 ```shell markdown_runner
-pod/cert-manager-58f8dcbb68-c7pwg condition met
-pod/cert-manager-cainjector-7588b6f5cc-zmddd condition met
-pod/cert-manager-webhook-768c67c955-8nxdm condition met
+pod/cert-manager-58f8dcbb68-6wr4t condition met
+pod/cert-manager-cainjector-7588b6f5cc-8ghht condition met
+pod/cert-manager-webhook-768c67c955-8w5qq condition met
 ```
 
 ### Install Trust Manager
@@ -480,7 +483,7 @@ helm upgrade trust-manager jetstack/trust-manager --install --namespace cert-man
 ```shell markdown_runner
 Release "trust-manager" does not exist. Installing it now.
 NAME: trust-manager
-LAST DEPLOYED: Fri Nov 14 10:53:02 2025
+LAST DEPLOYED: Fri Jan 16 10:17:28 2026
 NAMESPACE: cert-manager
 STATUS: deployed
 REVISION: 1
@@ -489,7 +492,7 @@ NOTES:
 ⚠️  WARNING: Consider increasing the Helm value `replicaCount` to 2 if you require high availability.
 ⚠️  WARNING: Consider setting the Helm value `podDisruptionBudget.enabled` to true if you require high availability.
 
-trust-manager v0.20.2 has been deployed successfully!
+trust-manager v0.20.3 has been deployed successfully!
 Your installation includes a default CA package, using the following
 default CA package image:
 
@@ -508,6 +511,13 @@ Wait for `trust bundles crd` to be ready.
 ```{"stage":"certs", "label":"wait for trust-bundles-crd creation"}
 kubectl wait crd bundles.trust.cert-manager.io --for=create --timeout=240s
 kubectl wait pod --all --for=condition=Ready --namespace=cert-manager --timeout=600s
+```
+```shell markdown_runner
+customresourcedefinition.apiextensions.k8s.io/bundles.trust.cert-manager.io condition met
+pod/cert-manager-58f8dcbb68-6wr4t condition met
+pod/cert-manager-cainjector-7588b6f5cc-8ghht condition met
+pod/cert-manager-webhook-768c67c955-8w5qq condition met
+pod/trust-manager-86b75967bc-xqvw2 condition met
 ```
 
 ## Create Certificate Authority and Issuers
@@ -567,6 +577,9 @@ certificate.cert-manager.io/root-ca created
 
 ```bash {"stage":"certs", "label":"wait for root-ca ready", "runtime":"bash"}
 kubectl wait certificate root-ca -n cert-manager --for=condition=Ready --timeout=300s
+```
+```shell markdown_runner
+certificate.cert-manager.io/root-ca condition met
 ```
 
 ### Create a CA Bundle
@@ -699,42 +712,6 @@ certificate.cert-manager.io/activemq-artemis-manager-cert condition met
 certificate.cert-manager.io/prometheus-cert condition met
 ```
 
-### Create JAAS Configuration for Messaging
-
-Create a JAAS (Java Authentication and Authorization Service) configuration for the
-messaging acceptor. In restricted mode, the operator automatically handles control
-plane authentication (metrics and management), so we only need to configure the
-AMQPS messaging realm.
-
-```{"stage":"deploy", "runtime":"bash", "label":"create jaas config"}
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Secret
-metadata:
-  name: artemis-broker-jaas-config
-  namespace: locked-down-broker
-stringData:
-  login.config: |
-    activemq {
-      org.apache.activemq.artemis.spi.core.security.jaas.TextFileCertificateLoginModule required
-        debug=true
-        org.apache.activemq.jaas.textfiledn.user=cert-users
-        org.apache.activemq.jaas.textfiledn.role=cert-roles
-        baseDir="/amq/extra/secrets/artemis-broker-jaas-config"
-        ;
-    };
-  cert-users: "messaging-client=/.*messaging-client.*/"
-  cert-roles: "messaging=messaging-client"
-EOF
-```
-```shell markdown_runner
-secret/artemis-broker-jaas-config created
-```
-
-**Note:** The operator automatically configures control plane authentication in
-restricted mode, granting `CN=activemq-artemis-operator`, `CN=activemq-artemis-operand`,
-and `CN=prometheus` the appropriate access to metrics and management endpoints.
-
 ### Deploy the Broker Custom Resource
 
 ```bash {"stage":"deploy", "label":"acceptor pemcfg secret", "runtime":"bash"}
@@ -766,6 +743,34 @@ EOF
 ```
 ```shell markdown_runner
 secret/amqps-pem created
+```
+
+Create a broker properties secret for the JAAS configuration. The broker reads
+additional broker properties from secrets ending in `-bp`, but the secret still
+must be listed under `deploymentPlan.extraMounts.secrets` so the operator mounts
+it.
+
+```{"stage":"deploy", "runtime":"bash", "label":"create jaas config bp secret"}
+kubectl apply -f - <<'EOF'
+apiVersion: v1
+kind: Secret
+metadata:
+  name: artemis-broker-jaas-config-bp
+  namespace: locked-down-broker
+stringData:
+  cert-users: "messaging-client=/.*messaging-client.*/"
+  cert-roles: "messaging=messaging-client"
+  jaas-config-bp.properties: |
+    jaasConfigs."activemq".modules.cert.loginModuleClass=org.apache.activemq.artemis.spi.core.security.jaas.TextFileCertificateLoginModule
+    jaasConfigs."activemq".modules.cert.controlFlag=required
+    jaasConfigs."activemq".modules.cert.params.debug=true
+    jaasConfigs."activemq".modules.cert.params."org.apache.activemq.jaas.textfiledn.role"=cert-roles
+    jaasConfigs."activemq".modules.cert.params."org.apache.activemq.jaas.textfiledn.user"=cert-users
+    jaasConfigs."activemq".modules.cert.params.baseDir=/amq/extra/secrets/artemis-broker-jaas-config-bp
+EOF
+```
+```shell markdown_runner
+secret/artemis-broker-jaas-config-bp created
 ```
 
 Now, deploy the `ActiveMQArtemis` custom resource with `spec.restricted: true`,
@@ -813,8 +818,9 @@ spec:
     - "acceptorConfigurations.\"amqps\".params.trustStoreType=PEMCA"
     - "acceptorConfigurations.\"amqps\".params.trustStorePath=/amq/extra/secrets/activemq-artemis-manager-ca/ca.pem"
   deploymentPlan:
+    image: quay.io/arkmq-org/activemq-artemis-broker-kubernetes:snapshot
     extraMounts:
-      secrets: [artemis-broker-jaas-config, amqps-pem]
+      secrets: [artemis-broker-jaas-config-bp, amqps-pem]
 EOF
 ```
 ```shell markdown_runner
@@ -1001,7 +1007,7 @@ kubectl rollout status statefulset/prometheus-artemis-prometheus -n locked-down-
 ```
 ```shell markdown_runner
 Waiting for 1 pods to be ready...
-statefulset rolling update complete 1 pods at revision prometheus-artemis-prometheus-56fcf55ff7...
+statefulset rolling update complete 1 pods at revision prometheus-artemis-prometheus-765678bf49...
 ```
 
 ## Deploy and Configure Grafana
@@ -1089,6 +1095,7 @@ kubectl rollout status deployment prometheus-grafana -n locked-down-broker --tim
 ```
 ```shell markdown_runner
 deployment.apps/prometheus-grafana restarted
+Waiting for deployment spec update to be observed...
 Waiting for deployment "prometheus-grafana" rollout to finish: 0 out of 1 new replicas have been updated...
 Waiting for deployment "prometheus-grafana" rollout to finish: 1 old replicas are pending termination...
 Waiting for deployment "prometheus-grafana" rollout to finish: 1 old replicas are pending termination...
@@ -1348,6 +1355,7 @@ echo "Grafana is ready. Waiting for sidecar to load dashboard..."
 sleep 15
 ```
 ```shell markdown_runner
+configmap/artemis-dashboard condition met
 deployment.apps/prometheus-grafana restarted
 Waiting for deployment "prometheus-grafana" rollout to finish: 0 out of 1 new replicas have been updated...
 Waiting for deployment "prometheus-grafana" rollout to finish: 1 old replicas are pending termination...
@@ -1591,7 +1599,7 @@ export BROKER_VERSION=$(kubectl get ActiveMQArtemis artemis-broker --namespace=l
 echo broker version: $BROKER_VERSION
 ```
 ```shell markdown_runner
-broker version: 2.42.0
+broker version: 2.44.0
 ```
 
 ```bash {"stage":"messaging", "label":"run producer and consumer", "runtime":"bash"}
