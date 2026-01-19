@@ -126,6 +126,7 @@ type ActiveMQArtemisReconcilerImpl struct {
 	isOnOpenShift      bool
 	jolokiaEndpoints   []*jolokia_client.JkInfo
 	cachedBrokerStatus map[string]any
+	matchedTemplates   map[int]bool
 }
 
 func NewActiveMQArtemisReconcilerImpl(customResource *brokerv1beta1.ActiveMQArtemis, parent *ActiveMQArtemisReconciler) *ActiveMQArtemisReconcilerImpl {
@@ -136,6 +137,7 @@ func NewActiveMQArtemisReconcilerImpl(customResource *brokerv1beta1.ActiveMQArte
 		requestedResources: make(map[reflect.Type]map[string]rtclient.Object),
 		isOnOpenShift:      parent.isOnOpenShift,
 		cachedBrokerStatus: make(map[string]any),
+		matchedTemplates:   make(map[int]bool),
 	}
 }
 
@@ -1126,6 +1128,9 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) applyTemplates(desired rtclient
 
 func (reconciler *ActiveMQArtemisReconcilerImpl) applyTemplate(index int, template brokerv1beta1.ResourceTemplate, target rtclient.Object) error {
 	if match(template, target) {
+
+		reconciler.matchedTemplates[index] = true
+
 		ordinal := extractOrdinal(target)
 		itemName := extractItemName(target)
 		resType := extractResType(target)
@@ -1600,6 +1605,8 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessResources(customResource
 
 	reqLogger := reconciler.log.WithValues("ActiveMQArtemis Name", customResource.Name)
 
+	reconciler.matchedTemplates = make(map[int]bool)
+
 	for _, requested := range common.ToResourceList(reconciler.requestedResources) {
 		requested.SetNamespace(customResource.Namespace)
 		if err = reconciler.applyTemplates(requested); err != nil {
@@ -1639,6 +1646,28 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessResources(customResource
 			resourceToRemove := delta.Removed[index]
 			trackError(&compositeError, reconciler.deleteResource(client, resourceToRemove, resourceType))
 		}
+	}
+
+	// Check for matched resource templates and status condition update
+	var unmatchedIndices []int
+	for i := range customResource.Spec.ResourceTemplates {
+		if !reconciler.matchedTemplates[i] {
+			unmatchedIndices = append(unmatchedIndices, i)
+		}
+	}
+
+	if len(unmatchedIndices) > 0 {
+		message := fmt.Sprintf("Resource Template(s) at index/indices %v did not match operator generated resources", unmatchedIndices)
+		meta.SetStatusCondition(&customResource.Status.Conditions, metav1.Condition{
+			Type:               brokerv1beta1.UnmatchedResourceTemplateConditionType,
+			Status:             metav1.ConditionUnknown,
+			Reason:             brokerv1beta1.UnmatchedResourceTemplateReason,
+			Message:            message,
+			ObservedGeneration: customResource.Generation,
+		})
+	} else {
+		//to revert the status if the unmatched resource is corrected
+		meta.RemoveStatusCondition(&customResource.Status.Conditions, brokerv1beta1.UnmatchedResourceTemplateConditionType)
 	}
 
 	if len(compositeError) == 0 {
