@@ -7279,10 +7279,10 @@ var _ = Describe("artemis controller", func() {
 				By("verifying UnmatchedResourceTemplate condition is set with correct indices")
 				Eventually(func(g Gomega) {
 					g.Expect(k8sClient.Get(ctx, brokerKey, createdCrd)).Should(Succeed())
-					condition := meta.FindStatusCondition(createdCrd.Status.Conditions, brokerv1beta1.UnmatchedResourceTemplateConditionType)
+					condition := meta.FindStatusCondition(createdCrd.Status.Conditions, brokerv1beta1.ValidConditionType)
 					g.Expect(condition).NotTo(BeNil())
 					g.Expect(condition.Status).To(Equal(metav1.ConditionUnknown))
-					g.Expect(condition.Reason).To(Equal(brokerv1beta1.UnmatchedResourceTemplateReason))
+					g.Expect(condition.Reason).To(Equal(brokerv1beta1.ValidConditionUnknownReason))
 				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
 				By("removing unmatched templates")
@@ -7304,7 +7304,7 @@ var _ = Describe("artemis controller", func() {
 				By("verifying unmatched condition is removed")
 				Eventually(func(g Gomega) {
 					g.Expect(k8sClient.Get(ctx, brokerKey, createdCrd)).Should(Succeed())
-					condition := meta.FindStatusCondition(createdCrd.Status.Conditions, brokerv1beta1.UnmatchedResourceTemplateConditionType)
+					condition := meta.FindStatusCondition(createdCrd.Status.Conditions, brokerv1beta1.ValidConditionType)
 					g.Expect(condition).To(BeNil())
 					g.Expect(meta.IsStatusConditionTrue(createdCrd.Status.Conditions, brokerv1beta1.ReadyConditionType)).Should(BeTrue())
 				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())

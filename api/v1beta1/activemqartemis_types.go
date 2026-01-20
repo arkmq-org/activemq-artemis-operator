@@ -847,7 +847,4 @@ const (
 
 	ReconcileBlockedType   = "ReconcileBlocked"
 	ReconcileBlockedReason = "AnnotationPresent"
-
-	UnmatchedResourceTemplateConditionType = "UnmatchedResourceTemplate"
-	UnmatchedResourceTemplateReason        = "TemplateDidNotMatchAnyResources"
 )
