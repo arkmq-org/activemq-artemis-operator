@@ -7216,7 +7216,7 @@ var _ = Describe("artemis controller", func() {
 			CleanResource(&crd, crd.Name, defaultNamespace)
 		})
 
-		It("expect Non fatal condition(unknown) for unmatched resource templates", func() {
+		It("expect Non fatal condition for unmatched resource templates", func() {
 
 			By("By creating a crd with unmatched templates")
 			ctx := context.Background()
@@ -7283,6 +7283,9 @@ var _ = Describe("artemis controller", func() {
 					g.Expect(condition).NotTo(BeNil())
 					g.Expect(condition.Status).To(Equal(metav1.ConditionUnknown))
 					g.Expect(condition.Reason).To(Equal(brokerv1beta1.ValidConditionUnknownReason))
+					g.Expect(condition.Message).To(ContainSubstring("0"))
+					g.Expect(condition.Message).NotTo(ContainSubstring("3"))
+
 				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
 				By("removing unmatched templates")
@@ -7301,11 +7304,13 @@ var _ = Describe("artemis controller", func() {
 					g.Expect(k8sClient.Update(ctx, createdCrd)).Should(Succeed())
 				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
-				By("verifying unmatched condition is removed")
+				By("verifying non fatal condition is updated to true")
 				Eventually(func(g Gomega) {
 					g.Expect(k8sClient.Get(ctx, brokerKey, createdCrd)).Should(Succeed())
 					condition := meta.FindStatusCondition(createdCrd.Status.Conditions, brokerv1beta1.ValidConditionType)
-					g.Expect(condition).To(BeNil())
+					g.Expect(condition).NotTo(BeNil())
+					g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+					g.Expect(condition.Reason).To(Equal(brokerv1beta1.ValidConditionSuccessReason))
 					g.Expect(meta.IsStatusConditionTrue(createdCrd.Status.Conditions, brokerv1beta1.ReadyConditionType)).Should(BeTrue())
 				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 			}

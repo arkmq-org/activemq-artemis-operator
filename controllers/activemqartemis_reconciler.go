@@ -1657,17 +1657,19 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessResources(customResource
 	}
 
 	if len(unmatchedIndices) > 0 {
-		message := fmt.Sprintf("Resource Template(s) at index/indices %v did not match operator generated resources", unmatchedIndices)
-		meta.SetStatusCondition(&customResource.Status.Conditions, metav1.Condition{
-			Type:               brokerv1beta1.ValidConditionType,
-			Status:             metav1.ConditionUnknown,
-			Reason:             brokerv1beta1.ValidConditionUnknownReason,
-			Message:            message,
-			ObservedGeneration: customResource.Generation,
-		})
-	} else {
-		//to revert the status if the unmatched resource is corrected
-		meta.RemoveStatusCondition(&customResource.Status.Conditions, brokerv1beta1.ValidConditionType)
+		validationCondition := meta.FindStatusCondition(customResource.Status.Conditions, brokerv1beta1.ValidConditionType)
+
+		// Only set to Unknown if there is no fatal validation error
+		if validationCondition == nil || validationCondition.Status != metav1.ConditionFalse {
+			message := fmt.Sprintf("ResourceTemplate at index %d did not match any operator-generated resources", unmatchedIndices[0])
+			meta.SetStatusCondition(&customResource.Status.Conditions, metav1.Condition{
+				Type:               brokerv1beta1.ValidConditionType,
+				Status:             metav1.ConditionUnknown,
+				Reason:             brokerv1beta1.ValidConditionUnknownReason,
+				Message:            message,
+				ObservedGeneration: customResource.Generation,
+			})
+		}
 	}
 
 	if len(compositeError) == 0 {
