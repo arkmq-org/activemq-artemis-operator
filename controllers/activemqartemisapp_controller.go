@@ -37,6 +37,8 @@ import (
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 type ActiveMQArtemisAppReconciler struct {
@@ -46,6 +48,28 @@ type ActiveMQArtemisAppReconciler struct {
 type ActiveMQArtemisAppInstanceReconciler struct {
 	*ActiveMQArtemisAppReconciler
 	instance *broker.ActiveMQArtemisApp
+}
+
+func (reconciler ActiveMQArtemisAppInstanceReconciler) processDelete(service *broker.ActiveMQArtemisService, serverConfigPropertiesSecret *corev1.Secret) (err error) {
+
+	namespacePrefix := reconciler.AppIdentity()
+	underStorePrefix := fmt.Sprintf("_%s", namespacePrefix)
+	for k := range serverConfigPropertiesSecret.Data {
+		if strings.HasPrefix(k, underStorePrefix) || strings.HasPrefix(k, namespacePrefix) {
+			delete(serverConfigPropertiesSecret.Data, k)
+		}
+	}
+	serverConfigPropertiesSecret.Data[reconciler.UnderscoreAppIdentityPrefixed("rm.properties")] = []byte(fmt.Sprintf("jaasConfigs.%s=-\n", reconciler.jaasConfigRealmName()))
+	if err = resources.Update(reconciler.Client, serverConfigPropertiesSecret); err == nil {
+
+		controllerutil.RemoveFinalizer(reconciler.instance, common.AppServiceAnnotation)
+
+		err = resources.Update(reconciler.Client, reconciler.instance)
+
+		// TODO condition for deletion pending resource version config applied to brokerservice
+		// TODO: any other update would be a problem with matching, as if we can only deal with one finalizer at a time, that is not good.
+	}
+	return err
 }
 
 func NewActiveMQArtemisAppReconciler(client client.Client, scheme *runtime.Scheme, config *rest.Config, logger logr.Logger) *ActiveMQArtemisAppReconciler {
@@ -171,8 +195,8 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processSpec(cr *broker.A
 		if service != nil {
 			// annotate with service identity
 			common.ApplyAnnotations(&cr.ObjectMeta, map[string]string{common.AppServiceAnnotation: annotationNameFromService(service)})
-
-			// update immediately such that Auth can find it
+			controllerutil.AddFinalizer(cr, common.AppServiceAnnotation)
+			// update immediately such that AuthN can find it
 			err = resources.Update(reconciler.Client, cr)
 
 		} else {
@@ -187,14 +211,36 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processSpec(cr *broker.A
 	}
 
 	if err == nil {
-		err = reconciler.processCapabilities(service)
-	}
+		var serverConfigPropertiesSecret *corev1.Secret
+		serverConfigPropertiesSecret, err = reconciler.getServiceAppProperiesSecret(service)
 
-	if err == nil {
-		err = reconciler.processAuth(service)
-	}
+		if err == nil {
 
+			if reconciler.instance.ObjectMeta.DeletionTimestamp == nil {
+
+				err = reconciler.processCapabilities(service, serverConfigPropertiesSecret)
+				if err == nil {
+					err = reconciler.processAcceptor(service, serverConfigPropertiesSecret)
+				}
+			} else {
+
+				if controllerutil.ContainsFinalizer(reconciler.instance, common.AppServiceAnnotation) {
+					if err = reconciler.processDelete(service, serverConfigPropertiesSecret); err == nil {
+
+					}
+				}
+			}
+		}
+	}
 	return err
+}
+
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) getServiceAppProperiesSecret(service *broker.ActiveMQArtemisService) (*corev1.Secret, error) {
+	key := types.NamespacedName{
+		Name:      AppPropertiesSecretName(service.Name),
+		Namespace: service.Namespace,
+	}
+	return secrets.RetriveSecret(key, nil, reconciler.Client)
 }
 
 func annotationNameFromService(service *broker.ActiveMQArtemisService) string {
@@ -235,83 +281,206 @@ func (t *AddressTracker) track(address *broker.AppAddressType) *AddressConfig {
 	return &entry
 }
 
-func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(service *broker.ActiveMQArtemisService) (err error) {
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) processAcceptor(service *broker.ActiveMQArtemisService, serverConfigPropertiesSecret *corev1.Secret) (err error) {
+
+	// TODO: need data plane trust store, this is access to the control plane trust store
+	// they could be the same but we need two accessors
+	trustStorePath, err := reconciler.getTrustStorePath(service)
+	if err != nil {
+		return err
+	}
+
+	namespacedName := reconciler.AppIdentity()
+
+	pemCfgkey := reconciler.UnderscoreAppIdentityPrefixed("tls.pemcfg")
+	serverConfigPropertiesSecret.Data[pemCfgkey] = reconciler.makePemCfgProps(service)
+
+	realmName := reconciler.jaasConfigRealmName()
+
+	// process authN cert login module params
+
+	/* TODO: pull down full DN from app cert
+
+	var appCert *tls.Certificate
+	if appCert, err = common.ExtractCertFromSecret(...); err != nil {
+		return nil, err
+	}
+
+	var appCertSubject *pkix.Name
+	if operatorCertSubject, err = common.ExtractCertSubject(appCert); err != nil {
+		return nil, err
+	}
+	*/
+	usersBuf := NewPropsWithHeader()
+	fmt.Fprintf(usersBuf, "%s=/.*%s.*/\n", namespacedName, reconciler.instance.Name)
+
+	certUsersCfgKey := reconciler.UnderscoreAppIdentityPrefixed(common.GetCertUsersKey(realmName))
+	serverConfigPropertiesSecret.Data[certUsersCfgKey] = usersBuf.Bytes()
+
+	dedupMap := map[string]string{}
+	for _, capability := range reconciler.instance.Spec.Capabilities {
+
+		roleName := capability.Role
+		if roleName == "" {
+			roleName = namespacedName
+		}
+
+		if len(capability.ConsumerOf) > 0 || len(capability.SubscriberOf) > 0 {
+			dedupMap[fmt.Sprintf("%s=%s\n", consumerRole(roleName), namespacedName)] = ""
+		}
+		if len(capability.ProducerOf) > 0 {
+			dedupMap[fmt.Sprintf("%s=%s\n", producerRole(roleName), namespacedName)] = ""
+		}
+	}
+
+	rolesBuf := NewPropsWithHeader()
+	for _, k := range sortedKeys(dedupMap) {
+		fmt.Fprint(rolesBuf, k)
+	}
+
+	certRolesCfgKey := reconciler.UnderscoreAppIdentityPrefixed(common.GetCertRolesKey(realmName))
+	serverConfigPropertiesSecret.Data[certRolesCfgKey] = rolesBuf.Bytes()
+
+	acceptorCfgKey := reconciler.AppIdentityPrefixed("acceptor.properties")
+
+	buf := NewPropsWithHeader()
+
+	name := fmt.Sprintf("%d", reconciler.instance.Spec.Acceptor.Port)
+	fmt.Fprintln(buf, "# tls acceptor")
+
+	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".factoryClassName=org.apache.activemq.artemis.core.remoting.impl.netty.NettyAcceptorFactory\n", name)
+
+	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.securityDomain=%s\n", name, realmName)
+
+	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.host=${HOSTNAME}\n", name)
+	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.port=%d\n", name, reconciler.instance.Spec.Acceptor.Port)
+
+	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.sslEnabled=true\n", name)
+
+	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.needClientAuth=true\n", name)
+	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.saslMechanisms=EXTERNAL\n", name)
+
+	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.keyStoreType=PEMCFG\n", name)
+	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.keyStorePath=/amq/extra/secrets/%s/%s\n", name, AppPropertiesSecretName(service.Name), pemCfgkey)
+	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.trustStoreType=PEMCA\n", name)
+	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.trustStorePath=%s\n", name, trustStorePath)
+
+	// need a matching realm
+	fmt.Fprintf(buf, "jaasConfigs.\"%s\".modules.cert.loginModuleClass=org.apache.activemq.artemis.spi.core.security.jaas.TextFileCertificateLoginModule\n", realmName)
+	fmt.Fprintf(buf, "jaasConfigs.\"%s\".modules.cert.controlFlag=required\n", realmName)
+	fmt.Fprintf(buf, "jaasConfigs.\"%s\".modules.cert.params.debug=true\n", realmName)
+	fmt.Fprintf(buf, "jaasConfigs.\"%s\".modules.cert.params.\"org.apache.activemq.jaas.textfiledn.role\"=%s\n", realmName, certRolesCfgKey)
+	fmt.Fprintf(buf, "jaasConfigs.\"%s\".modules.cert.params.\"org.apache.activemq.jaas.textfiledn.user\"=%s\n", realmName, certUsersCfgKey)
+	fmt.Fprintf(buf, "jaasConfigs.\"%s\".modules.cert.params.baseDir=%s%s\n", realmName, secretPathBase, AppPropertiesSecretName(service.Name))
+
+	serverConfigPropertiesSecret.Data[acceptorCfgKey] = buf.Bytes()
+
+	err = resources.Update(reconciler.Client, serverConfigPropertiesSecret)
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) jaasConfigRealmName() string {
+	realmName := fmt.Sprintf("port-%d", reconciler.instance.Spec.Acceptor.Port)
+	return realmName
+}
+
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) getTrustStorePath(service *broker.ActiveMQArtemisService) (string, error) {
+
+	var caCertSecret *corev1.Secret
+	var caSecretKey string
+	var err error
+	if caCertSecret, err = common.GetOperatorCASecret(reconciler.Client); err == nil {
+		if caSecretKey, err = common.GetOperatorCASecretKey(reconciler.Client, caCertSecret); err == nil {
+			return fmt.Sprintf("/amq/extra/secrets/%s/%s", caCertSecret.Name, caSecretKey), nil
+		}
+	}
+	return "", err
+}
+
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) makePemCfgProps(service *broker.ActiveMQArtemisService) []byte {
+
+	buf := NewPropsWithHeader()
+
+	certSecretName := certSecretName(service)
+
+	fmt.Fprintf(buf, "source.key=/amq/extra/secrets/%s/tls.key\n", certSecretName)
+	fmt.Fprintf(buf, "source.cert=/amq/extra/secrets/%s/tls.crt\n", certSecretName)
+
+	return buf.Bytes()
+}
+
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(service *broker.ActiveMQArtemisService, secret *corev1.Secret) (err error) {
 
 	err = reconciler.verifyCapabilityAddressType()
 	if err != nil {
 		return err
 	}
 
-	key := types.NamespacedName{
-		Name:      AppPropertiesSecretName(service.Name),
-		Namespace: service.Namespace,
+	addressTracker := newAddressTracker()
+
+	for _, capability := range reconciler.instance.Spec.Capabilities {
+
+		var role = capability.Role
+		if role == "" {
+			role = reconciler.AppIdentity()
+		}
+		var entry *AddressConfig
+
+		for _, address := range capability.ProducerOf {
+			entry = addressTracker.track(&address)
+			entry.senderRoles[role] = role
+		}
+
+		for _, address := range capability.ConsumerOf {
+			entry = addressTracker.track(&address)
+			entry.consumerRoles[role] = role
+		}
+
+		for _, address := range capability.SubscriberOf {
+			entry = addressTracker.track(&address)
+			entry.consumerRoles[role] = role
+		}
 	}
 
-	secret, err := secrets.RetriveSecret(key, nil, reconciler.Client)
-	if err == nil {
-
-		addressTracker := newAddressTracker()
-
-		for _, capability := range reconciler.instance.Spec.Capabilities {
-
-			var role = capability.Role
-			if role == "" {
-				role = reconciler.AppIdentity()
-			}
-			var entry *AddressConfig
-
-			for _, address := range capability.ProducerOf {
-				entry = addressTracker.track(&address)
-				entry.senderRoles[role] = role
-			}
-
-			for _, address := range capability.ConsumerOf {
-				entry = addressTracker.track(&address)
-				entry.consumerRoles[role] = role
-			}
-
-			for _, address := range capability.SubscriberOf {
-				entry = addressTracker.track(&address)
-				entry.consumerRoles[role] = role
-			}
+	props := map[string]string{} // need to dedup
+	for addressName, addr := range addressTracker.names {
+		fqqn := strings.SplitN(addressName, "::", 2)
+		if len(fqqn) > 1 {
+			address := escapeForProperties(fqqn[0])
+			queueName := escapeForProperties(fqqn[1])
+			props[fmt.Sprintf("addressConfigurations.\"%s\".routingTypes=ANYCAST,MULTICAST\n", address)] = ""
+			props[fmt.Sprintf("addressConfigurations.\"%s\".queueConfigs.\"%s\".routingType=MULTICAST\n", address, queueName)] = ""
+			props[fmt.Sprintf("addressConfigurations.\"%s\".queueConfigs.\"%s\".address=%s\n", address, queueName, address)] = ""
+		} else {
+			props[fmt.Sprintf("addressConfigurations.\"%s\".routingTypes=ANYCAST,MULTICAST\n", addressName)] = ""
+			props[fmt.Sprintf("addressConfigurations.\"%s\".queueConfigs.\"%s\".routingType=ANYCAST\n", addressName, addressName)] = ""
 		}
 
-		props := map[string]string{} // need to dedup
-		for addressName, addr := range addressTracker.names {
-			fqqn := strings.SplitN(addressName, "::", 2)
-			if len(fqqn) > 1 {
-				address := escapeForProperties(fqqn[0])
-				queueName := escapeForProperties(fqqn[1])
-				props[fmt.Sprintf("addressConfigurations.\"%s\".routingTypes=ANYCAST,MULTICAST\n", address)] = ""
-				props[fmt.Sprintf("addressConfigurations.\"%s\".queueConfigs.\"%s\".routingType=MULTICAST\n", address, queueName)] = ""
-				props[fmt.Sprintf("addressConfigurations.\"%s\".queueConfigs.\"%s\".address=%s\n", address, queueName, address)] = ""
-			} else {
-				props[fmt.Sprintf("addressConfigurations.\"%s\".routingTypes=ANYCAST,MULTICAST\n", addressName)] = ""
-				props[fmt.Sprintf("addressConfigurations.\"%s\".queueConfigs.\"%s\".routingType=ANYCAST\n", addressName, addressName)] = ""
-			}
+		// use fqqn as is for RBAC
+		addressName = escapeForProperties(addressName)
 
-			// use fqqn as is for RBAC
-			addressName = escapeForProperties(addressName)
+		for _, role := range addr.senderRoles {
+			props[fmt.Sprintf("securityRoles.\"%s\".\"%s\".send=true\n", addressName, producerRole(role))] = ""
 
-			for _, role := range addr.senderRoles {
-				props[fmt.Sprintf("securityRoles.\"%s\".\"%s\".send=true\n", addressName, producerRole(role))] = ""
-
-			}
-			for _, role := range addr.consumerRoles {
-				props[fmt.Sprintf("securityRoles.\"%s\".\"%s\".consume=true\n", addressName, consumerRole(role))] = ""
-			}
 		}
-
-		buf := NewPropsWithHeader()
-		for _, k := range sortedKeys(props) {
-			fmt.Fprint(buf, k)
+		for _, role := range addr.consumerRoles {
+			props[fmt.Sprintf("securityRoles.\"%s\".\"%s\".consume=true\n", addressName, consumerRole(role))] = ""
 		}
-
-		secret.Data = map[string][]byte{
-			reconciler.AppIdentity() + "_capabilities.properties": buf.Bytes(),
-		}
-		err = resources.Update(reconciler.Client, secret)
 	}
+
+	buf := NewPropsWithHeader()
+	for _, k := range sortedKeys(props) {
+		fmt.Fprint(buf, k)
+	}
+
+	secret.Data = map[string][]byte{
+		reconciler.AppIdentityPrefixed("capabilities.properties"): buf.Bytes(),
+	}
+	err = resources.Update(reconciler.Client, secret)
 	return err
 }
 
@@ -323,11 +492,23 @@ func escapeForProperties(s string) string {
 }
 
 func (reconciler *ActiveMQArtemisAppInstanceReconciler) AppIdentity() string {
-	return NamespacedAppId(reconciler.instance)
+	return reconciler.NameSpacedValue(reconciler.instance.Name)
 }
 
-func NamespacedAppId(app *broker.ActiveMQArtemisApp) string {
-	return fmt.Sprintf("%s-%s", app.Name, app.Namespace)
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) AppIdentityPrefixed(v string) string {
+	return DashPrefixValue(reconciler.AppIdentity(), v)
+}
+
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) UnderscoreAppIdentityPrefixed(v string) string {
+	return fmt.Sprintf("_%s", reconciler.AppIdentityPrefixed(v))
+}
+
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) NameSpacedValue(v string) string {
+	return DashPrefixValue(reconciler.instance.Namespace, v)
+}
+
+func DashPrefixValue(prefix, value string) string {
+	return fmt.Sprintf("%s-%s", prefix, value)
 }
 
 func (reconciler *ActiveMQArtemisAppInstanceReconciler) checkAuthMatch(service *broker.ActiveMQArtemisService) (err error) {
@@ -368,38 +549,10 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) verifyCapabilityAddressT
 	return err
 }
 
-func (reconciler *ActiveMQArtemisAppInstanceReconciler) verifyNoRoleInCapabilitiesForMtls() (err error) {
-
-	for index, requested := range reconciler.instance.Spec.Capabilities {
-		if requested.Role != "" {
-			err = fmt.Errorf("invalid non empty Spec.Capabilities[%d].Role %s, mtls Auth does not support role assigment, the single role is derived from the app certificate", index, requested.Role)
-			meta.SetStatusCondition(&reconciler.instance.Status.Conditions, metav1.Condition{
-				Type:    broker.ValidConditionType,
-				Status:  metav1.ConditionFalse,
-				Reason:  "NonNilRoleWithMtlsAuth",
-				Message: err.Error(),
-			})
-			break
-		}
-	}
-	return err
-}
-
-func (reconciler *ActiveMQArtemisAppInstanceReconciler) processAuth(service *broker.ActiveMQArtemisService) (err error) {
-
-	if contains(service.Spec.Auth, broker.MTLS) {
-		//err = reconciler.verifyNoRoleInCapabilitiesForMtls()
-		//if err == nil {
-		err = reconciler.doMtlsAuthN(service)
-		//}
-	}
-	return err
-}
-
 func (reconciler *ActiveMQArtemisAppInstanceReconciler) doMtlsAuthN(service *broker.ActiveMQArtemisService) (err error) {
 
 	key := types.NamespacedName{
-		Name:      JaasConfigSecretName(service.Name),
+		Name:      service.Name,
 		Namespace: service.Namespace,
 	}
 
@@ -456,7 +609,7 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) doMtlsAuthN(service *bro
 
 		for _, candidate := range deployedApps {
 
-			userName := NamespacedAppId(&candidate)
+			userName := DashPrefixValue(candidate.Name, candidate.Namespace)
 			// TODO: pull down full DN from app cert
 			fmt.Fprintf(usersBuf, "%s=/.*%s.*/\n", userName, candidate.Name)
 
@@ -499,7 +652,7 @@ func consumerRole(prefix string) string {
 
 func (reconciler *ActiveMQArtemisAppInstanceReconciler) processStatus(cr *broker.ActiveMQArtemisApp, reconcilerError error) (err error) {
 
-	var conditions []metav1.Condition = nil
+	var conditions []metav1.Condition = cr.Status.Conditions
 
 	var reconciledCondition metav1.Condition = metav1.Condition{
 		Type: "Reconciled",

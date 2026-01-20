@@ -691,6 +691,14 @@ spec:
             type: object
           spec:
             properties:
+              acceptor:
+                properties:
+                  port:
+                    format: int32
+                    type: integer
+                required:
+                - port
+                type: object
               auth:
                 items:
                   type: string
@@ -827,6 +835,8 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
+            required:
+            - acceptor
             type: object
           status:
             properties:
@@ -9266,18 +9276,6 @@ spec:
             type: object
           spec:
             properties:
-              acceptors:
-                items:
-                  properties:
-                    name:
-                      type: string
-                    tlsSecret:
-                      description: "\tProtocols []string `json:\"protocols,omitempty\"` // atribute of the matched service, defaults to capitalised name\n\tPort      *int32   `json:\"port,omitempty\"`      // optional inferred from protocol iana reserved port"
-                      type: string
-                  required:
-                  - name
-                  type: object
-                type: array
               auth:
                 items:
                   type: string
@@ -9382,6 +9380,8 @@ spec:
                   - name
                   type: object
                 type: array
+              image:
+                type: string
               resources:
                 description: ResourceRequirements describes the compute resource requirements.
                 properties:

@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright 2026.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,11 +32,11 @@ type ActiveMQArtemisServiceSpec struct {
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Environment"
 	Env []corev1.EnvVar `json:"env,omitempty"`
 
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Broker image"
+	Image *string `json:"image,omitempty"`
+
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Auth"
 	Auth []AppAuthType `json:"auth,omitempty"`
-
-	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Acceptors"
-	Acceptors []AppAcceptor `json:"acceptors,omitempty"`
 }
 
 type AppAuthType string
@@ -45,15 +45,6 @@ const (
 	MTLS  AppAuthType = "mtls"
 	Token AppAuthType = "token" // oath2
 )
-
-type AppAcceptor struct {
-	Name string `json:"name"`
-	//	Protocols []string `json:"protocols,omitempty"` // atribute of the matched service, defaults to capitalised name
-	//	Port      *int32   `json:"port,omitempty"`      // optional inferred from protocol iana reserved port
-	TlsSecret *string `json:"tlsSecret,omitempty"` // defaults to service broker-cert
-
-	//MaxConnections *int32 `json:"makconnections,omitempty"` //sensible to bound, default 1k, but needs app to aquire chunks to allow sizing
-}
 
 type ActiveMQArtemisServiceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster

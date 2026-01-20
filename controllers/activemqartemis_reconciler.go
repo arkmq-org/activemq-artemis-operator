@@ -2193,9 +2193,8 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		fmt.Fprintln(login_config, "  org.apache.activemq.artemis.spi.core.security.jaas.TextFileCertificateLoginModule required")
 		fmt.Fprintln(login_config, "   reload=true")
 		fmt.Fprintln(login_config, "   debug=true")
-		// underscore prefix for cert-[user|roles] b/c they are in the broker properties secret
-		fmt.Fprintf(login_config, "   org.apache.activemq.jaas.textfiledn.user=_%s\n", common.GetCertUsersKey(common.HttpAuthenticatorRealm))
-		fmt.Fprintf(login_config, "   org.apache.activemq.jaas.textfiledn.role=_%s\n", common.GetCertRolesKey(common.HttpAuthenticatorRealm))
+		fmt.Fprintf(login_config, "   org.apache.activemq.jaas.textfiledn.user=%s\n", common.GetCertUsersKey(common.HttpAuthenticatorRealm))
+		fmt.Fprintf(login_config, "   org.apache.activemq.jaas.textfiledn.role=%s\n", common.GetCertRolesKey(common.HttpAuthenticatorRealm))
 		fmt.Fprintf(login_config, "   baseDir=\"%v\"\n", mountPathRoot)
 		fmt.Fprintln(login_config, "  ;")
 		fmt.Fprintln(login_config, "};")
@@ -2255,19 +2254,20 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		if prometheusCertSubject != nil {
 			fmt.Fprintf(cert_user, "prometheus=/.*%s.*/\n", prometheusCertSubject.CommonName)
 		}
-		brokerPropertiesMapData["_"+common.GetCertUsersKey(common.HttpAuthenticatorRealm)] = cert_user.Bytes()
+		brokerPropertiesMapData[common.GetCertUsersKey(common.HttpAuthenticatorRealm)] = cert_user.Bytes()
 
 		cert_roles := NewPropsWithHeader()
 		fmt.Fprintln(cert_roles, "status=operator,probe")
 		fmt.Fprintln(cert_roles, "metrics=operator,prometheus")
 		fmt.Fprintln(cert_roles, "hawtio=hawtio")
-		brokerPropertiesMapData["_"+common.GetCertRolesKey(common.HttpAuthenticatorRealm)] = cert_roles.Bytes()
+		brokerPropertiesMapData[common.GetCertRolesKey(common.HttpAuthenticatorRealm)] = cert_roles.Bytes()
 
 		foundationalProps := NewPropsWithHeader()
 		fmt.Fprintf(foundationalProps, "name=%s\n", environments.ResolveBrokerNameFromEnvs(customResource.Spec.Env, customResource.Name))
 		fmt.Fprintln(foundationalProps, "criticalAnalyzer=false")
 
 		// with cert or token, jaas is cheap and a token will be cached while valid
+		// TODO - avoid AMQP SASL login and server login duplication, verify
 		fmt.Fprintln(foundationalProps, "authenticationCacheSize=0")
 
 		fmt.Fprintln(foundationalProps, "messageCounterEnabled=true")

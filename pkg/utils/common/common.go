@@ -125,12 +125,13 @@ func init() {
 	}
 }
 
+// underscore prefix for cert-[user|roles] b/c they are in the broker properties secret but are not loaded because they don't end in .properties
 func GetCertUsersKey(realm string) string {
-	return fmt.Sprintf("%s-%s", realm, CertUsersKeySuffix)
+	return fmt.Sprintf("_%s-%s", realm, CertUsersKeySuffix)
 }
 
 func GetCertRolesKey(realm string) string {
-	return fmt.Sprintf("%s-%s", realm, CertRolesKeySuffix)
+	return fmt.Sprintf("_%s-%s", realm, CertRolesKeySuffix)
 }
 
 func GetJaasConfigSyntaxMatchRegEx() string {
