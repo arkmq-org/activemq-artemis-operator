@@ -38,7 +38,6 @@ import (
 	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/secrets"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
-	"github.com/arkmq-org/activemq-artemis-operator/version"
 )
 
 var _ = Describe("artemis-service", func() {
@@ -145,6 +144,7 @@ var _ = Describe("artemis-service", func() {
 				}
 			})
 
+			brokerImage := "quay.io/arkmq-org/activemq-artemis-broker-kubernetes:snapshot" // version.LatestKubeImage
 			jvmRemoteDebug := false
 			crd := brokerv1beta1.ActiveMQArtemisService{
 				TypeMeta: metav1.TypeMeta{
@@ -158,14 +158,15 @@ var _ = Describe("artemis-service", func() {
 				},
 				Spec: brokerv1beta1.ActiveMQArtemisServiceSpec{
 
+					// to get jaas config in properties
+					Image: StringToPtr(brokerImage),
 					Env: []corev1.EnvVar{
 						{
 							Name:  "JAVA_ARGS_APPEND",
-							Value: "-Dlog4j2.level=DEBUG",
+							Value: "-Dlog4j2.level=DEBUG -Djava.security.debug=logincontext",
 						},
 					},
-					Auth:      []brokerv1beta1.AppAuthType{brokerv1beta1.MTLS},
-					Acceptors: []brokerv1beta1.AppAcceptor{{Name: "amqp"}},
+					Auth: []brokerv1beta1.AppAuthType{brokerv1beta1.MTLS},
 				},
 			}
 
@@ -274,6 +275,10 @@ var _ = Describe("artemis-service", func() {
 						brokerv1beta1.MTLS,
 					},
 
+					Acceptor: brokerv1beta1.AppAcceptorType{
+						Port: 61616,
+					},
+
 					Capabilities: []brokerv1beta1.AppCapabilityType{
 						{
 							Role:       "workQueue",
@@ -285,10 +290,9 @@ var _ = Describe("artemis-service", func() {
 							ProducerOf: []brokerv1beta1.AppAddressType{{Address: "APP.COMMANDS"}},
 							SubscriberOf: []brokerv1beta1.AppAddressType{
 
-								// artemis producer uses the subscriber-name from the current thread name!
-								// client-1.Consumer APP.COMMANDS, thread=0
-								{Address: `APP.COMMANDS::client-1.Consumer APP.COMMANDS, thread=0`},
-								{Address: `APP.COMMANDS::client-2.Consumer APP.COMMANDS, thread=0`},
+								// jms consumer queue of the form <address>::<connection client id>.<subscription name>
+								{Address: `APP.COMMANDS::client-1.sub-1`},
+								{Address: `APP.COMMANDS::client-2.sub-2`},
 							},
 						},
 					},
@@ -377,7 +381,7 @@ var _ = Describe("artemis-service", func() {
 								Containers: []corev1.Container{
 									{
 										Name:    name,
-										Image:   version.LatestKubeImage,
+										Image:   brokerImage,
 										Command: command,
 										Env: []corev1.EnvVar{
 											{
@@ -487,18 +491,21 @@ var _ = Describe("artemis-service", func() {
 
 			By("deploying durable subscribers")
 			clientId := "client-1"
+			subName := "sub-1"
+
 			subscriber1 := jobTemplate(
 				clientId,
 				1,
-				[]string{"/bin/sh", "-c", "exec java -classpath /opt/amq/lib/*:/opt/amq/lib/extra/* org.apache.activemq.artemis.cli.Artemis consumer --protocol=AMQP --url " + serviceUrl + " --message-count=1 --durable --clientID=" + clientId + " --destination topic://APP.COMMANDS;"},
+				[]string{"/bin/sh", "-c", "exec java -classpath /opt/amq/lib/*:/opt/amq/lib/extra/* org.apache.activemq.artemis.cli.Artemis consumer --protocol=AMQP --url " + serviceUrl + " --message-count=1 --durable --clientID=" + clientId + " --subscriptionName=" + subName + " --destination topic://APP.COMMANDS;"},
 			)
 			Expect(k8sClient.Create(ctx, &subscriber1)).Should(Succeed())
 
 			clientId = "client-2"
+			subName = "sub-2"
 			subscriber2 := jobTemplate(
 				clientId,
 				1,
-				[]string{"/bin/sh", "-c", "exec java -classpath /opt/amq/lib/*:/opt/amq/lib/extra/* org.apache.activemq.artemis.cli.Artemis consumer --protocol=AMQP --url " + serviceUrl + " --message-count=1 --durable --clientID=" + clientId + " --destination topic://APP.COMMANDS;"},
+				[]string{"/bin/sh", "-c", "exec java -classpath /opt/amq/lib/*:/opt/amq/lib/extra/* org.apache.activemq.artemis.cli.Artemis consumer --protocol=AMQP --url " + serviceUrl + " --message-count=1 --durable --clientID=" + clientId + " --subscriptionName=" + subName + " --destination topic://APP.COMMANDS;"},
 			)
 			Expect(k8sClient.Create(ctx, &subscriber2)).Should(Succeed())
 
@@ -549,6 +556,26 @@ var _ = Describe("artemis-service", func() {
 
 			By("removing app")
 			Expect(k8sClient.Delete(ctx, createdApp)).Should(Succeed())
+
+			appPropsRv = appPropsRvUpdated
+			By("checking broker cr status insync after remove")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, brokerKey, brokerCrd)).Should(Succeed())
+
+				if verbose {
+					fmt.Printf("Broker STATUS: %v\n\n", brokerCrd.Status)
+				}
+
+				for _, externalConfig := range brokerCrd.Status.ExternalConfigs {
+					if externalConfig.Name == AppPropertiesSecretName(brokerCrd.Name) {
+						appPropsRvUpdated = externalConfig.ResourceVersion
+					}
+				}
+				g.Expect(appPropsRvUpdated).ShouldNot(BeEmpty())
+
+				g.Expect(appPropsRvUpdated).ShouldNot(Equal(appPropsRv))
+
+			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
 			By("tidy up")
 			cascade_foreground_policy := metav1.DeletePropagationForeground

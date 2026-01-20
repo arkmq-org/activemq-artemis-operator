@@ -1625,7 +1625,7 @@ cat <<'EOT' >> deploy.yml
         command:
         - "/bin/sh"
         - "-c"
-        - exec java -classpath /opt/amq/lib/*:/opt/amq/lib/extra/* org.apache.activemq.artemis.cli.Artemis producer --protocol=AMQP --url 'amqps://artemis-broker-messaging-svc:61617?transport.trustStoreType=PEMCA&transport.trustStoreLocation=/app/tls/ca/ca.pem&transport.keyStoreType=PEMCFG&transport.keyStoreLocation=/app/tls/pem/tls.pemcfg' --message-count 5000 --destination queue://APP_JOBS;
+        - exec java -classpath /opt/amq/lib/*:/opt/amq/lib/extra/* org.apache.activemq.artemis.cli.Artemis producer --protocol=AMQP --url 'amqps://artemis-broker-messaging-svc:61617?transport.trustStoreType=PEMCA&transport.trustStoreLocation=/app/tls/ca/ca.pem&transport.keyStoreType=PEMCFG&transport.keyStoreLocation=/app/tls/pem/tls.pemcfg' --message-count 10000 --destination queue://APP_JOBS;
         env:
         - name: JDK_JAVA_OPTIONS
           value: "-Djava.security.properties=/app/tls/pem/java.security"
@@ -1666,7 +1666,7 @@ cat <<'EOT' >> deploy.yml
         command:
         - "/bin/sh"
         - "-c"
-        - exec java -classpath /opt/amq/lib/*:/opt/amq/lib/extra/* org.apache.activemq.artemis.cli.Artemis consumer --protocol=AMQP --url 'amqps://artemis-broker-messaging-svc:61617?transport.trustStoreType=PEMCA&transport.trustStoreLocation=/app/tls/ca/ca.pem&transport.keyStoreType=PEMCFG&transport.keyStoreLocation=/app/tls/pem/tls.pemcfg' --message-count 5000 --destination queue://APP_JOBS --receive-timeout 30000;
+        - exec java -classpath /opt/amq/lib/*:/opt/amq/lib/extra/* org.apache.activemq.artemis.cli.Artemis consumer --protocol=AMQP --url 'amqps://artemis-broker-messaging-svc:61617?transport.trustStoreType=PEMCA&transport.trustStoreLocation=/app/tls/ca/ca.pem&transport.keyStoreType=PEMCFG&transport.keyStoreLocation=/app/tls/pem/tls.pemcfg' --message-count 10000 --destination queue://APP_JOBS --receive-timeout 30000;
         env:
         - name: JDK_JAVA_OPTIONS
           value: "-Djava.security.properties=/app/tls/pem/java.security"
@@ -1723,11 +1723,9 @@ the main container and any sidecars.
 
 Wait for the jobs to complete.
 
-```{"stage":"messaging", "runtime":"bash", "label":"wait for jobs"}
-COUNT=0
-until [ $COUNT -gt 4 ] || kubectl wait job producer -n locked-down-broker --for=condition=Complete --timeout=30s; do COUNT=$[COUNT + 1]; kubectl describe job producer -n locked-down-broker; kubectl get job producer -n locked-down-broker -o jsonpath='{.status}'; done
-COUNT=0
-until [ $COUNT -gt 4 ] || kubectl wait job consumer -n locked-down-broker --for=condition=Complete --timeout=30s; do COUNT=$[COUNT + 1]; kubectl describe job consumer -n locked-down-broker; kubectl get job producer -n locked-down-broker -o jsonpath='{.status}'; done
+```bash {"stage":"messaging", "label":"wait for jobs"}
+kubectl wait job producer -n locked-down-broker --for=condition=Complete --timeout=240s
+kubectl wait job consumer -n locked-down-broker --for=condition=Complete --timeout=240s
 ```
 ```shell markdown_runner
 job.batch/producer condition met

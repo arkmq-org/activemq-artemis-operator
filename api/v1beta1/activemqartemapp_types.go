@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright 2026.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,6 +34,9 @@ type ActiveMQArtemisAppSpec struct {
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Authentication Types"
 	Auth []AppAuthType `json:"auth,omitempty"`
 
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Acceptor"
+	Acceptor AppAcceptorType `json:"acceptor"`
+
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Messaging Capabilities"
 	Capabilities []AppCapabilityType `json:"capabilities,omitempty"`
 
@@ -41,10 +44,13 @@ type ActiveMQArtemisAppSpec struct {
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
+type AppAcceptorType struct {
+	Port int32 `json:"port"`
+}
+
 type AppAddressType struct {
 	Address string `json:"address"`
-
-	// with only a name it can be a string
+	// Shared *bool `json:"shared,omitempty"`
 	// Filter string `json:"filter,omitempty"`
 }
 

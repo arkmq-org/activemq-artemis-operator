@@ -39,6 +39,14 @@ spec:
             type: object
           spec:
             properties:
+              acceptor:
+                properties:
+                  port:
+                    format: int32
+                    type: integer
+                required:
+                - port
+                type: object
               auth:
                 items:
                   type: string
@@ -177,6 +185,8 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
+            required:
+            - acceptor
             type: object
           status:
             properties:

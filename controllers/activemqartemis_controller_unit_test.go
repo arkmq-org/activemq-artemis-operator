@@ -408,7 +408,8 @@ func TestValidateRestrictedNeedsSecret(t *testing.T) {
 	fakeSecrets := map[string]client.Object{}
 	interceptorFuncs := interceptor.Funcs{
 		Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-			if _, found := fakeSecrets[key.Name]; found {
+			if o, found := fakeSecrets[key.Name]; found {
+				obj.SetName(o.GetName())
 				return nil
 			}
 			return apierrors.NewNotFound(schema.GroupResource{}, key.Name)
@@ -431,7 +432,9 @@ func TestValidateRestrictedNeedsSecret(t *testing.T) {
 	assert.Contains(t, condition.Message, "failed to get secret")
 	assert.Contains(t, condition.Message, common.DefaultOperatorCertSecretName)
 
-	fakeSecrets[common.DefaultOperatorCertSecretName] = nil
+	fakeSecrets[common.DefaultOperatorCertSecretName] = &corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{Name: common.DefaultOperatorCertSecretName},
+	}
 
 	valid, retry = ri.validate(cr, client, *namer)
 
@@ -443,7 +446,9 @@ func TestValidateRestrictedNeedsSecret(t *testing.T) {
 	assert.Contains(t, condition.Message, "failed to get secret")
 	assert.Contains(t, condition.Message, common.DefaultOperatorCASecretName)
 
-	fakeSecrets[common.DefaultOperatorCASecretName] = nil
+	fakeSecrets[common.DefaultOperatorCASecretName] = &corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{Name: common.DefaultOperatorCASecretName},
+	}
 	valid, retry = ri.validate(cr, client, *namer)
 
 	assert.False(t, valid)
@@ -454,7 +459,9 @@ func TestValidateRestrictedNeedsSecret(t *testing.T) {
 	assert.Contains(t, condition.Message, "failed to get secret")
 	assert.Contains(t, condition.Message, common.DefaultOperandCertSecretName)
 
-	fakeSecrets[common.DefaultOperandCertSecretName] = nil
+	fakeSecrets[common.DefaultOperandCertSecretName] = &corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{Name: common.DefaultOperandCertSecretName},
+	}
 	valid, retry = ri.validate(cr, client, *namer)
 
 	assert.True(t, valid)

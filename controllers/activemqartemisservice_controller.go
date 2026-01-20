@@ -147,67 +147,26 @@ func (reconciler *ActiveMQArtemisServiceInstanceReconciler) processBroker() erro
 		fmt.Sprintf("%s-peer-index", reconciler.instance.Name): fmt.Sprintf("%v", 0),
 		getPeerLabelKey(reconciler.instance):                   reconciler.instance.Name,
 	}
-
 	desired.Spec.Env = reconciler.instance.Spec.Env
 	desired.Spec.DeploymentPlan.Resources = reconciler.instance.Spec.Resources
+
+	if reconciler.instance.Spec.Image != nil {
+		desired.Spec.DeploymentPlan.Image = *reconciler.instance.Spec.Image
+	}
 
 	desired.Spec.DeploymentPlan.ExtraMounts.Secrets = []string{
 		reconciler.appPropertiesSecretName(),
 		reconciler.propertiesSecretName(),
-		reconciler.jaasConfigSecretName(),
-		EmptyBrokerXml,
 	}
-
-	// the broker needs am xml to do config reload - fix and revisit
-	reconciler.processXmlSecret()
-
-	desired.Spec.DeploymentPlan.ExtraVolumeMounts = []corev1.VolumeMount{
-		{
-			Name:      EmptyBrokerXml,
-			MountPath: "/app/etc",
-		},
-	}
-	desired.Spec.DeploymentPlan.ExtraVolumes = []corev1.Volume{
-		{
-			Name: EmptyBrokerXml,
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: EmptyBrokerXml,
-				},
-			},
-		},
-	}
-	reconciler.processJaas()
 
 	// a place the app controller can modify
 	reconciler.processAppSecrets()
 
-	propertiesSecret := reconciler.processPropertiesSecrets()
-
-	trustStorePath, err := reconciler.getTrustStorePath()
-	if err != nil {
-		return err
-	}
-
-	// a key in the properties secret
-	reconciler.processAcceptors(propertiesSecret, trustStorePath)
+	reconciler.processPropertiesSecrets()
 
 	reconciler.TrackDesired(desired)
 
 	return nil
-}
-
-func (reconciler *ActiveMQArtemisServiceInstanceReconciler) getTrustStorePath() (string, error) {
-
-	var caCertSecret *corev1.Secret
-	var caSecretKey string
-	var err error
-	if caCertSecret, err = common.GetOperatorCASecret(reconciler.Client); err == nil {
-		if caSecretKey, err = common.GetOperatorCASecretKey(reconciler.Client, caCertSecret); err == nil {
-			return fmt.Sprintf("/amq/extra/secrets/%s/%s", caCertSecret.Name, caSecretKey), nil
-		}
-	}
-	return "", err
 }
 
 func (reconciler *ActiveMQArtemisServiceInstanceReconciler) processAppSecrets() error {
@@ -247,47 +206,8 @@ func PropertiesSecretName(name string) string {
 	return fmt.Sprintf("%s%s", name, BrokerPropsSuffix)
 }
 
-func (reconciler *ActiveMQArtemisServiceInstanceReconciler) jaasConfigSecretName() string {
-	return JaasConfigSecretName(reconciler.instance.Name)
-}
-
-func JaasConfigSecretName(name string) string {
-	return fmt.Sprintf("%s%s", name, jaasConfigSuffix)
-}
-
 func certSecretName(cr *broker.ActiveMQArtemisService) string {
 	return fmt.Sprintf("%s-%s", cr.Name, common.DefaultOperandCertSecretName)
-}
-
-func (reconciler *ActiveMQArtemisServiceInstanceReconciler) processXmlSecret() *corev1.Secret {
-	resourceName := types.NamespacedName{
-		Namespace: reconciler.instance.Namespace,
-		Name:      EmptyBrokerXml,
-	}
-
-	var desired *corev1.Secret
-
-	obj := reconciler.CloneOfDeployed(reflect.TypeOf(corev1.Secret{}), resourceName.Name)
-	if obj != nil {
-		desired = obj.(*corev1.Secret)
-	} else {
-		desired = secrets.NewSecret(resourceName, nil, nil)
-		desired.Data = map[string][]byte{}
-
-	}
-	minimalConfig := `<configuration xmlns="urn:activemq"
-               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-               xmlns:xi="http://www.w3.org/2001/XInclude"
-               xsi:schemaLocation="urn:activemq /schema/artemis-configuration.xsd">
-
-   <core xmlns="urn:activemq:core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="urn:activemq:core ">
-   </core>
-</configuration>
-`
-	desired.Data["broker.xml"] = []byte(minimalConfig)
-	reconciler.TrackDesired(desired)
-	return desired
 }
 
 func (reconciler *ActiveMQArtemisServiceInstanceReconciler) processPropertiesSecrets() *corev1.Secret {
@@ -310,49 +230,6 @@ func (reconciler *ActiveMQArtemisServiceInstanceReconciler) processPropertiesSec
 	return desired
 }
 
-func (reconciler *ActiveMQArtemisServiceInstanceReconciler) processJaas() error {
-	resourceName := types.NamespacedName{
-		Namespace: reconciler.instance.Namespace,
-		Name:      reconciler.jaasConfigSecretName(),
-	}
-
-	var desired *corev1.Secret
-
-	obj := reconciler.CloneOfDeployed(reflect.TypeOf(corev1.Secret{}), resourceName.Name)
-	if obj != nil {
-		desired = obj.(*corev1.Secret)
-	} else {
-
-		// TODO
-		// if it exists we just use it!
-		// may need to validate it too!
-
-		desired = secrets.NewSecret(resourceName, nil, nil)
-		desired.Data = map[string][]byte{}
-		desired.Data[common.GetCertUsersKey(common.JaasRealm)] = NewPropsWithHeader().Bytes()
-		desired.Data[common.GetCertRolesKey(common.JaasRealm)] = NewPropsWithHeader().Bytes()
-	}
-
-	// we care about the login modules, not the user/role mappings
-
-	login_config := newBufferWithHeader("//")
-	fmt.Fprintf(login_config, "%s {\n", common.JaasRealm)
-	if contains(reconciler.instance.Spec.Auth, broker.MTLS) {
-		fmt.Fprintln(login_config, "  org.apache.activemq.artemis.spi.core.security.jaas.TextFileCertificateLoginModule required")
-		fmt.Fprintln(login_config, "   reload=true")
-		fmt.Fprintln(login_config, "   debug=true")
-		fmt.Fprintf(login_config, "   org.apache.activemq.jaas.textfiledn.user=%s\n", common.GetCertUsersKey(common.JaasRealm))
-		fmt.Fprintf(login_config, "   org.apache.activemq.jaas.textfiledn.role=%s\n", common.GetCertRolesKey(common.JaasRealm))
-		fmt.Fprintf(login_config, "   baseDir=\"%s%s\"\n", secretPathBase, resourceName.Name)
-		fmt.Fprintln(login_config, "  ;")
-	}
-	fmt.Fprintln(login_config, "};")
-	desired.Data["login.config"] = login_config.Bytes()
-
-	reconciler.TrackDesired(desired)
-	return nil
-}
-
 func contains(appAuthTypes []broker.AppAuthType, value broker.AppAuthType) bool {
 	for _, authType := range appAuthTypes {
 		if authType == value {
@@ -360,70 +237,6 @@ func contains(appAuthTypes []broker.AppAuthType, value broker.AppAuthType) bool 
 		}
 	}
 	return false
-}
-
-/*
-## reference user role files with login.config, -Djava.security.auth.login.config=jaas/login.config
-## the broker JAAS domain in login.config
-acceptorConfigurations.tcp.params.securityDomain=broker
-
-## lock down broker acceptor
-## to SCRAM AMQP
-acceptorConfigurations.tcp.params.saslMechanisms=SCRAM-SHA-512
-acceptorConfigurations.tcp.params.protocols=AMQP
-acceptorConfigurations.tcp.params.saslLoginConfigScope=amqp-sasl-scram
-
-*/
-
-func (reconciler *ActiveMQArtemisServiceInstanceReconciler) processAcceptors(propertiesSecret *corev1.Secret, trustStorePath string) {
-
-	if len(reconciler.instance.Spec.Acceptors) == 0 {
-		return
-	}
-
-	pemCfgkey := "_acceptor.pemcfg"
-	propertiesSecret.Data[pemCfgkey] = reconciler.makePemCfgProps()
-	propertiesSecret.Data["acceptor.properties"] = reconciler.makeAcceptorProps(trustStorePath, pemCfgkey)
-
-}
-
-func (reconciler *ActiveMQArtemisServiceInstanceReconciler) makePemCfgProps() []byte {
-
-	buf := NewPropsWithHeader()
-
-	certSecretName := certSecretName(reconciler.instance)
-
-	fmt.Fprintf(buf, "source.key=/amq/extra/secrets/%s/tls.key\n", certSecretName)
-	fmt.Fprintf(buf, "source.cert=/amq/extra/secrets/%s/tls.crt\n", certSecretName)
-
-	return buf.Bytes()
-}
-
-func (reconciler *ActiveMQArtemisServiceInstanceReconciler) makeAcceptorProps(trustStorePath, pemCfgkey string) []byte {
-
-	buf := NewPropsWithHeader()
-
-	fmt.Fprintln(buf, "# tls acceptors")
-	for _, acceptor := range reconciler.instance.Spec.Acceptors {
-
-		fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".factoryClassName=org.apache.activemq.artemis.core.remoting.impl.netty.NettyAcceptorFactory\n", acceptor.Name)
-
-		fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.securityDomain=activemq\n", acceptor.Name)
-
-		fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.host=${HOSTNAME}\n", acceptor.Name)
-		fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.port=%d\n", acceptor.Name, DefaultServicePort)
-
-		fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.sslEnabled=true\n", acceptor.Name)
-
-		fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.needClientAuth=true\n", acceptor.Name)
-		fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.saslMechanisms=EXTERNAL\n", acceptor.Name)
-
-		fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.keyStoreType=PEMCFG\n", acceptor.Name)
-		fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.keyStorePath=/amq/extra/secrets/%s/%s\n", acceptor.Name, reconciler.propertiesSecretName(), pemCfgkey)
-		fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.trustStoreType=PEMCA\n", acceptor.Name)
-		fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.trustStorePath=%s\n", acceptor.Name, trustStorePath)
-	}
-	return buf.Bytes()
 }
 
 func (reconciler *ActiveMQArtemisServiceInstanceReconciler) processStatus(cr *broker.ActiveMQArtemisService, reconcilerError error) (err error) {

@@ -5,11 +5,6 @@ metadata:
   labels:
     forWorkQueue: 'true'
 spec:
-  acceptors: [
-    {
-      name: amqp
-    }
-  ]
   auth: [
     mtls
   ]

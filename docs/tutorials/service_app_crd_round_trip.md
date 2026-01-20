@@ -225,6 +225,7 @@ metadata:
   labels:
     forWorkQueue: "true"
 spec:
+  image: "quay.io/arkmq-org/activemq-artemis-broker-kubernetes:snapshot"
   resources:
     limits:
       memory: "1Gi"
@@ -233,8 +234,6 @@ spec:
       value: "-Dlog4j2.level=INFO"
   auth:
   - mtls
-  acceptors:
-  - name: amqp
 EOF
 ```
 
@@ -277,6 +276,8 @@ spec:
       forWorkQueue: "true"
   auth:
   - mtls
+  acceptor:
+    port: 61616
   capabilities:
   - producerOf:
     - address: "APP.JOBS"
