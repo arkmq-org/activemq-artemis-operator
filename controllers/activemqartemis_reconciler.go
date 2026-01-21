@@ -1605,8 +1605,6 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) ProcessResources(customResource
 
 	reqLogger := reconciler.log.WithValues("ActiveMQArtemis Name", customResource.Name)
 
-	reconciler.matchedTemplates = make(map[int]bool)
-
 	for _, requested := range common.ToResourceList(reconciler.requestedResources) {
 		requested.SetNamespace(customResource.Namespace)
 		if err = reconciler.applyTemplates(requested); err != nil {
