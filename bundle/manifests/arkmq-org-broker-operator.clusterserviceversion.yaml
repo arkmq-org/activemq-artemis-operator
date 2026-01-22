@@ -110,6 +110,32 @@ metadata:
         },
         {
           "apiVersion": "broker.amq.io/v1beta1",
+          "kind": "ActiveMQArtemisBrokerService",
+          "metadata": {
+            "labels": {
+              "forWorkQueue": "true"
+            },
+            "name": "ex-as-wq"
+          },
+          "spec": {
+            "env": [
+              {
+                "name": "JAVA_ARGS_APPEND",
+                "value": "-Dlog4j2.level=INFO"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "memory": "1Gi"
+              }
+            }
+          },
+          "status": {
+            "conditions": []
+          }
+        },
+        {
+          "apiVersion": "broker.amq.io/v1beta1",
           "kind": "ActiveMQArtemisScaledown",
           "metadata": {
             "name": "ex-aaoscaledown"
@@ -152,32 +178,6 @@ metadata:
                   }
                 ],
                 "name": "activemq"
-              }
-            }
-          },
-          "status": {
-            "conditions": []
-          }
-        },
-        {
-          "apiVersion": "broker.amq.io/v1beta1",
-          "kind": "ActiveMQArtemisService",
-          "metadata": {
-            "labels": {
-              "forWorkQueue": "true"
-            },
-            "name": "ex-as-wq"
-          },
-          "spec": {
-            "env": [
-              {
-                "name": "JAVA_ARGS_APPEND",
-                "value": "-Dlog4j2.level=INFO"
-              }
-            ],
-            "resources": {
-              "limits": {
-                "memory": "1Gi"
               }
             }
           },
@@ -816,6 +816,35 @@ spec:
         path: resources
       - displayName: ServiceSelector
         path: selector
+      statusDescriptors:
+      - description: Current state of the resource Conditions represent the latest
+          available observations of an object's state
+        displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      version: v1beta1
+    - description: Provides a broker service
+      displayName: ActiveMQ Artemis Broker Service
+      kind: ActiveMQArtemisBrokerService
+      name: activemqartemisbrokerservices.broker.amq.io
+      resources:
+      - kind: ActiveMQArtemis
+        name: ""
+        version: v1beta1
+      - kind: Secret
+        name: ""
+        version: v1
+      - kind: Service
+        name: ""
+        version: v1
+      specDescriptors:
+      - displayName: Environment
+        path: env
+      - displayName: Broker image
+        path: image
+      - displayName: Resources
+        path: resources
       statusDescriptors:
       - description: Current state of the resource Conditions represent the latest
           available observations of an object's state
@@ -5604,35 +5633,6 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v1beta1
-    - description: Provides a broker service
-      displayName: ActiveMQ Artemis Service
-      kind: ActiveMQArtemisService
-      name: activemqartemisservices.broker.amq.io
-      resources:
-      - kind: ActiveMQArtemis
-        name: ""
-        version: v1beta1
-      - kind: Secret
-        name: ""
-        version: v1
-      - kind: Service
-        name: ""
-        version: v1
-      specDescriptors:
-      - displayName: Environment
-        path: env
-      - displayName: Broker image
-        path: image
-      - displayName: Resources
-        path: resources
-      statusDescriptors:
-      - description: Current state of the resource Conditions represent the latest
-          available observations of an object's state
-        displayName: Conditions
-        path: conditions
-        x-descriptors:
-        - urn:alm:descriptor:io.kubernetes.conditions
-      version: v1beta1
   description: ArkMQ Operator manages ActiveMQ Artemis messaging broker in the cloud
   displayName: ArkMQ Operator
   icon:
@@ -5927,10 +5927,10 @@ spec:
           resources:
           - activemqartemisaddresses
           - activemqartemisapps
+          - activemqartemisbrokerservices
           - activemqartemises
           - activemqartemisscaledowns
           - activemqartemissecurities
-          - activemqartemisservices
           verbs:
           - create
           - delete
@@ -5944,10 +5944,10 @@ spec:
           resources:
           - activemqartemisaddresses/finalizers
           - activemqartemisapps/finalizers
+          - activemqartemisbrokerservices/finalizers
           - activemqartemises/finalizers
           - activemqartemisscaledowns/finalizers
           - activemqartemissecurities/finalizers
-          - activemqartemisservices/finalizers
           verbs:
           - update
         - apiGroups:
@@ -5955,10 +5955,10 @@ spec:
           resources:
           - activemqartemisaddresses/status
           - activemqartemisapps/status
+          - activemqartemisbrokerservices/status
           - activemqartemises/status
           - activemqartemisscaledowns/status
           - activemqartemissecurities/status
-          - activemqartemisservices/status
           verbs:
           - get
           - patch

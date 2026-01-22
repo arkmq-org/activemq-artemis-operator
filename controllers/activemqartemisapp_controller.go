@@ -49,7 +49,7 @@ type ActiveMQArtemisAppInstanceReconciler struct {
 	instance *broker.ActiveMQArtemisApp
 }
 
-func (reconciler ActiveMQArtemisAppInstanceReconciler) processDelete(_ *broker.ActiveMQArtemisService, serverConfigPropertiesSecret *corev1.Secret) (err error) {
+func (reconciler ActiveMQArtemisAppInstanceReconciler) processDelete(_ *broker.ActiveMQArtemisBrokerService, serverConfigPropertiesSecret *corev1.Secret) (err error) {
 
 	namespacePrefix := reconciler.AppIdentity()
 	underStorePrefix := fmt.Sprintf("_%s", namespacePrefix)
@@ -138,7 +138,7 @@ func (r *ActiveMQArtemisAppReconciler) getOrderedTypeList() []reflect.Type {
 func (reconciler *ActiveMQArtemisAppInstanceReconciler) processSpec(cr *broker.ActiveMQArtemisApp) error {
 
 	// find the matching service to find the matching brokers
-	var list = &broker.ActiveMQArtemisServiceList{}
+	var list = &broker.ActiveMQArtemisBrokerServiceList{}
 	var opts, err = metav1.LabelSelectorAsSelector(cr.Spec.ServiceSelector)
 	if err != nil {
 		err = fmt.Errorf("failed to evaluate Spec.Selector %v", err)
@@ -174,7 +174,7 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processSpec(cr *broker.A
 		return err
 	}
 
-	var service *broker.ActiveMQArtemisService
+	var service *broker.ActiveMQArtemisBrokerService
 
 	// have we got a deployed annotation that matches
 	deployedTo, found := cr.Annotations[common.AppServiceAnnotation]
@@ -234,7 +234,7 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processSpec(cr *broker.A
 	return err
 }
 
-func (reconciler *ActiveMQArtemisAppInstanceReconciler) getServiceAppProperiesSecret(service *broker.ActiveMQArtemisService) (*corev1.Secret, error) {
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) getServiceAppProperiesSecret(service *broker.ActiveMQArtemisBrokerService) (*corev1.Secret, error) {
 	key := types.NamespacedName{
 		Name:      AppPropertiesSecretName(service.Name),
 		Namespace: service.Namespace,
@@ -242,11 +242,11 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) getServiceAppProperiesSe
 	return secrets.RetriveSecret(key, nil, reconciler.Client)
 }
 
-func annotationNameFromService(service *broker.ActiveMQArtemisService) string {
+func annotationNameFromService(service *broker.ActiveMQArtemisBrokerService) string {
 	return fmt.Sprintf("%s:%s", service.Namespace, service.Name)
 }
 
-func (reconciler *ActiveMQArtemisAppInstanceReconciler) findServiceWithCapacity(list *broker.ActiveMQArtemisServiceList) (chosen *broker.ActiveMQArtemisService, err error) {
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) findServiceWithCapacity(list *broker.ActiveMQArtemisBrokerServiceList) (chosen *broker.ActiveMQArtemisBrokerService, err error) {
 	// no notion of resource constraints yet
 	first := list.Items[0]
 	return &first, nil
@@ -280,7 +280,7 @@ func (t *AddressTracker) track(address *broker.AppAddressType) *AddressConfig {
 	return &entry
 }
 
-func (reconciler *ActiveMQArtemisAppInstanceReconciler) processAcceptor(service *broker.ActiveMQArtemisService, serverConfigPropertiesSecret *corev1.Secret) (err error) {
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) processAcceptor(service *broker.ActiveMQArtemisBrokerService, serverConfigPropertiesSecret *corev1.Secret) (err error) {
 
 	// TODO: need data plane trust store, this is access to the control plane trust store
 	// they could be the same but we need two accessors
@@ -387,7 +387,7 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) jaasConfigRealmName() st
 	return realmName
 }
 
-func (reconciler *ActiveMQArtemisAppInstanceReconciler) getTrustStorePath(_ *broker.ActiveMQArtemisService) (string, error) {
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) getTrustStorePath(_ *broker.ActiveMQArtemisBrokerService) (string, error) {
 
 	var caCertSecret *corev1.Secret
 	var caSecretKey string
@@ -400,7 +400,7 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) getTrustStorePath(_ *bro
 	return "", err
 }
 
-func (reconciler *ActiveMQArtemisAppInstanceReconciler) makePemCfgProps(service *broker.ActiveMQArtemisService) []byte {
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) makePemCfgProps(service *broker.ActiveMQArtemisBrokerService) []byte {
 
 	buf := NewPropsWithHeader()
 
@@ -412,7 +412,7 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) makePemCfgProps(service 
 	return buf.Bytes()
 }
 
-func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(_ *broker.ActiveMQArtemisService, secret *corev1.Secret) (err error) {
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(_ *broker.ActiveMQArtemisBrokerService, secret *corev1.Secret) (err error) {
 
 	err = reconciler.verifyCapabilityAddressType()
 	if err != nil {

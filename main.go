@@ -297,14 +297,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	serviceReconciler := controllers.NewActiveMQArtemisServiceReconciler(
+	serviceReconciler := controllers.NewActiveMQArtemisBrokerServiceReconciler(
 		mgr.GetClient(),
 		mgr.GetScheme(),
 		mgr.GetConfig(),
-		ctrl.Log.WithName("ActiveMQArtemisServiceReconciler"))
+		ctrl.Log.WithName("ActiveMQArtemisBrokerServiceReconciler"))
 
 	if err = serviceReconciler.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ActiveMQArtemisService")
+		setupLog.Error(err, "unable to create controller", "controller", "ActiveMQArtemisBrokerService")
 		os.Exit(1)
 	}
 

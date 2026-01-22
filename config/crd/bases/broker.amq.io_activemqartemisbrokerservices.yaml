@@ -4,16 +4,16 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.16.5
-  name: activemqartemisservices.broker.amq.io
+  name: activemqartemisbrokerservices.broker.amq.io
 spec:
   group: broker.amq.io
   names:
-    kind: ActiveMQArtemisService
-    listKind: ActiveMQArtemisServiceList
-    plural: activemqartemisservices
+    kind: ActiveMQArtemisBrokerService
+    listKind: ActiveMQArtemisBrokerServiceList
+    plural: activemqartemisbrokerservices
     shortNames:
-    - aasvc
-    singular: activemqartemisservice
+    - aabsvc
+    singular: activemqartemisbrokerservice
   scope: Namespaced
   versions:
   - name: v1beta1

@@ -53,10 +53,10 @@ rules:
   resources:
   - activemqartemisaddresses
   - activemqartemisapps
+  - activemqartemisbrokerservices
   - activemqartemises
   - activemqartemisscaledowns
   - activemqartemissecurities
-  - activemqartemisservices
   verbs:
   - create
   - delete
@@ -70,10 +70,10 @@ rules:
   resources:
   - activemqartemisaddresses/finalizers
   - activemqartemisapps/finalizers
+  - activemqartemisbrokerservices/finalizers
   - activemqartemises/finalizers
   - activemqartemisscaledowns/finalizers
   - activemqartemissecurities/finalizers
-  - activemqartemisservices/finalizers
   verbs:
   - update
 - apiGroups:
@@ -81,10 +81,10 @@ rules:
   resources:
   - activemqartemisaddresses/status
   - activemqartemisapps/status
+  - activemqartemisbrokerservices/status
   - activemqartemises/status
   - activemqartemisscaledowns/status
   - activemqartemissecurities/status
-  - activemqartemisservices/status
   verbs:
   - get
   - patch

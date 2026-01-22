@@ -24,7 +24,7 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-type ActiveMQArtemisServiceSpec struct {
+type ActiveMQArtemisBrokerServiceSpec struct {
 
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Resources"
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
@@ -36,7 +36,7 @@ type ActiveMQArtemisServiceSpec struct {
 	Image *string `json:"image,omitempty"`
 }
 
-type ActiveMQArtemisServiceStatus struct {
+type ActiveMQArtemisBrokerServiceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
@@ -52,29 +52,29 @@ type ActiveMQArtemisServiceStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:storageversion
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:path=activemqartemisservices,shortName=aasvc
+//+kubebuilder:resource:path=activemqartemisbrokerservices,shortName=aabsvc
 //+operator-sdk:csv:customresourcedefinitions:resources={{"Secret", "v1"}}
 //+operator-sdk:csv:customresourcedefinitions:resources={{"Service", "v1"}}
 //+operator-sdk:csv:customresourcedefinitions:resources={{"ActiveMQArtemis", "v1beta1"}}
 
 // Provides a broker service
-// +operator-sdk:csv:customresourcedefinitions:displayName="ActiveMQ Artemis Service"
-type ActiveMQArtemisService struct {
+// +operator-sdk:csv:customresourcedefinitions:displayName="ActiveMQ Artemis Broker Service"
+type ActiveMQArtemisBrokerService struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ActiveMQArtemisServiceSpec   `json:"spec,omitempty"`
-	Status ActiveMQArtemisServiceStatus `json:"status,omitempty"`
+	Spec   ActiveMQArtemisBrokerServiceSpec   `json:"spec,omitempty"`
+	Status ActiveMQArtemisBrokerServiceStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-type ActiveMQArtemisServiceList struct {
+type ActiveMQArtemisBrokerServiceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ActiveMQArtemisService `json:"items"`
+	Items           []ActiveMQArtemisBrokerService `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&ActiveMQArtemisService{}, &ActiveMQArtemisServiceList{})
+	SchemeBuilder.Register(&ActiveMQArtemisBrokerService{}, &ActiveMQArtemisBrokerServiceList{})
 }

@@ -146,9 +146,9 @@ var _ = Describe("artemis-service", func() {
 
 			brokerImage := "quay.io/arkmq-org/activemq-artemis-broker-kubernetes:snapshot" // version.LatestKubeImage
 			jvmRemoteDebug := false
-			crd := brokerv1beta1.ActiveMQArtemisService{
+			crd := brokerv1beta1.ActiveMQArtemisBrokerService{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       "ActiveMQArtemisService",
+					Kind:       "ActiveMQArtemisBrokerService",
 					APIVersion: brokerv1beta1.GroupVersion.Identifier(),
 				},
 				ObjectMeta: metav1.ObjectMeta{
@@ -156,7 +156,7 @@ var _ = Describe("artemis-service", func() {
 					Namespace: defaultNamespace,
 					Labels:    map[string]string{"env": "production"},
 				},
-				Spec: brokerv1beta1.ActiveMQArtemisServiceSpec{
+				Spec: brokerv1beta1.ActiveMQArtemisBrokerServiceSpec{
 
 					// to get jaas config in properties
 					Image: StringToPtr(brokerImage),
@@ -215,7 +215,7 @@ var _ = Describe("artemis-service", func() {
 			}
 
 			serviceKey := types.NamespacedName{Name: crd.Name, Namespace: crd.Namespace}
-			createdCrd := &brokerv1beta1.ActiveMQArtemisService{}
+			createdCrd := &brokerv1beta1.ActiveMQArtemisBrokerService{}
 
 			By("Checking ready cr status")
 			Eventually(func(g Gomega) {
