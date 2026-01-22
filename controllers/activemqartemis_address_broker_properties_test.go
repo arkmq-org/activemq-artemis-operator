@@ -155,7 +155,7 @@ var _ = Describe("BrokerProperties Address tests", func() {
 				Eventually(func(g Gomega) {
 					stdOutContent := LogsOfPod(podWithOrdinal, createdBrokerCr.Name, defaultNamespace, g)
 					if verbose {
-						fmt.Printf("\nLOG of Pod:\n" + stdOutContent)
+						fmt.Printf("\nLOG of Pod:\n%s", stdOutContent)
 					}
 					// WARN  [org.apache.activemq.artemis.core.server.impl.ActiveMQServerImpl] AMQ229019: Queue myqueue already exists on address myqueue
 					g.Expect(stdOutContent).Should(ContainSubstring("AMQ229019"))

@@ -299,12 +299,12 @@ func (c *Controller) processNextWorkItem() bool {
 		// Foo resource to be synced.
 		c.log.V(2).Info("calling syncHandler to process this one", "key", key)
 		if err := c.syncHandler(key); err != nil {
-			return fmt.Errorf("error syncing '" + key + ": " + err.Error())
+			return fmt.Errorf("error syncing '%s': %w", key, err)
 		}
 		// Finally, if no error occurs we Forget this item so it does not
 		// get queued again until another change happens.
 		c.workqueue.Forget(obj)
-		c.log.V(2).Info("Successfully processed '" + key + "'")
+		c.log.V(2).Info("Successfully processed '%s'", key)
 		return nil
 	}(obj)
 
@@ -326,7 +326,7 @@ func (c *Controller) syncHandler(key string) error {
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("invalid resource key: " + key))
+		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
 		return nil
 	}
 
@@ -338,7 +338,7 @@ func (c *Controller) syncHandler(key string) error {
 		// The StatefulSet may no longer exist, in which case we stop
 		// processing.
 		if errors.IsNotFound(err) {
-			runtime.HandleError(fmt.Errorf("StatefulSet " + key + " in work queue no longer exists"))
+			runtime.HandleError(fmt.Errorf("StatefulSet %s in work queue no longer exists", key))
 			return nil
 		}
 
@@ -744,7 +744,7 @@ func (c *Controller) newPod(sts *appsv1.StatefulSet, ordinal int) (*corev1.Pod, 
 
 	if _, ok := c.ssNamesMap[ssNamesKey]; !ok {
 		c.log.V(2).Info("Cannot find drain pod data for statefule set", "namespace", ssNamesKey)
-		return nil, fmt.Errorf("No drain pod data for statefulset " + sts.Name)
+		return nil, fmt.Errorf("No drain pod data for statefulset %s", sts.Name)
 	}
 
 	ssNames := c.ssNamesMap[ssNamesKey]
@@ -771,16 +771,16 @@ func (c *Controller) newPod(sts *appsv1.StatefulSet, ordinal int) (*corev1.Pod, 
 	image := sts.Spec.Template.Spec.Containers[0].Image
 	//sts.Spec.Template.Spec.Containers[0].Resources = c.resources
 	if image == "" {
-		return nil, fmt.Errorf("No drain pod image configured for StatefulSet " + sts.Name)
+		return nil, fmt.Errorf("No drain pod image configured for StatefulSet %s", sts.Name)
 	}
 	podTemplateJson = strings.Replace(podTemplateJson, "SSIMAGE", image, 1)
 	if podTemplateJson == "" {
-		return nil, fmt.Errorf("No drain pod template configured for StatefulSet " + sts.Name)
+		return nil, fmt.Errorf("No drain pod template configured for StatefulSet %s", sts.Name)
 	}
 	pod := corev1.Pod{}
 	err := json.Unmarshal([]byte(podTemplateJson), &pod)
 	if err != nil {
-		return nil, fmt.Errorf("Can't unmarshal DrainerPodTemplate JSON from annotation: " + err.Error())
+		return nil, fmt.Errorf("Can't unmarshal DrainerPodTemplate JSON from annotation: %w", err)
 	}
 
 	pod.Name = getPodName(sts, ordinal)
