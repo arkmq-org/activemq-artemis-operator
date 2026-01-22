@@ -287,11 +287,6 @@ func (in *ActiveMQArtemisAppSpec) DeepCopyInto(out *ActiveMQArtemisAppSpec) {
 		*out = new(v1.LabelSelector)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.Auth != nil {
-		in, out := &in.Auth, &out.Auth
-		*out = make([]AppAuthType, len(*in))
-		copy(*out, *in)
-	}
 	out.Acceptor = in.Acceptor
 	if in.Capabilities != nil {
 		in, out := &in.Capabilities, &out.Capabilities
@@ -642,11 +637,6 @@ func (in *ActiveMQArtemisServiceSpec) DeepCopyInto(out *ActiveMQArtemisServiceSp
 		in, out := &in.Image, &out.Image
 		*out = new(string)
 		**out = **in
-	}
-	if in.Auth != nil {
-		in, out := &in.Auth, &out.Auth
-		*out = make([]AppAuthType, len(*in))
-		copy(*out, *in)
 	}
 }
 

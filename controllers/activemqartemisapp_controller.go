@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"sort"
 	"strings"
 
 	broker "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
@@ -50,7 +49,7 @@ type ActiveMQArtemisAppInstanceReconciler struct {
 	instance *broker.ActiveMQArtemisApp
 }
 
-func (reconciler ActiveMQArtemisAppInstanceReconciler) processDelete(service *broker.ActiveMQArtemisService, serverConfigPropertiesSecret *corev1.Secret) (err error) {
+func (reconciler ActiveMQArtemisAppInstanceReconciler) processDelete(_ *broker.ActiveMQArtemisService, serverConfigPropertiesSecret *corev1.Secret) (err error) {
 
 	namespacePrefix := reconciler.AppIdentity()
 	underStorePrefix := fmt.Sprintf("_%s", namespacePrefix)
@@ -250,7 +249,7 @@ func annotationNameFromService(service *broker.ActiveMQArtemisService) string {
 func (reconciler *ActiveMQArtemisAppInstanceReconciler) findServiceWithCapacity(list *broker.ActiveMQArtemisServiceList) (chosen *broker.ActiveMQArtemisService, err error) {
 	// no notion of resource constraints yet
 	first := list.Items[0]
-	return &first, reconciler.checkAuthMatch(&first)
+	return &first, nil
 }
 
 type AddressConfig struct {
@@ -388,7 +387,7 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) jaasConfigRealmName() st
 	return realmName
 }
 
-func (reconciler *ActiveMQArtemisAppInstanceReconciler) getTrustStorePath(service *broker.ActiveMQArtemisService) (string, error) {
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) getTrustStorePath(_ *broker.ActiveMQArtemisService) (string, error) {
 
 	var caCertSecret *corev1.Secret
 	var caSecretKey string
@@ -413,7 +412,7 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) makePemCfgProps(service 
 	return buf.Bytes()
 }
 
-func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(service *broker.ActiveMQArtemisService, secret *corev1.Secret) (err error) {
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(_ *broker.ActiveMQArtemisService, secret *corev1.Secret) (err error) {
 
 	err = reconciler.verifyCapabilityAddressType()
 	if err != nil {
@@ -511,23 +510,6 @@ func DashPrefixValue(prefix, value string) string {
 	return fmt.Sprintf("%s-%s", prefix, value)
 }
 
-func (reconciler *ActiveMQArtemisAppInstanceReconciler) checkAuthMatch(service *broker.ActiveMQArtemisService) (err error) {
-
-	for _, requested := range reconciler.instance.Spec.Auth {
-		if !contains(service.Spec.Auth, requested) {
-			err = fmt.Errorf("no matchihg auth capability available for %v", requested)
-			meta.SetStatusCondition(&reconciler.instance.Status.Conditions, metav1.Condition{
-				Type:    broker.ValidConditionType,
-				Status:  metav1.ConditionFalse,
-				Reason:  "SpecAuthNoMatch",
-				Message: err.Error(),
-			})
-			break
-		}
-	}
-	return err
-}
-
 func (reconciler *ActiveMQArtemisAppInstanceReconciler) verifyCapabilityAddressType() (err error) {
 
 	for _, capability := range reconciler.instance.Spec.Capabilities {
@@ -545,99 +527,6 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) verifyCapabilityAddressT
 			Reason:  "AddressTypeError",
 			Message: err.Error(),
 		})
-	}
-	return err
-}
-
-func (reconciler *ActiveMQArtemisAppInstanceReconciler) doMtlsAuthN(service *broker.ActiveMQArtemisService) (err error) {
-
-	key := types.NamespacedName{
-		Name:      service.Name,
-		Namespace: service.Namespace,
-	}
-
-	secret, err := secrets.RetriveSecret(key, nil, reconciler.Client)
-	if err == nil {
-
-		// shared secret, reconcile from first principals for *all* apps assigned to this service
-
-		var list = &broker.ActiveMQArtemisAppList{}
-		err = reconciler.Client.List(context.TODO(), list, &client.ListOptions{})
-		if err != nil {
-			err = fmt.Errorf("failed to list app to find auth match, err: %v", err)
-			meta.SetStatusCondition(&reconciler.instance.Status.Conditions, metav1.Condition{
-				Type:    broker.DeployedConditionType,
-				Status:  metav1.ConditionFalse,
-				Reason:  "AppListError",
-				Message: err.Error(),
-			})
-			return err
-		}
-
-		if len(list.Items) == 0 {
-			err = fmt.Errorf("no matchihg apps for service auth, at least one is expected")
-			meta.SetStatusCondition(&reconciler.instance.Status.Conditions, metav1.Condition{
-				Type:    broker.DeployedConditionType,
-				Status:  metav1.ConditionFalse,
-				Reason:  "AppListEmptyError",
-				Message: err.Error(),
-			})
-			return err
-		}
-
-		// have we got a deployed annotation that matches
-		deployedApps := make([]broker.ActiveMQArtemisApp, 0)
-		matchedServiceAnnotation := annotationNameFromService(service)
-
-		for _, candidate := range list.Items {
-
-			deployedTo, found := candidate.Annotations[common.AppServiceAnnotation]
-			if found && deployedTo == matchedServiceAnnotation {
-				deployedApps = append(deployedApps, candidate)
-			}
-		}
-
-		// order is important for reconcile consistency
-		sort.SliceStable(deployedApps, func(i, j int) bool {
-			return deployedApps[i].Namespace < deployedApps[j].Namespace &&
-				deployedApps[i].Name < deployedApps[j].Name
-		})
-
-		usersBuf := NewPropsWithHeader()
-
-		dedupMap := map[string]string{}
-
-		for _, candidate := range deployedApps {
-
-			userName := DashPrefixValue(candidate.Name, candidate.Namespace)
-			// TODO: pull down full DN from app cert
-			fmt.Fprintf(usersBuf, "%s=/.*%s.*/\n", userName, candidate.Name)
-
-			for _, capability := range candidate.Spec.Capabilities {
-
-				roleName := capability.Role
-				if roleName == "" {
-					roleName = userName
-				}
-
-				if len(capability.ConsumerOf) > 0 || len(capability.SubscriberOf) > 0 {
-					dedupMap[fmt.Sprintf("%s=%s\n", consumerRole(roleName), userName)] = ""
-				}
-				if len(capability.ProducerOf) > 0 {
-					dedupMap[fmt.Sprintf("%s=%s\n", producerRole(roleName), userName)] = ""
-				}
-			}
-		}
-
-		secret.Data[common.GetCertUsersKey(common.JaasRealm)] = usersBuf.Bytes()
-
-		rolesBuf := NewPropsWithHeader()
-		for _, k := range sortedKeys(dedupMap) {
-			fmt.Fprint(rolesBuf, k)
-		}
-		secret.Data[common.GetCertRolesKey(common.JaasRealm)] = rolesBuf.Bytes()
-
-		err = resources.Update(reconciler.Client, secret)
 	}
 	return err
 }

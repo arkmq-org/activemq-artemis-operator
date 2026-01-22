@@ -7727,10 +7727,6 @@ spec:
                   required:
                     - port
                   type: object
-                auth:
-                  items:
-                    type: string
-                  type: array
                 capabilities:
                   items:
                     properties:
@@ -9288,10 +9284,6 @@ spec:
               type: object
             spec:
               properties:
-                auth:
-                  items:
-                    type: string
-                  type: array
                 env:
                   items:
                     description: EnvVar represents an environment variable present in a Container.

@@ -230,15 +230,6 @@ func (reconciler *ActiveMQArtemisServiceInstanceReconciler) processPropertiesSec
 	return desired
 }
 
-func contains(appAuthTypes []broker.AppAuthType, value broker.AppAuthType) bool {
-	for _, authType := range appAuthTypes {
-		if authType == value {
-			return true
-		}
-	}
-	return false
-}
-
 func (reconciler *ActiveMQArtemisServiceInstanceReconciler) processStatus(cr *broker.ActiveMQArtemisService, reconcilerError error) (err error) {
 
 	var conditions []metav1.Condition = nil

@@ -487,8 +487,6 @@ spec:
       specDescriptors:
       - displayName: Acceptor
         path: acceptor
-      - displayName: Authentication Types
-        path: auth
       - displayName: Messaging Capabilities
         path: capabilities
       - displayName: Resources
@@ -5298,8 +5296,6 @@ spec:
         name: ""
         version: v1
       specDescriptors:
-      - displayName: Auth
-        path: auth
       - displayName: Environment
         path: env
       - displayName: Broker image

@@ -10,7 +10,7 @@ weight: 121
 toc: true
 ---
 
-This tutorial walks through a complete round trip of sending and receiving messages using the `ActiveMQArtemisService` and `ActiveMQArtemisApp` CRDs. The steps are based on the `round trip simple` e2e test to ensure a working configuration.
+This tutorial walks through a complete round trip of sending and receiving messages using the `ActiveMQArtemisService` and `ActiveMQArtemisApp` CRDs.
 
 ### Prerequisites
 
@@ -232,8 +232,6 @@ spec:
   env:
     - name: JAVA_ARGS_APPEND
       value: "-Dlog4j2.level=INFO"
-  auth:
-  - mtls
 EOF
 ```
 
@@ -274,8 +272,6 @@ spec:
   selector:
     matchLabels:
       forWorkQueue: "true"
-  auth:
-  - mtls
   acceptor:
     port: 61616
   capabilities:
@@ -405,8 +401,8 @@ EOT
 Wait for jobs to complete.
 
 ```bash {"stage":"test_messaging", "label":"wait for jobs", "runtime":"bash"}
-kubectl wait job producer -n service-app-project --for=condition=Complete --timeout=120s
-kubectl wait job consumer -n service-app-project --for=condition=Complete --timeout=120s
+kubectl wait job producer -n service-app-project --for=condition=Complete --timeout=300s
+kubectl wait job consumer -n service-app-project --for=condition=Complete --timeout=300s
 ```
 
 ### 5. Cleanup
