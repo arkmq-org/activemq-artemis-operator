@@ -1,6 +1,6 @@
 ---
 title: "Service and App CRD Round Trip"
-description: "A tutorial on using ActiveMQArtemisService and ActiveMQArtemisApp CRDs, based on the 'round trip simple' e2e test."
+description: "A tutorial on using ActiveMQArtemisBrokerService and ActiveMQArtemisApp CRDs, based on the 'round trip simple' e2e test."
 draft: false
 images: []
 menu:
@@ -10,7 +10,7 @@ weight: 121
 toc: true
 ---
 
-This tutorial walks through a complete round trip of sending and receiving messages using the `ActiveMQArtemisService` and `ActiveMQArtemisApp` CRDs.
+This tutorial walks through a complete round trip of sending and receiving messages using the `ActiveMQArtemisBrokerService` and `ActiveMQArtemisApp` CRDs.
 
 ### Prerequisites
 
@@ -213,12 +213,12 @@ EOF
 kubectl wait certificate messaging-service-broker-cert -n service-app-project --for=condition=Ready --timeout=300s
 ```
 
-#### Deploy `ActiveMQArtemisService`
+#### Deploy `ActiveMQArtemisBrokerService`
 
 ```bash {"stage":"deploy_service", "label":"deploy service crd", "runtime":"bash"}
 kubectl apply -f - <<EOF
 apiVersion: broker.amq.io/v1beta1
-kind: ActiveMQArtemisService
+kind: ActiveMQArtemisBrokerService
 metadata:
   name: messaging-service
   namespace: service-app-project
@@ -238,7 +238,7 @@ EOF
 Wait for the resource to be ready.
 
 ```bash {"stage":"deploy_service", "label":"wait for service"}
-kubectl wait ActiveMQArtemisService messaging-service -n service-app-project --for=condition=Ready --timeout=300s
+kubectl wait ActiveMQArtemisBrokerService messaging-service -n service-app-project --for=condition=Ready --timeout=300s
 ```
 
 #### Create Service Certificate
