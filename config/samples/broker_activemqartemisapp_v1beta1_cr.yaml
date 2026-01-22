@@ -3,9 +3,6 @@ kind: ActiveMQArtemisApp
 metadata:
   name: wq-app
 spec:
-  auth: [
-    mtls
-  ]
   acceptor:
     port: 61616
   capabilities: [

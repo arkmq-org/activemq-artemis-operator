@@ -34,17 +34,7 @@ type ActiveMQArtemisServiceSpec struct {
 
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Broker image"
 	Image *string `json:"image,omitempty"`
-
-	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Auth"
-	Auth []AppAuthType `json:"auth,omitempty"`
 }
-
-type AppAuthType string
-
-const (
-	MTLS  AppAuthType = "mtls"
-	Token AppAuthType = "token" // oath2
-)
 
 type ActiveMQArtemisServiceStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster

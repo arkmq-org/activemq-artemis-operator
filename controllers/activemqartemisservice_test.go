@@ -166,7 +166,6 @@ var _ = Describe("artemis-service", func() {
 							Value: "-Dlog4j2.level=DEBUG -Djava.security.debug=logincontext",
 						},
 					},
-					Auth: []brokerv1beta1.AppAuthType{brokerv1beta1.MTLS},
 				},
 			}
 
@@ -270,10 +269,6 @@ var _ = Describe("artemis-service", func() {
 						MatchLabels: map[string]string{
 							"env": "production",
 						}},
-
-					Auth: []brokerv1beta1.AppAuthType{
-						brokerv1beta1.MTLS,
-					},
 
 					Acceptor: brokerv1beta1.AppAcceptorType{
 						Port: 61616,

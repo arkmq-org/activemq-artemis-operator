@@ -39,10 +39,6 @@ spec:
             type: object
           spec:
             properties:
-              auth:
-                items:
-                  type: string
-                type: array
               env:
                 items:
                   description: EnvVar represents an environment variable present in

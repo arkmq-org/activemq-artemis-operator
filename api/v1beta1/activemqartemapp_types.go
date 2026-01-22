@@ -31,9 +31,6 @@ type ActiveMQArtemisAppSpec struct {
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="ServiceSelector"
 	ServiceSelector *metav1.LabelSelector `json:"selector,omitempty"`
 
-	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Authentication Types"
-	Auth []AppAuthType `json:"auth,omitempty"`
-
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Acceptor"
 	Acceptor AppAcceptorType `json:"acceptor"`
 

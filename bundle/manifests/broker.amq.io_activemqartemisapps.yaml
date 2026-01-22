@@ -47,10 +47,6 @@ spec:
                 required:
                 - port
                 type: object
-              auth:
-                items:
-                  type: string
-                type: array
               capabilities:
                 items:
                   properties:
