@@ -21,9 +21,9 @@ limitations under the License.
 package v1beta1
 
 import (
-	corev1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -203,7 +203,7 @@ func (in *ActiveMQArtemisAddressStatus) DeepCopyInto(out *ActiveMQArtemisAddress
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]v1.Condition, len(*in))
+		*out = make([]metav1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -284,7 +284,7 @@ func (in *ActiveMQArtemisAppSpec) DeepCopyInto(out *ActiveMQArtemisAppSpec) {
 	*out = *in
 	if in.ServiceSelector != nil {
 		in, out := &in.ServiceSelector, &out.ServiceSelector
-		*out = new(v1.LabelSelector)
+		*out = new(metav1.LabelSelector)
 		(*in).DeepCopyInto(*out)
 	}
 	out.Acceptor = in.Acceptor
@@ -313,7 +313,7 @@ func (in *ActiveMQArtemisAppStatus) DeepCopyInto(out *ActiveMQArtemisAppStatus) 
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]v1.Condition, len(*in))
+		*out = make([]metav1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -442,7 +442,7 @@ func (in *ActiveMQArtemisScaledownStatus) DeepCopyInto(out *ActiveMQArtemisScale
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]v1.Condition, len(*in))
+		*out = make([]metav1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -546,7 +546,7 @@ func (in *ActiveMQArtemisSecurityStatus) DeepCopyInto(out *ActiveMQArtemisSecuri
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]v1.Condition, len(*in))
+		*out = make([]metav1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -628,7 +628,7 @@ func (in *ActiveMQArtemisServiceSpec) DeepCopyInto(out *ActiveMQArtemisServiceSp
 	in.Resources.DeepCopyInto(&out.Resources)
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]corev1.EnvVar, len(*in))
+		*out = make([]v1.EnvVar, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -655,7 +655,7 @@ func (in *ActiveMQArtemisServiceStatus) DeepCopyInto(out *ActiveMQArtemisService
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]v1.Condition, len(*in))
+		*out = make([]metav1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -700,7 +700,7 @@ func (in *ActiveMQArtemisSpec) DeepCopyInto(out *ActiveMQArtemisSpec) {
 	}
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]corev1.EnvVar, len(*in))
+		*out = make([]v1.EnvVar, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -734,7 +734,7 @@ func (in *ActiveMQArtemisStatus) DeepCopyInto(out *ActiveMQArtemisStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]v1.Condition, len(*in))
+		*out = make([]metav1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -1141,17 +1141,17 @@ func (in *AffinityConfig) DeepCopyInto(out *AffinityConfig) {
 	*out = *in
 	if in.NodeAffinity != nil {
 		in, out := &in.NodeAffinity, &out.NodeAffinity
-		*out = new(corev1.NodeAffinity)
+		*out = new(v1.NodeAffinity)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.PodAffinity != nil {
 		in, out := &in.PodAffinity, &out.PodAffinity
-		*out = new(corev1.PodAffinity)
+		*out = new(v1.PodAffinity)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.PodAntiAffinity != nil {
 		in, out := &in.PodAntiAffinity, &out.PodAntiAffinity
-		*out = new(corev1.PodAntiAffinity)
+		*out = new(v1.PodAntiAffinity)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -1511,7 +1511,7 @@ func (in *DeploymentPlanType) DeepCopyInto(out *DeploymentPlanType) {
 	*out = *in
 	if in.ImagePullSecrets != nil {
 		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
-		*out = make([]corev1.LocalObjectReference, len(*in))
+		*out = make([]v1.LocalObjectReference, len(*in))
 		copy(*out, *in)
 	}
 	if in.Size != nil {
@@ -1528,7 +1528,7 @@ func (in *DeploymentPlanType) DeepCopyInto(out *DeploymentPlanType) {
 	out.Storage = in.Storage
 	if in.TopologySpreadConstraints != nil {
 		in, out := &in.TopologySpreadConstraints, &out.TopologySpreadConstraints
-		*out = make([]corev1.TopologySpreadConstraint, len(*in))
+		*out = make([]v1.TopologySpreadConstraint, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -1542,17 +1542,17 @@ func (in *DeploymentPlanType) DeepCopyInto(out *DeploymentPlanType) {
 	in.PodSecurity.DeepCopyInto(&out.PodSecurity)
 	if in.StartupProbe != nil {
 		in, out := &in.StartupProbe, &out.StartupProbe
-		*out = new(corev1.Probe)
+		*out = new(v1.Probe)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.LivenessProbe != nil {
 		in, out := &in.LivenessProbe, &out.LivenessProbe
-		*out = new(corev1.Probe)
+		*out = new(v1.Probe)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.ReadinessProbe != nil {
 		in, out := &in.ReadinessProbe, &out.ReadinessProbe
-		*out = new(corev1.Probe)
+		*out = new(v1.Probe)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.EnableMetricsPlugin != nil {
@@ -1562,7 +1562,7 @@ func (in *DeploymentPlanType) DeepCopyInto(out *DeploymentPlanType) {
 	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
-		*out = make([]corev1.Toleration, len(*in))
+		*out = make([]v1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -1584,7 +1584,7 @@ func (in *DeploymentPlanType) DeepCopyInto(out *DeploymentPlanType) {
 	in.Affinity.DeepCopyInto(&out.Affinity)
 	if in.PodSecurityContext != nil {
 		in, out := &in.PodSecurityContext, &out.PodSecurityContext
-		*out = new(corev1.PodSecurityContext)
+		*out = new(v1.PodSecurityContext)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.Annotations != nil {
@@ -1606,19 +1606,19 @@ func (in *DeploymentPlanType) DeepCopyInto(out *DeploymentPlanType) {
 	}
 	if in.ContainerSecurityContext != nil {
 		in, out := &in.ContainerSecurityContext, &out.ContainerSecurityContext
-		*out = new(corev1.SecurityContext)
+		*out = new(v1.SecurityContext)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.ExtraVolumes != nil {
 		in, out := &in.ExtraVolumes, &out.ExtraVolumes
-		*out = make([]corev1.Volume, len(*in))
+		*out = make([]v1.Volume, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	if in.ExtraVolumeMounts != nil {
 		in, out := &in.ExtraVolumeMounts, &out.ExtraVolumeMounts
-		*out = make([]corev1.VolumeMount, len(*in))
+		*out = make([]v1.VolumeMount, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
