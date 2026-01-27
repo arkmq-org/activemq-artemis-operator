@@ -146,9 +146,9 @@ var _ = Describe("artemis-service", func() {
 
 			brokerImage := "quay.io/arkmq-org/activemq-artemis-broker-kubernetes:snapshot" // version.LatestKubeImage
 			jvmRemoteDebug := false
-			crd := brokerv1beta1.ActiveMQArtemisBrokerService{
+			crd := brokerv1beta1.BrokerService{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       "ActiveMQArtemisBrokerService",
+					Kind:       "BrokerService",
 					APIVersion: brokerv1beta1.GroupVersion.Identifier(),
 				},
 				ObjectMeta: metav1.ObjectMeta{
@@ -156,7 +156,7 @@ var _ = Describe("artemis-service", func() {
 					Namespace: defaultNamespace,
 					Labels:    map[string]string{"env": "production"},
 				},
-				Spec: brokerv1beta1.ActiveMQArtemisBrokerServiceSpec{
+				Spec: brokerv1beta1.BrokerServiceSpec{
 
 					// to get jaas config in properties
 					Image: StringToPtr(brokerImage),
@@ -215,7 +215,7 @@ var _ = Describe("artemis-service", func() {
 			}
 
 			serviceKey := types.NamespacedName{Name: crd.Name, Namespace: crd.Namespace}
-			createdCrd := &brokerv1beta1.ActiveMQArtemisBrokerService{}
+			createdCrd := &brokerv1beta1.BrokerService{}
 
 			By("Checking ready cr status")
 			Eventually(func(g Gomega) {
@@ -254,16 +254,16 @@ var _ = Describe("artemis-service", func() {
 
 			By("deploying a matching app")
 			appName := "first-app" // a lowercase RFC 1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')",
-			app := brokerv1beta1.ActiveMQArtemisApp{
+			app := brokerv1beta1.BrokerApp{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       "ActiveMQArtemisApp",
+					Kind:       "BrokerApp",
 					APIVersion: brokerv1beta1.GroupVersion.Identifier(),
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      appName,
 					Namespace: defaultNamespace,
 				},
-				Spec: brokerv1beta1.ActiveMQArtemisAppSpec{
+				Spec: brokerv1beta1.BrokerAppSpec{
 
 					ServiceSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{
@@ -314,7 +314,7 @@ var _ = Describe("artemis-service", func() {
 
 			By("verify app status")
 			appKey := types.NamespacedName{Name: app.Name, Namespace: crd.Namespace}
-			createdApp := &brokerv1beta1.ActiveMQArtemisApp{}
+			createdApp := &brokerv1beta1.BrokerApp{}
 
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, appKey, createdApp)).Should(Succeed())
@@ -326,7 +326,7 @@ var _ = Describe("artemis-service", func() {
 
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
-			By("checking broker cr status insync - should be in the service if important to user")
+			By("checking broker cr status insync after app add - should be in the service if important to user")
 			var appPropsRvUpdated = ""
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, brokerKey, brokerCrd)).Should(Succeed())

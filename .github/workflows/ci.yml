@@ -228,4 +228,4 @@ jobs:
           minikube delete
           find docs/tutorials -type f -exec sed -i "s|^minikube start|minikube start  --cpus 2 --memory 8000 --insecure-registry=$HOSTNAME:5000|" {} +
           sed -i "s|image: quay.io/arkmq-org/activemq-artemis-operator:.*|image: ${HOSTNAME}:5000/$IMAGE_NAME:dev.latest|" deploy/operator.yaml
-          markdown-runner docs/tutorials --view ci
+          markdown-runner docs/tutorials -v

@@ -6,8 +6,8 @@ resources:
 - bases/broker.amq.io_activemqartemisaddresses.yaml
 - bases/broker.amq.io_activemqartemisscaledowns.yaml
 - bases/broker.amq.io_activemqartemissecurities.yaml
-- bases/broker.amq.io_activemqartemisbrokerservices.yaml
-- bases/broker.amq.io_activemqartemisapps.yaml
+- bases/broker.amq.io_brokerservices.yaml
+- bases/broker.amq.io_brokerapps.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patches:

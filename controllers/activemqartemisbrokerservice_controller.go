@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright 2026.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -43,31 +43,31 @@ const (
 	EmptyBrokerXml           = "empty-broker-xml"
 )
 
-type ActiveMQArtemisBrokerServiceReconciler struct {
+type BrokerServiceReconciler struct {
 	*ReconcilerLoop
 }
 
-type ActiveMQArtemisBrokerServiceInstanceReconciler struct {
-	*ActiveMQArtemisBrokerServiceReconciler
-	instance *broker.ActiveMQArtemisBrokerService
+type BrokerServiceInstanceReconciler struct {
+	*BrokerServiceReconciler
+	instance *broker.BrokerService
 }
 
-func NewActiveMQArtemisBrokerServiceReconciler(client client.Client, scheme *runtime.Scheme, config *rest.Config, logger logr.Logger) *ActiveMQArtemisBrokerServiceReconciler {
-	reconciler := ActiveMQArtemisBrokerServiceReconciler{
+func NewBrokerServiceReconciler(client client.Client, scheme *runtime.Scheme, config *rest.Config, logger logr.Logger) *BrokerServiceReconciler {
+	reconciler := BrokerServiceReconciler{
 		ReconcilerLoop: &ReconcilerLoop{KubeBits: &KubeBits{client, scheme, config, logger}},
 	}
 	reconciler.ReconcilerLoopType = &reconciler
 	return &reconciler
 }
 
-//+kubebuilder:rbac:groups=broker.amq.io,namespace=activemq-artemis-operator,resources=activemqartemisbrokerservices,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=broker.amq.io,namespace=activemq-artemis-operator,resources=activemqartemisbrokerservices/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=broker.amq.io,namespace=activemq-artemis-operator,resources=activemqartemisbrokerservices/finalizers,verbs=update
+//+kubebuilder:rbac:groups=broker.amq.io,namespace=activemq-artemis-operator,resources=brokerservices,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=broker.amq.io,namespace=activemq-artemis-operator,resources=brokerservices/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=broker.amq.io,namespace=activemq-artemis-operator,resources=brokerservices/finalizers,verbs=update
 
-func (reconciler *ActiveMQArtemisBrokerServiceReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
-	reqLogger := reconciler.log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name, "Reconciling", "ActiveMQArtemisBrokerService")
+func (reconciler *BrokerServiceReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
+	reqLogger := reconciler.log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name, "Reconciling", "BrokerService")
 
-	instance := &broker.ActiveMQArtemisBrokerService{}
+	instance := &broker.BrokerService{}
 	var err = reconciler.Client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -76,9 +76,9 @@ func (reconciler *ActiveMQArtemisBrokerServiceReconciler) Reconcile(ctx context.
 		return ctrl.Result{}, err
 	}
 
-	processor := ActiveMQArtemisBrokerServiceInstanceReconciler{
-		ActiveMQArtemisBrokerServiceReconciler: reconciler,
-		instance:                               instance,
+	processor := BrokerServiceInstanceReconciler{
+		BrokerServiceReconciler: reconciler,
+		instance:                instance,
 	}
 
 	reqLogger.V(2).Info("Reconciler Processing...", "CRD.Name", instance.Name, "CRD ver", instance.ObjectMeta.ResourceVersion, "CRD Gen", instance.ObjectMeta.Generation)
@@ -109,14 +109,14 @@ func (reconciler *ActiveMQArtemisBrokerServiceReconciler) Reconcile(ctx context.
 }
 
 // instance specifics for a reconciler loop
-func (r *ActiveMQArtemisBrokerServiceReconciler) getOwned() []client.ObjectList {
+func (r *BrokerServiceReconciler) getOwned() []client.ObjectList {
 	return []client.ObjectList{
 		&corev1.SecretList{},
 		&broker.ActiveMQArtemisList{},
 		&corev1.ServiceList{}}
 }
 
-func (r *ActiveMQArtemisBrokerServiceReconciler) getOrderedTypeList() []reflect.Type {
+func (r *BrokerServiceReconciler) getOrderedTypeList() []reflect.Type {
 	// we want to create/update in this order
 	return []reflect.Type{
 		reflect.TypeOf(corev1.Secret{}),
@@ -124,14 +124,14 @@ func (r *ActiveMQArtemisBrokerServiceReconciler) getOrderedTypeList() []reflect.
 		reflect.TypeOf(corev1.Service{})}
 }
 
-func (reconciler *ActiveMQArtemisBrokerServiceInstanceReconciler) processSpec() (err error) {
+func (reconciler *BrokerServiceInstanceReconciler) processSpec() (err error) {
 	if err = reconciler.processBroker(); err == nil {
 		err = reconciler.processService()
 	}
 	return err
 }
 
-func (reconciler *ActiveMQArtemisBrokerServiceInstanceReconciler) processBroker() error {
+func (reconciler *BrokerServiceInstanceReconciler) processBroker() error {
 
 	var desired *broker.ActiveMQArtemis
 	obj := reconciler.CloneOfDeployed(reflect.TypeOf(broker.ActiveMQArtemis{}), reconciler.instance.Name)
@@ -156,20 +156,17 @@ func (reconciler *ActiveMQArtemisBrokerServiceInstanceReconciler) processBroker(
 
 	desired.Spec.DeploymentPlan.ExtraMounts.Secrets = []string{
 		reconciler.appPropertiesSecretName(),
-		reconciler.propertiesSecretName(),
 	}
 
 	// a place the app controller can modify
 	reconciler.processAppSecrets()
-
-	reconciler.processPropertiesSecrets()
 
 	reconciler.TrackDesired(desired)
 
 	return nil
 }
 
-func (reconciler *ActiveMQArtemisBrokerServiceInstanceReconciler) processAppSecrets() error {
+func (reconciler *BrokerServiceInstanceReconciler) processAppSecrets() error {
 	// avoid restart for app onboarding with existing mount points
 	// TODO potentially N app-secrets to overcome 1Mb size limit
 	resourceName := types.NamespacedName{
@@ -190,7 +187,7 @@ func (reconciler *ActiveMQArtemisBrokerServiceInstanceReconciler) processAppSecr
 	return nil
 }
 
-func (reconciler *ActiveMQArtemisBrokerServiceInstanceReconciler) appPropertiesSecretName() string {
+func (reconciler *BrokerServiceInstanceReconciler) appPropertiesSecretName() string {
 	return AppPropertiesSecretName(reconciler.instance.Name)
 }
 
@@ -198,39 +195,15 @@ func AppPropertiesSecretName(name string) string {
 	return fmt.Sprintf("%s-app%s", name, BrokerPropsSuffix)
 }
 
-func (reconciler *ActiveMQArtemisBrokerServiceInstanceReconciler) propertiesSecretName() string {
-	return PropertiesSecretName(reconciler.instance.Name)
-}
-
 func PropertiesSecretName(name string) string {
 	return fmt.Sprintf("%s%s", name, BrokerPropsSuffix)
 }
 
-func certSecretName(cr *broker.ActiveMQArtemisBrokerService) string {
+func certSecretName(cr *broker.BrokerService) string {
 	return fmt.Sprintf("%s-%s", cr.Name, common.DefaultOperandCertSecretName)
 }
 
-func (reconciler *ActiveMQArtemisBrokerServiceInstanceReconciler) processPropertiesSecrets() *corev1.Secret {
-	resourceName := types.NamespacedName{
-		Namespace: reconciler.instance.Namespace,
-		Name:      reconciler.propertiesSecretName(),
-	}
-
-	var desired *corev1.Secret
-
-	obj := reconciler.CloneOfDeployed(reflect.TypeOf(corev1.Secret{}), resourceName.Name)
-	if obj != nil {
-		desired = obj.(*corev1.Secret)
-	} else {
-		// TODO labels ?
-		desired = secrets.NewSecret(resourceName, nil, nil)
-		desired.Data = map[string][]byte{}
-	}
-	reconciler.TrackDesired(desired)
-	return desired
-}
-
-func (reconciler *ActiveMQArtemisBrokerServiceInstanceReconciler) processStatus(cr *broker.ActiveMQArtemisBrokerService, reconcilerError error) (err error) {
+func (reconciler *BrokerServiceInstanceReconciler) processStatus(cr *broker.BrokerService, reconcilerError error) (err error) {
 
 	var conditions []metav1.Condition = nil
 
@@ -286,11 +259,11 @@ func (reconciler *ActiveMQArtemisBrokerServiceInstanceReconciler) processStatus(
 	return err
 }
 
-func getPeerLabelKey(cr *broker.ActiveMQArtemisBrokerService) string {
+func getPeerLabelKey(cr *broker.BrokerService) string {
 	return fmt.Sprintf("%s-peers", cr.Name)
 }
 
-func (reconciler *ActiveMQArtemisBrokerServiceInstanceReconciler) processService() error {
+func (reconciler *BrokerServiceInstanceReconciler) processService() error {
 
 	var desired *corev1.Service
 
@@ -325,9 +298,9 @@ func (reconciler *ActiveMQArtemisBrokerServiceInstanceReconciler) processService
 	return nil
 }
 
-func (r *ActiveMQArtemisBrokerServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *BrokerServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&broker.ActiveMQArtemisBrokerService{}).
+		For(&broker.BrokerService{}).
 		Owns(&broker.ActiveMQArtemis{}).
 		Complete(r)
 }
