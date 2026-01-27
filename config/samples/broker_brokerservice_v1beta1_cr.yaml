@@ -1,5 +1,5 @@
 apiVersion: broker.amq.io/v1beta1
-kind: ActiveMQArtemisBrokerService
+kind: BrokerService
 metadata:
   name: ex-as-wq
   labels:

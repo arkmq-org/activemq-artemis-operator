@@ -24,7 +24,7 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-type ActiveMQArtemisAppSpec struct {
+type BrokerAppSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
@@ -61,7 +61,7 @@ type AppCapabilityType struct {
 	SubscriberOf []AppAddressType `json:"subscriberOf,omitempty"`
 }
 
-type ActiveMQArtemisAppStatus struct {
+type BrokerAppStatus struct {
 
 	// Current state of the resource
 	// Conditions represent the latest available observations of an object's state
@@ -75,27 +75,27 @@ type ActiveMQArtemisAppStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:storageversion
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:path=activemqartemisapps,shortName=aaapp
+//+kubebuilder:resource:path=brokerapps,shortName=abapp
 //+operator-sdk:csv:customresourcedefinitions:resources={{"Secret", "v1"}}
 
 // Describes the messaging requirements of an application
 // +operator-sdk:csv:customresourapplicationcedefinitions:displayName="ActiveMQ Artemis Messaging Application"
-type ActiveMQArtemisApp struct {
+type BrokerApp struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ActiveMQArtemisAppSpec   `json:"spec,omitempty"`
-	Status ActiveMQArtemisAppStatus `json:"status,omitempty"`
+	Spec   BrokerAppSpec   `json:"spec,omitempty"`
+	Status BrokerAppStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-type ActiveMQArtemisAppList struct {
+type BrokerAppList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ActiveMQArtemisApp `json:"items"`
+	Items           []BrokerApp `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&ActiveMQArtemisApp{}, &ActiveMQArtemisAppList{})
+	SchemeBuilder.Register(&BrokerApp{}, &BrokerAppList{})
 }

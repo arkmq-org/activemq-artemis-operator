@@ -1,6 +1,6 @@
 ---
 title: "Service and App CRD Round Trip"
-description: "A tutorial on using ActiveMQArtemisBrokerService and ActiveMQArtemisApp CRDs, based on the 'round trip simple' e2e test."
+description: "A tutorial on using BrokerService and BrokerApp CRDs, based on the 'round trip simple' e2e test."
 draft: false
 images: []
 menu:
@@ -10,7 +10,7 @@ weight: 121
 toc: true
 ---
 
-This tutorial walks through a complete round trip of sending and receiving messages using the `ActiveMQArtemisBrokerService` and `ActiveMQArtemisApp` CRDs.
+This tutorial walks through a complete round trip of sending and receiving messages using the `BrokerService` and `BrokerApp` CRDs.
 
 ### Prerequisites
 
@@ -213,12 +213,12 @@ EOF
 kubectl wait certificate messaging-service-broker-cert -n service-app-project --for=condition=Ready --timeout=300s
 ```
 
-#### Deploy `ActiveMQArtemisBrokerService`
+#### Deploy `BrokerService`
 
 ```bash {"stage":"deploy_service", "label":"deploy service crd", "runtime":"bash"}
 kubectl apply -f - <<EOF
 apiVersion: broker.amq.io/v1beta1
-kind: ActiveMQArtemisBrokerService
+kind: BrokerService
 metadata:
   name: messaging-service
   namespace: service-app-project
@@ -238,7 +238,7 @@ EOF
 Wait for the resource to be ready.
 
 ```bash {"stage":"deploy_service", "label":"wait for service"}
-kubectl wait ActiveMQArtemisBrokerService messaging-service -n service-app-project --for=condition=Ready --timeout=300s
+kubectl wait BrokerService messaging-service -n service-app-project --for=condition=Ready --timeout=300s
 ```
 
 #### Create Service Certificate
@@ -259,12 +259,12 @@ spec:
 EOF
 ```
 
-#### Deploy `ActiveMQArtemisApp`
+#### Deploy `BrokerApp`
 
 ```bash {"stage":"deploy_app", "label":"deploy app crd", "runtime":"bash"}
 kubectl apply -f - <<EOF
 apiVersion: broker.amq.io/v1beta1
-kind: ActiveMQArtemisApp
+kind: BrokerApp
 metadata:
   name: first-app
   namespace: service-app-project
@@ -285,7 +285,7 @@ EOF
 Wait for the resource to be ready.
 
 ```bash {"stage":"deploy_app", "label":"wait for app", "runtime":"bash"}
-kubectl wait ActiveMQArtemisApp first-app -n service-app-project --for=condition=Ready --timeout=300s
+kubectl wait BrokerApp first-app -n service-app-project --for=condition=Ready --timeout=300s
 ```
 
 ### 4. Test Messaging
@@ -406,6 +406,12 @@ kubectl wait job consumer -n service-app-project --for=condition=Complete --time
 ```
 
 ### 5. Cleanup
+
+Delete our BrokerApp
+
+```bash {"stage":"teardown", "label":"delete app", "runtime":"bash"}
+kubectl delete BrokerApp first-app -n service-app-project
+```
 
 Finally, delete the minikube cluster.
 

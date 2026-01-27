@@ -140,7 +140,7 @@ resources:
     namespaced: true
   domain: amq.io
   group: broker
-  kind: ActiveMQArtemisBrokerService
+  kind: BrokerService
   path: github.com/arkmq-org/activemq-artemis-operator/api/v1beta1
   version: v1beta1
 - api:
@@ -148,7 +148,7 @@ resources:
     namespaced: true
   domain: amq.io
   group: broker
-  kind: ActiveMQArtemisApp
+  kind: BrokerApp
   path: github.com/arkmq-org/activemq-artemis-operator/api/v1beta1
   version: v1beta1
 version: "3"

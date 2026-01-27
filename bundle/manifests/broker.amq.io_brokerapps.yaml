@@ -3,16 +3,16 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.16.5
-  name: activemqartemisapps.broker.amq.io
+  name: brokerapps.broker.amq.io
 spec:
   group: broker.amq.io
   names:
-    kind: ActiveMQArtemisApp
-    listKind: ActiveMQArtemisAppList
-    plural: activemqartemisapps
+    kind: BrokerApp
+    listKind: BrokerAppList
+    plural: brokerapps
     shortNames:
-    - aaapp
-    singular: activemqartemisapp
+    - abapp
+    singular: brokerapp
   scope: Namespaced
   versions:
   - name: v1beta1

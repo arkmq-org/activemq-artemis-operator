@@ -562,7 +562,7 @@ func createControllerManager(disableMetrics bool, watchNamespace string) {
 	err = scaleDownRconciler.SetupWithManager(k8Manager)
 	Expect(err).ShouldNot(HaveOccurred(), "failed to create scale down reconciler")
 
-	serviceReconciler := NewActiveMQArtemisBrokerServiceReconciler(
+	serviceReconciler := NewBrokerServiceReconciler(
 		k8Manager.GetClient(),
 		k8Manager.GetScheme(),
 		k8Manager.GetConfig(),
@@ -572,7 +572,7 @@ func createControllerManager(disableMetrics bool, watchNamespace string) {
 	err = serviceReconciler.SetupWithManager(k8Manager)
 	Expect(err).ShouldNot(HaveOccurred(), "failed to create service reconciler")
 
-	appReconciler := NewActiveMQArtemisAppReconciler(
+	appReconciler := NewBrokerAppReconciler(
 		k8Manager.GetClient(),
 		k8Manager.GetScheme(),
 		k8Manager.GetConfig(),
@@ -945,8 +945,8 @@ func uninstallCRDs() {
 		"activemqartemisaddresses.broker.amq.io",
 		"activemqartemisscaledowns.broker.amq.io",
 		"activemqartemissecurities.broker.amq.io",
-		"activemqartemisapps.broker.amq.io",
-		"activemqartemisbrokerservices.broker.amq.io",
+		"brokerapps.broker.amq.io",
+		"brokerservices.broker.amq.io",
 	}
 
 	for _, crdName := range crdNames {

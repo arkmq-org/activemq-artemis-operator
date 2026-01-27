@@ -52,11 +52,11 @@ rules:
   - broker.amq.io
   resources:
   - activemqartemisaddresses
-  - activemqartemisapps
-  - activemqartemisbrokerservices
   - activemqartemises
   - activemqartemisscaledowns
   - activemqartemissecurities
+  - brokerapps
+  - brokerservices
   verbs:
   - create
   - delete
@@ -69,22 +69,22 @@ rules:
   - broker.amq.io
   resources:
   - activemqartemisaddresses/finalizers
-  - activemqartemisapps/finalizers
-  - activemqartemisbrokerservices/finalizers
   - activemqartemises/finalizers
   - activemqartemisscaledowns/finalizers
   - activemqartemissecurities/finalizers
+  - brokerapps/finalizers
+  - brokerservices/finalizers
   verbs:
   - update
 - apiGroups:
   - broker.amq.io
   resources:
   - activemqartemisaddresses/status
-  - activemqartemisapps/status
-  - activemqartemisbrokerservices/status
   - activemqartemises/status
   - activemqartemisscaledowns/status
   - activemqartemissecurities/status
+  - brokerapps/status
+  - brokerservices/status
   verbs:
   - get
   - patch

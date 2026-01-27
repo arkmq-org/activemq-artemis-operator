@@ -19,6 +19,7 @@ import (
 	"maps"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
@@ -41,7 +42,7 @@ import (
 func TestSimpleReconcile(t *testing.T) {
 
 	fakes := map[string]client.Object{}
-	var brokerListEntry *v1beta1.ActiveMQArtemisBrokerService
+	var brokerListEntry *v1beta1.BrokerService
 	var secretListEntry []corev1.Secret
 
 	var updateCalled = 0
@@ -51,6 +52,8 @@ func TestSimpleReconcile(t *testing.T) {
 			if o, found := fakes[key.Name]; found {
 				obj.SetName(o.GetName())
 				obj.SetAnnotations(o.GetAnnotations())
+				obj.SetDeletionTimestamp(o.GetDeletionTimestamp())
+				obj.SetFinalizers(o.GetFinalizers())
 
 				switch v := obj.(type) {
 				case *corev1.Secret:
@@ -68,6 +71,8 @@ func TestSimpleReconcile(t *testing.T) {
 			updateCalled++
 			if o, found := fakes[obj.GetName()]; found {
 				o.SetAnnotations(obj.GetAnnotations())
+				o.SetFinalizers(obj.GetFinalizers())
+				o.SetDeletionTimestamp(obj.GetDeletionTimestamp())
 
 				switch v := obj.(type) {
 				case *corev1.Secret:
@@ -84,7 +89,7 @@ func TestSimpleReconcile(t *testing.T) {
 		SubResourceUpdate: func(ctx context.Context, client client.Client, subResourceName string, obj client.Object, opts ...client.SubResourceUpdateOption) error {
 			if o, found := fakes[obj.GetName()]; found {
 				// accept status so we can verify
-				o.(*v1beta1.ActiveMQArtemisApp).Status = obj.(*v1beta1.ActiveMQArtemisApp).Status
+				o.(*v1beta1.BrokerApp).Status = obj.(*v1beta1.BrokerApp).Status
 				return nil
 			}
 			return nil
@@ -92,7 +97,7 @@ func TestSimpleReconcile(t *testing.T) {
 		List: func(ctx context.Context, client client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
 
 			switch v := list.(type) {
-			case *v1beta1.ActiveMQArtemisBrokerServiceList:
+			case *v1beta1.BrokerServiceList:
 				if brokerListEntry != nil {
 					v.Items = append(v.Items, *brokerListEntry)
 				}
@@ -108,14 +113,14 @@ func TestSimpleReconcile(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithInterceptorFuncs(interceptorFuncs).Build()
 	v1beta1.AddToScheme(fakeClient.Scheme())
 
-	r := NewActiveMQArtemisAppReconciler(fakeClient, nil, nil, logr.New(log.NullLogSink{}))
+	r := NewBrokerAppReconciler(fakeClient, nil, nil, logr.New(log.NullLogSink{}))
 
 	result, err := r.Reconcile(context.TODO(), ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "not-found", Name: "not-found"}})
 
 	assert.Nil(t, err)
 	assert.False(t, result.Requeue)
 
-	cr := v1beta1.ActiveMQArtemisApp{ObjectMeta: v1.ObjectMeta{Name: "one"}}
+	cr := v1beta1.BrokerApp{ObjectMeta: v1.ObjectMeta{Name: "one"}}
 	fakes[cr.Name] = &cr
 
 	nsName := types.NamespacedName{Namespace: "ns", Name: cr.Name}
@@ -128,7 +133,7 @@ func TestSimpleReconcile(t *testing.T) {
 	assert.True(t, meta.IsStatusConditionFalse(cr.Status.Conditions, "Valid"))
 	assert.Equal(t, meta.FindStatusCondition(cr.Status.Conditions, "Valid").Reason, "SpecSelectorNoMatch")
 
-	brokerListEntry = &v1beta1.ActiveMQArtemisBrokerService{ObjectMeta: v1.ObjectMeta{Name: "B"}}
+	brokerListEntry = &v1beta1.BrokerService{ObjectMeta: v1.ObjectMeta{Name: "B"}}
 
 	result, err = r.Reconcile(context.TODO(), ctrl.Request{NamespacedName: nsName})
 
@@ -137,6 +142,7 @@ func TestSimpleReconcile(t *testing.T) {
 	assert.False(t, result.Requeue)
 
 	assert.True(t, meta.IsStatusConditionFalse(cr.Status.Conditions, "Ready"))
+	assert.Equal(t, 1, len(cr.GetFinalizers()))
 
 	// provide service owned secret
 	secretListEntry = append(secretListEntry, corev1.Secret{ObjectMeta: v1.ObjectMeta{Name: AppPropertiesSecretName(brokerListEntry.Name)}})
@@ -176,5 +182,24 @@ func TestSimpleReconcile(t *testing.T) {
 	assert.Equal(t, 3, len(cr.Status.Conditions))
 	assert.Nil(t, err)
 	assert.Equal(t, 2, updateCalled)
+
+	// delete
+	cr.SetDeletionTimestamp(&v1.Time{})
+	result, err = r.Reconcile(context.TODO(), ctrl.Request{NamespacedName: nsName})
+	assert.Equal(t, 4, len(cr.Status.Conditions))
+	assert.Nil(t, err)
+	assert.Equal(t, 3, updateCalled)
+	assert.Equal(t, 1, len(cr.GetFinalizers()))
+	assert.False(t, result.Requeue)
+	assert.Greater(t, result.RequeueAfter, time.Duration(0))
+	assert.True(t, meta.IsStatusConditionTrue(cr.Status.Conditions, TerminatingConditionType))
+
+	// final stage
+	result, err = r.Reconcile(context.TODO(), ctrl.Request{NamespacedName: nsName})
+
+	assert.Equal(t, 3, len(cr.Status.Conditions))
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(cr.GetFinalizers()))
+	assert.False(t, meta.IsStatusConditionTrue(cr.Status.Conditions, TerminatingConditionType))
 
 }

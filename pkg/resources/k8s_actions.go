@@ -15,7 +15,7 @@ import (
 )
 
 func Create(owner v1.Object, client client.Client, scheme *runtime.Scheme, clientObject client.Object) error {
-	reqLogger := ctrl.Log.WithName("k8s_actions").WithValues("ActiveMQArtemis Name", clientObject.GetName(), "Namespace", clientObject.GetNamespace())
+	reqLogger := ctrl.Log.WithName("k8s_actions").WithValues("Name", clientObject.GetName(), "Namespace", clientObject.GetNamespace())
 	objectTypeString := reflect.TypeOf(clientObject.(runtime.Object)).String()
 	reqLogger.V(1).Info("Creating new " + objectTypeString)
 
@@ -36,7 +36,7 @@ func Create(owner v1.Object, client client.Client, scheme *runtime.Scheme, clien
 }
 
 func SetOwnerAndController(owner v1.Object, clientObject client.Object) {
-	reqLogger := ctrl.Log.WithName("k8s_actions").WithValues("ActiveMQArtemis Name", clientObject.GetName(), "Namespace", clientObject.GetNamespace())
+	reqLogger := ctrl.Log.WithName("k8s_actions").WithValues("Name", clientObject.GetName(), "Namespace", clientObject.GetNamespace())
 
 	gvk := owner.(runtime.Object).GetObjectKind().GroupVersionKind()
 	isController := true
@@ -52,7 +52,7 @@ func SetOwnerAndController(owner v1.Object, clientObject client.Object) {
 }
 
 func Retrieve(namespacedName types.NamespacedName, client client.Client, objectDefinition client.Object) error {
-	reqLogger := ctrl.Log.WithName("k8s_actions").WithValues("ActiveMQArtemis Name", namespacedName.Name)
+	reqLogger := ctrl.Log.WithName("k8s_actions").WithValues("Name", namespacedName.Name)
 	objectTypeString := reflect.TypeOf(objectDefinition.(runtime.Object)).String()
 	reqLogger.V(1).Info("Retrieving " + objectTypeString)
 
@@ -61,7 +61,7 @@ func Retrieve(namespacedName types.NamespacedName, client client.Client, objectD
 
 func Update(client client.Client, clientObject client.Object) error {
 
-	reqLogger := ctrl.Log.WithName("k8s_actions").WithValues("ActiveMQArtemis Name", clientObject.GetName(), "Namespace", clientObject.GetNamespace())
+	reqLogger := ctrl.Log.WithName("k8s_actions").WithValues("Name", clientObject.GetName(), "Namespace", clientObject.GetNamespace())
 	objectTypeString := reflect.TypeOf(clientObject.(runtime.Object)).String()
 	reqLogger.V(1).Info("Updating "+objectTypeString, "resource version", clientObject.GetResourceVersion(), "gen", clientObject.GetGeneration(), "obj", clientObject)
 
@@ -97,7 +97,7 @@ func Update(client client.Client, clientObject client.Object) error {
 }
 
 func UpdateStatus(client client.Client, clientObject client.Object) error {
-	reqLogger := ctrl.Log.WithName("k8s_actions").WithValues("ActiveMQArtemis Name", clientObject.GetName(), "Namespace", clientObject.GetNamespace())
+	reqLogger := ctrl.Log.WithName("k8s_actions").WithValues("Name", clientObject.GetName(), "Namespace", clientObject.GetNamespace())
 	objectTypeString := reflect.TypeOf(clientObject.(runtime.Object)).String()
 	reqLogger.V(1).Info("Updating status "+objectTypeString, "obj", clientObject)
 
@@ -114,7 +114,7 @@ func UpdateStatus(client client.Client, clientObject client.Object) error {
 
 func Delete(client client.Client, clientObject client.Object) error {
 
-	reqLogger := ctrl.Log.WithName("k8s_actions").WithValues("ActiveMQArtemis Name", clientObject.GetName(), "Namespace", clientObject.GetNamespace())
+	reqLogger := ctrl.Log.WithName("k8s_actions").WithValues("Name", clientObject.GetName(), "Namespace", clientObject.GetNamespace())
 	objectTypeString := reflect.TypeOf(clientObject.(runtime.Object)).String()
 	reqLogger.V(2).Info("Deleting " + objectTypeString)
 
