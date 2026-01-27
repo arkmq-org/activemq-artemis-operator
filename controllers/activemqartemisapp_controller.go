@@ -24,7 +24,6 @@ import (
 
 	broker "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/secrets"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -40,6 +39,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
+const (
+	TerminatingConditionType = "Terminating"
+)
+
 type ActiveMQArtemisAppReconciler struct {
 	*ReconcilerLoop
 }
@@ -47,28 +50,7 @@ type ActiveMQArtemisAppReconciler struct {
 type ActiveMQArtemisAppInstanceReconciler struct {
 	*ActiveMQArtemisAppReconciler
 	instance *broker.ActiveMQArtemisApp
-}
-
-func (reconciler ActiveMQArtemisAppInstanceReconciler) processDelete(_ *broker.ActiveMQArtemisBrokerService, serverConfigPropertiesSecret *corev1.Secret) (err error) {
-
-	namespacePrefix := reconciler.AppIdentity()
-	underStorePrefix := fmt.Sprintf("_%s", namespacePrefix)
-	for k := range serverConfigPropertiesSecret.Data {
-		if strings.HasPrefix(k, underStorePrefix) || strings.HasPrefix(k, namespacePrefix) {
-			delete(serverConfigPropertiesSecret.Data, k)
-		}
-	}
-	serverConfigPropertiesSecret.Data[reconciler.UnderscoreAppIdentityPrefixed("rm.properties")] = []byte(fmt.Sprintf("jaasConfigs.%s=-\n", reconciler.jaasConfigRealmName()))
-	if err = resources.Update(reconciler.Client, serverConfigPropertiesSecret); err == nil {
-
-		controllerutil.RemoveFinalizer(reconciler.instance, common.AppServiceAnnotation)
-
-		err = resources.Update(reconciler.Client, reconciler.instance)
-
-		// TODO condition for deletion pending resource version config applied to brokerservice
-		// TODO: any other update would be a problem with matching, as if we can only deal with one finalizer at a time, that is not good.
-	}
-	return err
+	service  *broker.ActiveMQArtemisBrokerService
 }
 
 func NewActiveMQArtemisAppReconciler(client client.Client, scheme *runtime.Scheme, config *rest.Config, logger logr.Logger) *ActiveMQArtemisAppReconciler {
@@ -101,48 +83,50 @@ func (reconciler *ActiveMQArtemisAppReconciler) Reconcile(ctx context.Context, r
 
 	reqLogger.V(2).Info("Reconciler Processing...", "CRD.Name", instance.Name, "CRD ver", instance.ObjectMeta.ResourceVersion, "CRD Gen", instance.ObjectMeta.Generation)
 
-	processor.InitDeployed(instance, processor.getOwned()...)
+	if err = processor.resolveBrokerService(); err == nil {
 
-	// reconcile
-	if err = processor.processSpec(instance); err == nil {
-		if err = processor.SyncDesiredWithDeployed(instance); err == nil {
-			// all good
-		} else {
-			reqLogger.Error(err, "failed to sync resources")
+		if err = processor.InitDeployed(processor.service, processor.getOwned()...); err == nil {
+			if err = processor.processSpec(); err == nil {
+				err = processor.SyncDesiredWithDeployed(instance)
+			}
 		}
-	} else {
-		reqLogger.Error(err, "failed to process spec")
 	}
 
-	if err = processor.processStatus(instance, err); err != nil {
-		return ctrl.Result{}, err
+	var requeue bool
+	var updateStatusErr error
+	if requeue, updateStatusErr = processor.processStatus(instance, err); updateStatusErr != nil {
+		if err == nil {
+			err = updateStatusErr
+		}
 	}
 
-	reqLogger.V(2).Info("Reconciler Processed...", "CRD.Name", instance.Name, "CRD ver", instance.ObjectMeta.ResourceVersion, "CRD Gen", instance.ObjectMeta.Generation)
-	return ctrl.Result{}, nil
+	result := ctrl.Result{}
+	if requeue {
+		result.RequeueAfter = common.GetReconcileResyncPeriod()
+	}
+	reqLogger.V(2).Info("Reconciler Processed...", "CRD.Name", instance.Name, "CRD ver", instance.ObjectMeta.ResourceVersion, "CRD Gen", instance.ObjectMeta.Generation, "requeue", requeue, "error", err)
+	return result, err
 }
 
 // instance specifics for a reconciler loop
-// TODO: owned could be ordered, to avoid the second operation maybe!
 func (r *ActiveMQArtemisAppReconciler) getOwned() []client.ObjectList {
 	return []client.ObjectList{&corev1.SecretList{}}
 }
 
 func (r *ActiveMQArtemisAppReconciler) getOrderedTypeList() []reflect.Type {
 	types := make([]reflect.Type, 1)
-	// we want to create/update in this order
 	types[0] = reflect.TypeOf(corev1.Secret{})
 	return types
 }
 
-func (reconciler *ActiveMQArtemisAppInstanceReconciler) processSpec(cr *broker.ActiveMQArtemisApp) error {
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) resolveBrokerService() error {
 
 	// find the matching service to find the matching brokers
 	var list = &broker.ActiveMQArtemisBrokerServiceList{}
-	var opts, err = metav1.LabelSelectorAsSelector(cr.Spec.ServiceSelector)
+	var opts, err = metav1.LabelSelectorAsSelector(reconciler.instance.Spec.ServiceSelector)
 	if err != nil {
 		err = fmt.Errorf("failed to evaluate Spec.Selector %v", err)
-		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+		meta.SetStatusCondition(&reconciler.instance.Status.Conditions, metav1.Condition{
 			Type:    broker.ValidConditionType,
 			Status:  metav1.ConditionFalse,
 			Reason:  "SpecSelectorError",
@@ -153,7 +137,7 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processSpec(cr *broker.A
 	err = reconciler.Client.List(context.TODO(), list, &client.ListOptions{LabelSelector: opts})
 	if err != nil {
 		err = fmt.Errorf("Spec.Selector list error %v", err)
-		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+		meta.SetStatusCondition(&reconciler.instance.Status.Conditions, metav1.Condition{
 			Type:    broker.ValidConditionType,
 			Status:  metav1.ConditionFalse,
 			Reason:  "SpecSelectorListError",
@@ -164,8 +148,8 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processSpec(cr *broker.A
 	}
 
 	if len(list.Items) == 0 {
-		err = fmt.Errorf("no matchihg services available for selector %v", opts)
-		meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+		err = fmt.Errorf("no matching services available for selector %v", opts)
+		meta.SetStatusCondition(&reconciler.instance.Status.Conditions, metav1.Condition{
 			Type:    broker.ValidConditionType,
 			Status:  metav1.ConditionFalse,
 			Reason:  "SpecSelectorNoMatch",
@@ -177,7 +161,7 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processSpec(cr *broker.A
 	var service *broker.ActiveMQArtemisBrokerService
 
 	// have we got a deployed annotation that matches
-	deployedTo, found := cr.Annotations[common.AppServiceAnnotation]
+	deployedTo, found := reconciler.instance.Annotations[common.AppServiceAnnotation]
 
 	// find our service
 	for index, candidate := range list.Items {
@@ -193,14 +177,13 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processSpec(cr *broker.A
 		service, err = reconciler.findServiceWithCapacity(list)
 		if service != nil {
 			// annotate with service identity
-			common.ApplyAnnotations(&cr.ObjectMeta, map[string]string{common.AppServiceAnnotation: annotationNameFromService(service)})
-			controllerutil.AddFinalizer(cr, common.AppServiceAnnotation)
-			// update immediately such that AuthN can find it
-			err = resources.Update(reconciler.Client, cr)
+			common.ApplyAnnotations(&reconciler.instance.ObjectMeta, map[string]string{common.AppServiceAnnotation: annotationNameFromService(service)})
+			controllerutil.AddFinalizer(reconciler.instance, common.AppServiceAnnotation)
+			err = resources.Update(reconciler.Client, reconciler.instance)
 
 		} else {
 			err = fmt.Errorf("no service with capacity available for selector %v, %v", opts, err)
-			meta.SetStatusCondition(&cr.Status.Conditions, metav1.Condition{
+			meta.SetStatusCondition(&reconciler.instance.Status.Conditions, metav1.Condition{
 				Type:    broker.ValidConditionType,
 				Status:  metav1.ConditionFalse,
 				Reason:  "NoServiceCapacity",
@@ -208,38 +191,40 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processSpec(cr *broker.A
 			})
 		}
 	}
+	reconciler.service = service
+	return err
+}
 
-	if err == nil {
-		var serverConfigPropertiesSecret *corev1.Secret
-		serverConfigPropertiesSecret, err = reconciler.getServiceAppProperiesSecret(service)
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) processSpec() (err error) {
 
-		if err == nil {
+	var serverConfigPropertiesSecret *corev1.Secret
+	if serverConfigPropertiesSecret, err = reconciler.getServiceAppProperiesSecret(); err == nil {
+		reconciler.TrackDesired(serverConfigPropertiesSecret)
 
-			if reconciler.instance.ObjectMeta.DeletionTimestamp == nil {
+		if reconciler.instance.ObjectMeta.DeletionTimestamp == nil {
 
-				err = reconciler.processCapabilities(service, serverConfigPropertiesSecret)
-				if err == nil {
-					err = reconciler.processAcceptor(service, serverConfigPropertiesSecret)
-				}
-			} else {
-
-				if controllerutil.ContainsFinalizer(reconciler.instance, common.AppServiceAnnotation) {
-					if err = reconciler.processDelete(service, serverConfigPropertiesSecret); err == nil {
-
-					}
-				}
+			err = reconciler.processCapabilities(serverConfigPropertiesSecret)
+			if err == nil {
+				err = reconciler.processAcceptor(serverConfigPropertiesSecret)
 			}
+
+		} else if controllerutil.ContainsFinalizer(reconciler.instance, common.AppServiceAnnotation) {
+			err = reconciler.processDelete(serverConfigPropertiesSecret)
 		}
 	}
 	return err
 }
 
-func (reconciler *ActiveMQArtemisAppInstanceReconciler) getServiceAppProperiesSecret(service *broker.ActiveMQArtemisBrokerService) (*corev1.Secret, error) {
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) getServiceAppProperiesSecret() (*corev1.Secret, error) {
 	key := types.NamespacedName{
-		Name:      AppPropertiesSecretName(service.Name),
-		Namespace: service.Namespace,
+		Name:      AppPropertiesSecretName(reconciler.service.Name),
+		Namespace: reconciler.service.Namespace,
 	}
-	return secrets.RetriveSecret(key, nil, reconciler.Client)
+	obj := reconciler.CloneOfDeployed(reflect.TypeOf(corev1.Secret{}), key.Name)
+	if obj == nil {
+		return nil, fmt.Errorf("app properties secret %v not found in deployed list", key)
+	}
+	return obj.(*corev1.Secret), nil
 }
 
 func annotationNameFromService(service *broker.ActiveMQArtemisBrokerService) string {
@@ -280,11 +265,11 @@ func (t *AddressTracker) track(address *broker.AppAddressType) *AddressConfig {
 	return &entry
 }
 
-func (reconciler *ActiveMQArtemisAppInstanceReconciler) processAcceptor(service *broker.ActiveMQArtemisBrokerService, serverConfigPropertiesSecret *corev1.Secret) (err error) {
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) processAcceptor(serverConfigPropertiesSecret *corev1.Secret) (err error) {
 
 	// TODO: need data plane trust store, this is access to the control plane trust store
 	// they could be the same but we need two accessors
-	trustStorePath, err := reconciler.getTrustStorePath(service)
+	trustStorePath, err := reconciler.getTrustStorePath(reconciler.service)
 	if err != nil {
 		return err
 	}
@@ -292,7 +277,7 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processAcceptor(service 
 	namespacedName := reconciler.AppIdentity()
 
 	pemCfgkey := reconciler.UnderscoreAppIdentityPrefixed("tls.pemcfg")
-	serverConfigPropertiesSecret.Data[pemCfgkey] = reconciler.makePemCfgProps(service)
+	serverConfigPropertiesSecret.Data[pemCfgkey] = reconciler.makePemCfgProps(reconciler.service)
 
 	realmName := reconciler.jaasConfigRealmName()
 
@@ -360,7 +345,7 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processAcceptor(service 
 	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.saslMechanisms=EXTERNAL\n", name)
 
 	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.keyStoreType=PEMCFG\n", name)
-	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.keyStorePath=/amq/extra/secrets/%s/%s\n", name, AppPropertiesSecretName(service.Name), pemCfgkey)
+	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.keyStorePath=/amq/extra/secrets/%s/%s\n", name, AppPropertiesSecretName(reconciler.service.Name), pemCfgkey)
 	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.trustStoreType=PEMCA\n", name)
 	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.trustStorePath=%s\n", name, trustStorePath)
 
@@ -370,14 +355,9 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processAcceptor(service 
 	fmt.Fprintf(buf, "jaasConfigs.\"%s\".modules.cert.params.debug=true\n", realmName)
 	fmt.Fprintf(buf, "jaasConfigs.\"%s\".modules.cert.params.\"org.apache.activemq.jaas.textfiledn.role\"=%s\n", realmName, certRolesCfgKey)
 	fmt.Fprintf(buf, "jaasConfigs.\"%s\".modules.cert.params.\"org.apache.activemq.jaas.textfiledn.user\"=%s\n", realmName, certUsersCfgKey)
-	fmt.Fprintf(buf, "jaasConfigs.\"%s\".modules.cert.params.baseDir=%s%s\n", realmName, secretPathBase, AppPropertiesSecretName(service.Name))
+	fmt.Fprintf(buf, "jaasConfigs.\"%s\".modules.cert.params.baseDir=%s%s\n", realmName, secretPathBase, AppPropertiesSecretName(reconciler.service.Name))
 
 	serverConfigPropertiesSecret.Data[acceptorCfgKey] = buf.Bytes()
-
-	err = resources.Update(reconciler.Client, serverConfigPropertiesSecret)
-	if err != nil {
-		return err
-	}
 
 	return err
 }
@@ -412,7 +392,7 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) makePemCfgProps(service 
 	return buf.Bytes()
 }
 
-func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(_ *broker.ActiveMQArtemisBrokerService, secret *corev1.Secret) (err error) {
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(secret *corev1.Secret) (err error) {
 
 	err = reconciler.verifyCapabilityAddressType()
 	if err != nil {
@@ -476,10 +456,44 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processCapabilities(_ *b
 		fmt.Fprint(buf, k)
 	}
 
-	secret.Data = map[string][]byte{
-		reconciler.AppIdentityPrefixed("capabilities.properties"): buf.Bytes(),
+	if secret.Data == nil {
+		secret.Data = make(map[string][]byte)
 	}
-	err = resources.Update(reconciler.Client, secret)
+	secret.Data[reconciler.AppIdentityPrefixed("capabilities.properties")] = buf.Bytes()
+
+	return err
+}
+
+func (reconciler ActiveMQArtemisAppInstanceReconciler) processDelete(serverConfigPropertiesSecret *corev1.Secret) (err error) {
+
+	rmPropsKey := reconciler.UnderscoreAppIdentityPrefixed("rm.properties")
+
+	if _, found := serverConfigPropertiesSecret.Data[rmPropsKey]; found {
+
+		// TODO: condition for deletion pending (Terminiating) resource version config applied to brokerservice
+		// we could/should remove the rm.props file before removing the finalizer
+		controllerutil.RemoveFinalizer(reconciler.instance, common.AppServiceAnnotation)
+		meta.RemoveStatusCondition(&reconciler.instance.Status.Conditions, TerminatingConditionType)
+		err = resources.Update(reconciler.Client, reconciler.instance)
+
+	} else {
+		namespacePrefix := reconciler.AppIdentity()
+		underStorePrefix := fmt.Sprintf("_%s", namespacePrefix)
+		for k := range serverConfigPropertiesSecret.Data {
+			if strings.HasPrefix(k, underStorePrefix) || strings.HasPrefix(k, namespacePrefix) {
+				delete(serverConfigPropertiesSecret.Data, k)
+			}
+		}
+		// TODO: maybe proper config reload semantics on jaasConfigs may be better than the need for rm using =-
+		serverConfigPropertiesSecret.Data[rmPropsKey] = []byte(fmt.Sprintf("jaasConfigs.%s=-\n", reconciler.jaasConfigRealmName()))
+
+		meta.SetStatusCondition(&reconciler.instance.Status.Conditions, metav1.Condition{
+			Type:   TerminatingConditionType,
+			Status: metav1.ConditionTrue,
+			Reason: "finalizing",
+		})
+
+	}
 	return err
 }
 
@@ -539,7 +553,7 @@ func consumerRole(prefix string) string {
 	return fmt.Sprintf("%s-consumer", prefix)
 }
 
-func (reconciler *ActiveMQArtemisAppInstanceReconciler) processStatus(cr *broker.ActiveMQArtemisApp, reconcilerError error) (err error) {
+func (reconciler *ActiveMQArtemisAppInstanceReconciler) processStatus(cr *broker.ActiveMQArtemisApp, reconcilerError error) (requeue bool, err error) {
 
 	var conditions []metav1.Condition = cr.Status.Conditions
 
@@ -562,21 +576,26 @@ func (reconciler *ActiveMQArtemisAppInstanceReconciler) processStatus(cr *broker
 
 	// check for deployed annotation set by service
 
-	var deployedCondition metav1.Condition = metav1.Condition{
-		Type: broker.DeployedConditionType,
+	if _, found := reconciler.instance.Annotations[common.AppServiceAnnotation]; found {
+
+		var deployedCondition metav1.Condition = metav1.Condition{
+			Type: broker.DeployedConditionType,
+		}
+
+		deployedCondition.Status = metav1.ConditionTrue
+		deployedCondition.Reason = broker.ReadyConditionReason
+		meta.SetStatusCondition(&conditions, deployedCondition)
 	}
 
-	deployedCondition.Status = metav1.ConditionTrue
-	deployedCondition.Reason = broker.ReadyConditionReason
-	meta.SetStatusCondition(&conditions, deployedCondition)
-
 	common.SetReadyCondition(&conditions)
+
+	requeue = meta.IsStatusConditionTrue(conditions, TerminatingConditionType)
 
 	if !reflect.DeepEqual(cr.Status.Conditions, conditions) {
 		cr.Status.Conditions = conditions
 		err = resources.UpdateStatus(reconciler.Client, cr)
 	}
-	return err
+	return requeue, err
 }
 
 func (r *ActiveMQArtemisAppReconciler) SetupWithManager(mgr ctrl.Manager) error {
