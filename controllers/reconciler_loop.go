@@ -200,9 +200,6 @@ func (reconciler *ReconcilerLoop) CompareSecret(deployed, requested client.Objec
 	if isEqual {
 		deployedSecret := deployed.(*corev1.Secret)
 		requestedSecret := requested.(*corev1.Secret)
-		// TODO - remove all use of SecretData, just use Data and we can do away with this merge
-		deployedSecret = mergeSecretStringDataToData(deployedSecret)
-		requestedSecret = mergeSecretStringDataToData(requestedSecret)
 		var pairs [][2]interface{}
 		pairs = append(pairs, [2]interface{}{deployedSecret.Data, requestedSecret.Data})
 		isEqual = compare.EqualPairs(pairs)
