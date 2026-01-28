@@ -160,6 +160,9 @@ controllerManager:
       maxSurge: 1
       maxUnavailable: 1
     type: RollingUpdate
+  nodeSelector: {}
+  tolerations: []
+  topologySpreadConstraints: []
 imagePullSecrets: []
 kubernetesClusterDomain: cluster.local
 clusterScoped: true

@@ -47,3 +47,11 @@ sed -i "s~.Values.controllerManager.manager.env.enableWebhooks~false~" ${dir}/te
 # imagePullPolicy (null preserves Kubernetes default behavior)
 $YQ -i '.controllerManager.manager.image.pullPolicy=null' ${dir}/values.yaml
 sed -i '/name: manager/a\        {{- with .Values.controllerManager.manager.image.pullPolicy }}\n        imagePullPolicy: {{ . }}\n        {{- end }}' ${dir}/templates/deployment.yaml
+
+# pod scheduling fields
+$YQ -i ".controllerManager.nodeSelector={}" ${dir}/values.yaml
+$YQ -i ".controllerManager.tolerations=[]" ${dir}/values.yaml
+$YQ -i ".controllerManager.topologySpreadConstraints=[]" ${dir}/values.yaml
+sed -i '/terminationGracePeriodSeconds:/a\      topologySpreadConstraints: {{ .Values.controllerManager.topologySpreadConstraints | default list | toJson }}' ${dir}/templates/deployment.yaml
+sed -i '/terminationGracePeriodSeconds:/a\      tolerations: {{ .Values.controllerManager.tolerations | default list | toJson }}' ${dir}/templates/deployment.yaml
+sed -i '/terminationGracePeriodSeconds:/a\      nodeSelector: {{- toYaml .Values.controllerManager.nodeSelector | nindent 8 }}' ${dir}/templates/deployment.yaml

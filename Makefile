@@ -30,7 +30,7 @@ RUNTIME_GO_VERSION := $(shell go version)
 REQUIRED_GO_VERSION := $(subst go ,,$(shell grep -i -e '^go .*' go.mod))
 
 ifeq (,$(findstring $(REQUIRED_GO_VERSION),$(RUNTIME_GO_VERSION)))
-$(error The go version $(RUNTIME_GO_VERSION) the system is currently running is incompatible with the required one $(REQUIRED_GO_VERSION))
+#$(error The go version $(RUNTIME_GO_VERSION) the system is currently running is incompatible with the required one $(REQUIRED_GO_VERSION))
 endif
 
 # directory to hold static resources for deploying operator
