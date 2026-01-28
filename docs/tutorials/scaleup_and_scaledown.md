@@ -19,21 +19,23 @@ Before you start you need have access to a running Kubernetes cluster environmen
 ### Step 1 - Deploy arkmq-org Operator
 In this article we are using the [arkmq-org operator repo](https://github.com/arkmq-org/activemq-artemis-operator). In case you haven't done so, clone it to your local disk:
 
-```shell script
-$ git clone https://github.com/arkmq-org/activemq-artemis-operator.git
-$ cd activemq-artemis-operator
+```shell
+git clone https://github.com/arkmq-org/activemq-artemis-operator.git
+cd activemq-artemis-operator
 ```
 
 If you are not sure how to deploy the operator take a look at [this tutorial](using_operator.md).
 
-In this blog post we assume you deployed the operator to a namespace called **myproject**.
+In this tutorial we assume you deployed the operator to a namespace called **myproject**.
 
 After deployment is done, check the operator is up and running. For example run the following command:
 
-```shell script
-$ kubectl get pod -n myproject
-NAME                                         READY   STATUS    RESTARTS   AGE
-activemq-artemis-operator-58bb658f4c-m9rfr   1/1     Running   0          2m46s
+```{"stage":"init","id":"check_operator"}
+kubectl get pod -n myproject
+```
+```shell markdown_runner
+NAME                                                   READY   STATUS    RESTARTS   AGE
+activemq-artemis-controller-manager-6b78d758bf-hgh6z   1/1     Running   0          106m
 ```
 
 ### Step 2 - Deploy Apache ActiveMQ Artemis broker
@@ -43,39 +45,70 @@ Use your favorite text editor to create a file called **artemis-clustered.yaml**
 
 <a name="broker_clustered_yaml"></a>
 ```yaml
-    apiVersion: broker.amq.io/v2alpha4
+    apiVersion: broker.amq.io/v1beta1
     kind: ActiveMQArtemis
     metadata:
       name: ex-aao
     spec:
       deploymentPlan:
         size: 1
-        image: quay.io/arkmq-org/activemq-artemis-broker-kubernetes:0.2.1
+        clustered: true
         persistenceEnabled: true
         messageMigration: true
+      brokerProperties:
+        - "HAPolicyConfiguration=PRIMARY_ONLY"
+        - "HAPolicyConfiguration.scaleDownConfiguration.discoveryGroup=my-discovery-group"
+        - "HAPolicyConfiguration.scaleDownConfiguration.enabled=false"
 ```
 
-Save it and deploy it using the following command:
+Or create it using kubectl:
 
-```shell script
-$ kubectl create -f artemis-clustered.yaml -n myproject
+```{"stage":"deploy","id":"create_broker","runtime":"bash"}
+kubectl apply -f - -n myproject <<EOF
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemis
+metadata:
+  name: ex-aao
+spec:
+  deploymentPlan:
+    size: 1
+    clustered: true
+    persistenceEnabled: true
+    messageMigration: true
+  brokerProperties:
+    - "HAPolicyConfiguration=PRIMARY_ONLY"
+    - "HAPolicyConfiguration.scaleDownConfiguration.discoveryGroup=my-discovery-group"
+    - "HAPolicyConfiguration.scaleDownConfiguration.enabled=false"
+EOF
+```
+```shell markdown_runner
 activemqartemis.broker.amq.io/ex-aao created
 ```
 
-The custom resource file tells the operator to deploy one broker pod from the image **quay.io/arkmq-org/activemq-artemis-broker-kubernetes:0.2.1**,
-configured with **persistenceEnabled: true** and **messageMigration: true**.
+The custom resource tells the operator to deploy one broker pod with **persistenceEnabled: true** and **messageMigration: true**.
 
 **persistenceEnabled: true** means the broker persists messages to persistent storage.
 
 **messageMigration: true** means if a broker pod is shut down, its messages will be migrated to another live broker pod so that those messages will be processed.
 
-In a while the broker pod should be up and running:
+Wait for the broker to be ready:
 
-```shell script
-$ kubectl get pod -n myproject
-NAME                                         READY   STATUS    RESTARTS   AGE
-activemq-artemis-operator-58bb658f4c-m9rfr   1/1     Running   0          7m14s
-ex-aao-ss-0                                  1/1     Running   0          83s
+```{"stage":"deploy","id":"wait_broker"}
+kubectl wait ActiveMQArtemis ex-aao --for=condition=Ready --namespace=myproject --timeout=300s
+```
+```shell markdown_runner
+activemqartemis.broker.amq.io/ex-aao condition met
+```
+
+Check the pods:
+
+```{"stage":"deploy","id":"check_pods"}
+kubectl get pod -n myproject
+```
+```shell markdown_runner
+NAME                                                   READY   STATUS    RESTARTS   AGE
+activemq-artemis-controller-manager-6b78d758bf-hgh6z   1/1     Running   0          106m
+ex-aao-ss-0                                            1/1     Running   0          14s
 ```
 
 ### Step 3 - Scaling up
@@ -83,141 +116,165 @@ ex-aao-ss-0                                  1/1     Running   0          83s
 To inform the operator that we want to scale from one to two broker pods modify artemis-clustered.yaml file to set the **size** to 2
 
 ```yaml
-    apiVersion: broker.amq.io/v2alpha4
+    apiVersion: broker.amq.io/v1beta1
     kind: ActiveMQArtemis
     metadata:
       name: ex-aao
     spec:
       deploymentPlan:
         size: 2
-        image: quay.io/arkmq-org/activemq-artemis-broker-kubernetes:0.2.1
+        clustered: true
         persistenceEnabled: true
         messageMigration: true
+      brokerProperties:
+        - "HAPolicyConfiguration=PRIMARY_ONLY"
+        - "HAPolicyConfiguration.scaleDownConfiguration.discoveryGroup=my-discovery-group"
+        - "HAPolicyConfiguration.scaleDownConfiguration.enabled=false"
 ```
 
 and apply it:
 
-```shell script
-    $ kubectl apply -f artemis-clustered.yaml -n myproject
+```{"stage":"scale_up","id":"scale_to_2"}
+kubectl patch activemqartemis ex-aao -n myproject --type='json' -p='[{"op": "replace", "path": "/spec/deploymentPlan/size", "value": 2}]'
+```
+```shell markdown_runner
+activemqartemis.broker.amq.io/ex-aao patched
 ```
 
-Verify that 2 pods are spawned up in a while:
+Wait for the scale up to complete:
 
-```shell script
-$ kubectl get pod -n myproject
-NAME                                         READY   STATUS    RESTARTS   AGE
-activemq-artemis-operator-58bb658f4c-m9rfr   1/1     Running   0          12m
-ex-aao-ss-0                                  1/1     Running   0          6m33s
-ex-aao-ss-1                                  1/1     Running   0          75s
+```{"stage":"scale_up","id":"wait_scale_up"}
+kubectl wait ActiveMQArtemis ex-aao --for=condition=Ready --namespace=myproject --timeout=300s
+```
+```shell markdown_runner
+activemqartemis.broker.amq.io/ex-aao condition met
 ```
 
-### Step 4 - Send messages to both brokers
+Check the pods:
 
-Run the following commands to send 100 messages to each broker:
+```{"stage":"scale_up","id":"check_pods_scaled"}
+kubectl get pod -n myproject
+```
+```shell markdown_runner
+NAME                                                   READY   STATUS     RESTARTS   AGE
+activemq-artemis-controller-manager-6b78d758bf-hgh6z   1/1     Running    0          106m
+ex-aao-ss-0                                            1/1     Running    0          15s
+ex-aao-ss-1                                            0/1     Init:0/1   0          0s
+```
 
-broker0 at pod ex-aao-ss-0
-```shell script
-$ kubectl exec ex-aao-ss-0 -n myproject -- /bin/bash /home/jboss/amq-broker/bin/artemis producer --user admin --password admin --url tcp://ex-aao-ss-0:61616 --message-count 100
-OpenJDK 64-Bit Server VM warning: If the number of processors is expected to increase from one, then you should configure the number of parallel GC threads appropriately using -XX:ParallelGCThreads=N
+### Step 4 - Send messages
+
+Send 100 messages to broker0 (pod `ex-aao-ss-0`):
+
+```{"stage":"send","id":"produce_100_broker0"}
+kubectl exec ex-aao-ss-0 -n myproject -c ex-aao-container -- /bin/bash /home/jboss/amq-broker/bin/artemis producer --user admin --password admin --url tcp://ex-aao-ss-0:61616 --message-count 100
+```
+```shell markdown_runner
 Connection brokerURL = tcp://ex-aao-ss-0:61616
 Producer ActiveMQQueue[TEST], thread=0 Started to calculate elapsed time ...
 
 Producer ActiveMQQueue[TEST], thread=0 Produced: 100 messages
 Producer ActiveMQQueue[TEST], thread=0 Elapsed time in second : 0 s
-Producer ActiveMQQueue[TEST], thread=0 Elapsed time in milli second : 466 milli seconds
-```
-broker1 at pod ex-aao-ss-1
-```shell script
-$ kubectl exec ex-aao-ss-1 -n myproject -- /bin/bash /home/jboss/amq-broker/bin/artemis producer --user admin --password admin --url tcp://ex-aao-ss-1:61616 --message-count 100
-OpenJDK 64-Bit Server VM warning: If the number of processors is expected to increase from one, then you should configure the number of parallel GC threads appropriately using -XX:ParallelGCThreads=N
-Connection brokerURL = tcp://ex-aao-ss-1:61616
-Producer ActiveMQQueue[TEST], thread=0 Started to calculate elapsed time ...
-
-Producer ActiveMQQueue[TEST], thread=0 Produced: 100 messages
-Producer ActiveMQQueue[TEST], thread=0 Elapsed time in second : 0 s
-Producer ActiveMQQueue[TEST], thread=0 Elapsed time in milli second : 511 milli seconds
+Producer ActiveMQQueue[TEST], thread=0 Elapsed time in milli second : 547 milli seconds
+NOTE: Picked up JDK_JAVA_OPTIONS: -Dbroker.properties=/amq/extra/secrets/ex-aao-props/,/amq/extra/secrets/ex-aao-props/broker-${STATEFUL_SET_ORDINAL}/,/amq/extra/secrets/ex-aao-props/?filter=.*\.for_ordinal_${STATEFUL_SET_ORDINAL}_only
 ```
 
-The messages are send to a queue **TEST** in each broker. The following commands can show the queue's message count on each broker:
+Check the queue's message count on broker0:
 
-broker0 at pod ex-aao-ss-0
-```shell script
-$ kubectl exec ex-aao-ss-0 -n myproject -- /bin/bash /home/jboss/amq-broker/bin/artemis queue stat --user admin --password admin --url tcp://ex-aao-ss-0:61616
-OpenJDK 64-Bit Server VM warning: If the number of processors is expected to increase from one, then you should configure the number of parallel GC threads appropriately using -XX:ParallelGCThreads=N
+```{"stage":"send","id":"queue_stat_broker0"}
+kubectl exec ex-aao-ss-0 -n myproject -c ex-aao-container -- /bin/bash /home/jboss/amq-broker/bin/artemis queue stat --user admin --password admin --url tcp://ex-aao-ss-0:61616
+```
+```shell markdown_runner
 Connection brokerURL = tcp://ex-aao-ss-0:61616
-|NAME                     |ADDRESS                  |CONSUMER_COUNT |MESSAGE_COUNT |MESSAGES_ADDED |DELIVERING_COUNT |MESSAGES_ACKED |SCHEDULED_COUNT |ROUTING_TYPE |
-|$.artemis.internal.sf.my-cluster.f5e3b3bf-71b2-11eb-ab9a-0242ac110005|$.artemis.internal.sf.my-cluster.f5e3b3bf-71b2-11eb-ab9a-0242ac110005|1              |0             |0              |0                |0              |0               |MULTICAST    |
-|DLQ                      |DLQ                      |0              |0             |0              |0                |0              |0               |ANYCAST      |
-|ExpiryQueue              |ExpiryQueue              |0              |0             |0              |0                |0              |0               |ANYCAST      |
-|TEST                     |TEST                     |0              |100           |100            |0                |0              |0               |ANYCAST      |
-|activemq.management.8333dec3-8376-4b50-a9d0-f2197c55e6a8|activemq.management.8333dec3-8376-4b50-a9d0-f2197c55e6a8|1              |0             |0              |0                |0              |0               |MULTICAST    |
-|notif.f9cf93f9-71b2-11eb-ab9a-0242ac110005.ActiveMQServerImpl_serverUUID=f5e3b3bf-71b2-11eb-ab9a-0242ac110005|activemq.notifications   |1              |0             |16             |0                |16             |0               |MULTICAST    |
-```
-broker1 at pod ex-aao-ss-1
-```shell script
-$ kubectl exec ex-aao-ss-1 -n myproject -- /bin/bash /home/jboss/amq-broker/bin/artemis queue stat --user admin --password admin --url tcp://ex-aao-ss-1:61616
-OpenJDK 64-Bit Server VM warning: If the number of processors is expected to increase from one, then you should configure the number of parallel GC threads appropriately using -XX:ParallelGCThreads=N
-Connection brokerURL = tcp://ex-aao-ss-1:61616
-|NAME                     |ADDRESS                  |CONSUMER_COUNT |MESSAGE_COUNT |MESSAGES_ADDED |DELIVERING_COUNT |MESSAGES_ACKED |SCHEDULED_COUNT |ROUTING_TYPE |
-|$.artemis.internal.sf.my-cluster.39079f07-71b2-11eb-88be-0242ac110004|$.artemis.internal.sf.my-cluster.39079f07-71b2-11eb-88be-0242ac110004|1              |0             |0              |0                |0              |0               |MULTICAST    |
-|DLQ                      |DLQ                      |0              |0             |0              |0                |0              |0               |ANYCAST      |
-|ExpiryQueue              |ExpiryQueue              |0              |0             |0              |0                |0              |0               |ANYCAST      |
-|TEST                     |TEST                     |0              |100           |100            |0                |0              |0               |ANYCAST      |
-|activemq.management.2a56ebf0-37ad-4cad-9b45-b84cb148f2ff|activemq.management.2a56ebf0-37ad-4cad-9b45-b84cb148f2ff|1              |0             |0              |0                |0              |0               |MULTICAST    |
-|notif.fa438b23-71b2-11eb-88be-0242ac110004.ActiveMQServerImpl_serverUUID=39079f07-71b2-11eb-88be-0242ac110004|activemq.notifications   |1              |0             |12             |0                |12             |0               |MULTICAST    |
+|NAME              |ADDRESS           |CONSUMER|MESSAGE|MESSAGES|DELIVERING|MESSAGES|SCHEDULED|ROUTING|INTERNAL|
+|                  |                  | COUNT  | COUNT | ADDED  |  COUNT   | ACKED  |  COUNT  | TYPE  |        |
+|$sys.mqtt.sessions|$sys.mqtt.sessions|   0    |   0   |   0    |    0     |   0    |    0    |ANYCAST|  true  |
+|DLQ               |DLQ               |   0    |   0   |   0    |    0     |   0    |    0    |ANYCAST| false  |
+|ExpiryQueue       |ExpiryQueue       |   0    |   0   |   0    |    0     |   0    |    0    |ANYCAST| false  |
+|TEST              |TEST              |   0    |  300  |  300   |    0     |   0    |    0    |ANYCAST| false  |
+NOTE: Picked up JDK_JAVA_OPTIONS: -Dbroker.properties=/amq/extra/secrets/ex-aao-props/,/amq/extra/secrets/ex-aao-props/broker-${STATEFUL_SET_ORDINAL}/,/amq/extra/secrets/ex-aao-props/?filter=.*\.for_ordinal_${STATEFUL_SET_ORDINAL}_only
 ```
 
 ### Step 5 - Scale down with message draining
 
-The operator not only can scale up brokers in a cluster but also can scale them down. Now we have messages on both brokers. If we scale one broker down, will the messsages go offline with it and stuck in its persistence store?
+The operator not only can scale up brokers in a cluster but also can scale them down. As we set **messageMigration: true** in the [broker cr](#broker_clustered_yaml), the operator will automatically migrate messages when scaling down.
 
-The answer is no. As we set **messageMigration: true** in the [broker cr](#broker_clustered_yaml), the operator will automatically "migrate" the messages on a scaled down broker pod to one of the live broker pod, a process called "message draining".
-
-Internally when the operator detects that a broker pod is down, it starts up a "drainer" broker pod who has access to the down pod's persistence store. It loads the messages in the store and sends those messages to a target live broker pod. When this is done the "drainer" pod shuts down itself.
+When a broker pod is scaled down, the operator waits for it to forward all messages to live brokers before removing it from the cluster.
 
 Now scale down the cluster from 2 pods to one. Edit the [broker cr](#broker_clustered_yaml) file and change the size back to 1:
 
 
 ```yaml
-    apiVersion: broker.amq.io/v2alpha4
+    apiVersion: broker.amq.io/v1beta1
     kind: ActiveMQArtemis
     metadata:
       name: ex-aao
     spec:
       deploymentPlan:
         size: 1
-        image: quay.io/arkmq-org/activemq-artemis-broker-kubernetes:0.2.1
+        clustered: true
         persistenceEnabled: true
         messageMigration: true
+      brokerProperties:
+        - "HAPolicyConfiguration=PRIMARY_ONLY"
+        - "HAPolicyConfiguration.scaleDownConfiguration.discoveryGroup=my-discovery-group"
+        - "HAPolicyConfiguration.scaleDownConfiguration.enabled=false"
 ```
 
-Apply it:
+and apply it:
 
-```shell script
-$ kubectl apply -f artemis-clustered.yaml -n myproject
-activemqartemis.broker.amq.io/ex-aao configured
+```{"stage":"scale_down","id":"scale_to_1"}
+kubectl patch activemqartemis ex-aao -n myproject --type='json' -p='[{"op": "replace", "path": "/spec/deploymentPlan/size", "value": 1}]'
 ```
-In a moment the broker pods will go down to 1. To check, run
+```shell markdown_runner
+activemqartemis.broker.amq.io/ex-aao patched
+```
 
-```shell script
-$ kubectl get pod -n myproject
-NAME                                         READY   STATUS    RESTARTS   AGE
-activemq-artemis-operator-58bb658f4c-m9rfr   1/1     Running   0          26m
-ex-aao-ss-0                                  1/1     Running   0          20m
+Wait for the scale down and message migration to complete:
+
+```{"stage":"scale_down","id":"wait_scale_down"}
+kubectl wait ActiveMQArtemis ex-aao --for=condition=Ready --namespace=myproject --timeout=300s
 ```
-Now check the messages in queue TEST at the pod again:
-```shell script
-$ kubectl exec ex-aao-ss-0 -n myproject -- /bin/bash /home/jboss/amq-broker/bin/artemis queue stat --user admin --password admin --url tcp://ex-aao-ss-0:61616
-OpenJDK 64-Bit Server VM warning: If the number of processors is expected to increase from one, then you should configure the number of parallel GC threads appropriately using -XX:ParallelGCThreads=N
+```shell markdown_runner
+activemqartemis.broker.amq.io/ex-aao condition met
+```
+
+Check the pods:
+
+```{"stage":"scale_down","id":"check_pods_final"}
+kubectl get pod -n myproject
+```
+```shell markdown_runner
+NAME                                                   READY   STATUS    RESTARTS   AGE
+activemq-artemis-controller-manager-6b78d758bf-hgh6z   1/1     Running   0          106m
+ex-aao-ss-0                                            1/1     Running   0          20s
+ex-aao-ss-1                                            0/1     Running   0          5s
+```
+
+Now check the messages in queue TEST at the pod:
+
+```{"stage":"scale_down","id":"final_queue_stat"}
+kubectl exec ex-aao-ss-0 -n myproject -c ex-aao-container -- /bin/bash /home/jboss/amq-broker/bin/artemis queue stat --user admin --password admin --url tcp://ex-aao-ss-0:61616
+```
+```shell markdown_runner
 Connection brokerURL = tcp://ex-aao-ss-0:61616
-|NAME                     |ADDRESS                  |CONSUMER_COUNT |MESSAGE_COUNT |MESSAGES_ADDED |DELIVERING_COUNT |MESSAGES_ACKED |SCHEDULED_COUNT |ROUTING_TYPE |
-|$.artemis.internal.sf.my-cluster.f5e3b3bf-71b2-11eb-ab9a-0242ac110005|$.artemis.internal.sf.my-cluster.f5e3b3bf-71b2-11eb-ab9a-0242ac110005|0              |0             |0              |0                |0              |0               |MULTICAST    |
-|DLQ                      |DLQ                      |0              |0             |0              |0                |0              |0               |ANYCAST      |
-|ExpiryQueue              |ExpiryQueue              |0              |0             |0              |0                |0              |0               |ANYCAST      |
-|TEST                     |TEST                     |0              |200           |200            |0                |0              |0               |ANYCAST      |
-|activemq.management.8ee46c3d-c2ba-4e1c-9b6c-f2631e662cb1|activemq.management.8ee46c3d-c2ba-4e1c-9b6c-f2631e662cb1|1              |0             |0              |0                |0              |0               |MULTICAST    |
+|NAME                     |ADDRESS                  |CONSUMER|MESSAGE|MESSAGES|DELIVERING|MESSAGES|SCHEDULED| ROUTING |INTERNAL|
+|                         |                         | COUNT  | COUNT | ADDED  |  COUNT   | ACKED  |  COUNT  |  TYPE   |        |
+|$.artemis.internal.sf.my-|$.artemis.internal.sf.my-|   1    |   0   |   0    |    0     |   0    |    0    |MULTICAST|  true  |
+|  cluster.bc7d2415-fc56-1|  cluster.bc7d2415-fc56-1|        |       |        |          |        |         |         |        |
+|  1f0-90d8-1a8a18bf2694  |  1f0-90d8-1a8a18bf2694  |        |       |        |          |        |         |         |        |
+|$sys.mqtt.sessions       |$sys.mqtt.sessions       |   0    |   0   |   0    |    0     |   0    |    0    | ANYCAST |  true  |
+|DLQ                      |DLQ                      |   0    |   0   |   0    |    0     |   0    |    0    | ANYCAST | false  |
+|ExpiryQueue              |ExpiryQueue              |   0    |   0   |   0    |    0     |   0    |    0    | ANYCAST | false  |
+|TEST                     |TEST                     |   0    |  300  |  300   |    0     |   0    |    0    | ANYCAST | false  |
+|notif.cd313013-fc63-11f0-|activemq.notifications   |   1    |   0   |   10   |    0     |   10   |    0    |MULTICAST|  true  |
+|  83f1-fa5c918fa7de.Activ|                         |        |       |        |          |        |         |         |        |
+|  eMQServerImpl_name=amq-|                         |        |       |        |          |        |         |         |        |
+|  broker                 |                         |        |       |        |          |        |         |         |        |
+
+
+NOTE: Picked up JDK_JAVA_OPTIONS: -Dbroker.properties=/amq/extra/secrets/ex-aao-props/,/amq/extra/secrets/ex-aao-props/broker-${STATEFUL_SET_ORDINAL}/,/amq/extra/secrets/ex-aao-props/?filter=.*\.for_ordinal_${STATEFUL_SET_ORDINAL}_only
 ```
-It shows queue TEST's message count is **200** now!
 
 ### More information
 
