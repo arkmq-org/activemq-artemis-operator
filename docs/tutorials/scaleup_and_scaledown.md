@@ -34,8 +34,8 @@ After deployment is done, check the operator is up and running. For example run 
 kubectl get pod -n myproject
 ```
 ```shell markdown_runner
-NAME                                                   READY   STATUS    RESTARTS   AGE
-activemq-artemis-controller-manager-6b78d758bf-hgh6z   1/1     Running   0          106m
+NAME                                                  READY   STATUS    RESTARTS   AGE
+activemq-artemis-controller-manager-5d969499b-gc6t8   1/1     Running   0          18m
 ```
 
 ### Step 2 - Deploy Apache ActiveMQ Artemis broker
@@ -106,9 +106,9 @@ Check the pods:
 kubectl get pod -n myproject
 ```
 ```shell markdown_runner
-NAME                                                   READY   STATUS    RESTARTS   AGE
-activemq-artemis-controller-manager-6b78d758bf-hgh6z   1/1     Running   0          106m
-ex-aao-ss-0                                            1/1     Running   0          14s
+NAME                                                  READY   STATUS    RESTARTS   AGE
+activemq-artemis-controller-manager-5d969499b-gc6t8   1/1     Running   0          19m
+ex-aao-ss-0                                           1/1     Running   0          43s
 ```
 
 ### Step 3 - Scaling up
@@ -156,10 +156,10 @@ Check the pods:
 kubectl get pod -n myproject
 ```
 ```shell markdown_runner
-NAME                                                   READY   STATUS     RESTARTS   AGE
-activemq-artemis-controller-manager-6b78d758bf-hgh6z   1/1     Running    0          106m
-ex-aao-ss-0                                            1/1     Running    0          15s
-ex-aao-ss-1                                            0/1     Init:0/1   0          0s
+NAME                                                  READY   STATUS     RESTARTS   AGE
+activemq-artemis-controller-manager-5d969499b-gc6t8   1/1     Running    0          19m
+ex-aao-ss-0                                           1/1     Running    0          43s
+ex-aao-ss-1                                           0/1     Init:0/1   0          0s
 ```
 
 ### Step 4 - Send messages
@@ -175,7 +175,7 @@ Producer ActiveMQQueue[TEST], thread=0 Started to calculate elapsed time ...
 
 Producer ActiveMQQueue[TEST], thread=0 Produced: 100 messages
 Producer ActiveMQQueue[TEST], thread=0 Elapsed time in second : 0 s
-Producer ActiveMQQueue[TEST], thread=0 Elapsed time in milli second : 547 milli seconds
+Producer ActiveMQQueue[TEST], thread=0 Elapsed time in milli second : 413 milli seconds
 NOTE: Picked up JDK_JAVA_OPTIONS: -Dbroker.properties=/amq/extra/secrets/ex-aao-props/,/amq/extra/secrets/ex-aao-props/broker-${STATEFUL_SET_ORDINAL}/,/amq/extra/secrets/ex-aao-props/?filter=.*\.for_ordinal_${STATEFUL_SET_ORDINAL}_only
 ```
 
@@ -191,7 +191,7 @@ Connection brokerURL = tcp://ex-aao-ss-0:61616
 |$sys.mqtt.sessions|$sys.mqtt.sessions|   0    |   0   |   0    |    0     |   0    |    0    |ANYCAST|  true  |
 |DLQ               |DLQ               |   0    |   0   |   0    |    0     |   0    |    0    |ANYCAST| false  |
 |ExpiryQueue       |ExpiryQueue       |   0    |   0   |   0    |    0     |   0    |    0    |ANYCAST| false  |
-|TEST              |TEST              |   0    |  300  |  300   |    0     |   0    |    0    |ANYCAST| false  |
+|TEST              |TEST              |   0    |  100  |  100   |    0     |   0    |    0    |ANYCAST| false  |
 NOTE: Picked up JDK_JAVA_OPTIONS: -Dbroker.properties=/amq/extra/secrets/ex-aao-props/,/amq/extra/secrets/ex-aao-props/broker-${STATEFUL_SET_ORDINAL}/,/amq/extra/secrets/ex-aao-props/?filter=.*\.for_ordinal_${STATEFUL_SET_ORDINAL}_only
 ```
 
@@ -245,10 +245,10 @@ Check the pods:
 kubectl get pod -n myproject
 ```
 ```shell markdown_runner
-NAME                                                   READY   STATUS    RESTARTS   AGE
-activemq-artemis-controller-manager-6b78d758bf-hgh6z   1/1     Running   0          106m
-ex-aao-ss-0                                            1/1     Running   0          20s
-ex-aao-ss-1                                            0/1     Running   0          5s
+NAME                                                  READY   STATUS    RESTARTS   AGE
+activemq-artemis-controller-manager-5d969499b-gc6t8   1/1     Running   0          19m
+ex-aao-ss-0                                           1/1     Running   0          48s
+ex-aao-ss-1                                           0/1     Running   0          5s
 ```
 
 Now check the messages in queue TEST at the pod:
@@ -261,14 +261,14 @@ Connection brokerURL = tcp://ex-aao-ss-0:61616
 |NAME                     |ADDRESS                  |CONSUMER|MESSAGE|MESSAGES|DELIVERING|MESSAGES|SCHEDULED| ROUTING |INTERNAL|
 |                         |                         | COUNT  | COUNT | ADDED  |  COUNT   | ACKED  |  COUNT  |  TYPE   |        |
 |$.artemis.internal.sf.my-|$.artemis.internal.sf.my-|   1    |   0   |   0    |    0     |   0    |    0    |MULTICAST|  true  |
-|  cluster.bc7d2415-fc56-1|  cluster.bc7d2415-fc56-1|        |       |        |          |        |         |         |        |
-|  1f0-90d8-1a8a18bf2694  |  1f0-90d8-1a8a18bf2694  |        |       |        |          |        |         |         |        |
+|  cluster.facf996b-fc69-1|  cluster.facf996b-fc69-1|        |       |        |          |        |         |         |        |
+|  1f0-8050-924fc2fe6471  |  1f0-8050-924fc2fe6471  |        |       |        |          |        |         |         |        |
 |$sys.mqtt.sessions       |$sys.mqtt.sessions       |   0    |   0   |   0    |    0     |   0    |    0    | ANYCAST |  true  |
 |DLQ                      |DLQ                      |   0    |   0   |   0    |    0     |   0    |    0    | ANYCAST | false  |
 |ExpiryQueue              |ExpiryQueue              |   0    |   0   |   0    |    0     |   0    |    0    | ANYCAST | false  |
-|TEST                     |TEST                     |   0    |  300  |  300   |    0     |   0    |    0    | ANYCAST | false  |
-|notif.cd313013-fc63-11f0-|activemq.notifications   |   1    |   0   |   10   |    0     |   10   |    0    |MULTICAST|  true  |
-|  83f1-fa5c918fa7de.Activ|                         |        |       |        |          |        |         |         |        |
+|TEST                     |TEST                     |   0    |  100  |  100   |    0     |   0    |    0    | ANYCAST | false  |
+|notif.fbeec518-fc69-11f0-|activemq.notifications   |   1    |   0   |   10   |    0     |   10   |    0    |MULTICAST|  true  |
+|  8050-924fc2fe6471.Activ|                         |        |       |        |          |        |         |         |        |
 |  eMQServerImpl_name=amq-|                         |        |       |        |          |        |         |         |        |
 |  broker                 |                         |        |       |        |          |        |         |         |        |
 
