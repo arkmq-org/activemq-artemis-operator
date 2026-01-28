@@ -562,6 +562,26 @@ func createControllerManager(disableMetrics bool, watchNamespace string) {
 	err = scaleDownRconciler.SetupWithManager(k8Manager)
 	Expect(err).ShouldNot(HaveOccurred(), "failed to create scale down reconciler")
 
+	serviceReconciler := NewBrokerServiceReconciler(
+		k8Manager.GetClient(),
+		k8Manager.GetScheme(),
+		k8Manager.GetConfig(),
+		ctrl.Log,
+	)
+
+	err = serviceReconciler.SetupWithManager(k8Manager)
+	Expect(err).ShouldNot(HaveOccurred(), "failed to create service reconciler")
+
+	appReconciler := NewBrokerAppReconciler(
+		k8Manager.GetClient(),
+		k8Manager.GetScheme(),
+		k8Manager.GetConfig(),
+		ctrl.Log,
+	)
+
+	err = appReconciler.SetupWithManager(k8Manager)
+	Expect(err).ShouldNot(HaveOccurred(), "failed to create app reconciler")
+
 	managerChannel = make(chan struct{}, 1)
 	go func() {
 		defer GinkgoRecover()
@@ -925,6 +945,8 @@ func uninstallCRDs() {
 		"activemqartemisaddresses.broker.amq.io",
 		"activemqartemisscaledowns.broker.amq.io",
 		"activemqartemissecurities.broker.amq.io",
+		"brokerapps.broker.amq.io",
+		"brokerservices.broker.amq.io",
 	}
 
 	for _, crdName := range crdNames {

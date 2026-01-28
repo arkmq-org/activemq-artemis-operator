@@ -131,6 +131,61 @@ metadata:
           }
         },
         {
+          "apiVersion": "broker.amq.io/v1beta1",
+          "kind": "BrokerApp",
+          "metadata": {
+            "name": "wq-app"
+          },
+          "spec": {
+            "acceptor": {
+              "port": 61616
+            },
+            "capabilities": [
+              {
+                "producerOf": [
+                  {
+                    "address": "APP.JOBS"
+                  }
+                ]
+              }
+            ],
+            "selector": {
+              "matchLabels": {
+                "forWorkQueue": "true"
+              }
+            }
+          },
+          "status": {
+            "conditions": []
+          }
+        },
+        {
+          "apiVersion": "broker.amq.io/v1beta1",
+          "kind": "BrokerService",
+          "metadata": {
+            "labels": {
+              "forWorkQueue": "true"
+            },
+            "name": "ex-as-wq"
+          },
+          "spec": {
+            "env": [
+              {
+                "name": "JAVA_ARGS_APPEND",
+                "value": "-Dlog4j2.level=INFO"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "memory": "1Gi"
+              }
+            }
+          },
+          "status": {
+            "conditions": []
+          }
+        },
+        {
           "apiVersion": "broker.amq.io/v2alpha1",
           "kind": "ActiveMQArtemis",
           "metadata": {
@@ -5524,6 +5579,60 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v1beta1
+    - description: Describes the messaging requirements of an application
+      displayName: Broker App
+      kind: BrokerApp
+      name: brokerapps.broker.amq.io
+      resources:
+      - kind: Secret
+        name: ""
+        version: v1
+      specDescriptors:
+      - displayName: Acceptor
+        path: acceptor
+      - displayName: Messaging Capabilities
+        path: capabilities
+      - displayName: Resources
+        path: resources
+      - displayName: ServiceSelector
+        path: selector
+      statusDescriptors:
+      - description: Current state of the resource Conditions represent the latest
+          available observations of an object's state
+        displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      version: v1beta1
+    - description: Provides a broker service
+      displayName: Broker Service
+      kind: BrokerService
+      name: brokerservices.broker.amq.io
+      resources:
+      - kind: ActiveMQArtemis
+        name: ""
+        version: v1beta1
+      - kind: Secret
+        name: ""
+        version: v1
+      - kind: Service
+        name: ""
+        version: v1
+      specDescriptors:
+      - displayName: Environment
+        path: env
+      - displayName: Broker image
+        path: image
+      - displayName: Resources
+        path: resources
+      statusDescriptors:
+      - description: Current state of the resource Conditions represent the latest
+          available observations of an object's state
+        displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      version: v1beta1
   description: ArkMQ Operator manages ActiveMQ Artemis messaging broker in the cloud
   displayName: ArkMQ Operator
   icon:
@@ -5820,6 +5929,8 @@ spec:
           - activemqartemises
           - activemqartemisscaledowns
           - activemqartemissecurities
+          - brokerapps
+          - brokerservices
           verbs:
           - create
           - delete
@@ -5835,6 +5946,8 @@ spec:
           - activemqartemises/finalizers
           - activemqartemisscaledowns/finalizers
           - activemqartemissecurities/finalizers
+          - brokerapps/finalizers
+          - brokerservices/finalizers
           verbs:
           - update
         - apiGroups:
@@ -5844,6 +5957,8 @@ spec:
           - activemqartemises/status
           - activemqartemisscaledowns/status
           - activemqartemissecurities/status
+          - brokerapps/status
+          - brokerservices/status
           verbs:
           - get
           - patch

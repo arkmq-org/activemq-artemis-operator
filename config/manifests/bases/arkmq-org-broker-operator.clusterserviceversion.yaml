@@ -5256,6 +5256,60 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
       version: v1alpha1
+    - description: Describes the messaging requirements of an application
+      displayName: Broker App
+      kind: BrokerApp
+      name: brokerapps.broker.amq.io
+      resources:
+      - kind: Secret
+        name: ""
+        version: v1
+      specDescriptors:
+      - displayName: Acceptor
+        path: acceptor
+      - displayName: Messaging Capabilities
+        path: capabilities
+      - displayName: Resources
+        path: resources
+      - displayName: ServiceSelector
+        path: selector
+      statusDescriptors:
+      - description: Current state of the resource Conditions represent the latest
+          available observations of an object's state
+        displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      version: v1beta1
+    - description: Provides a broker service
+      displayName: Broker Service
+      kind: BrokerService
+      name: brokerservices.broker.amq.io
+      resources:
+      - kind: ActiveMQArtemis
+        name: ""
+        version: v1beta1
+      - kind: Secret
+        name: ""
+        version: v1
+      - kind: Service
+        name: ""
+        version: v1
+      specDescriptors:
+      - displayName: Environment
+        path: env
+      - displayName: Broker image
+        path: image
+      - displayName: Resources
+        path: resources
+      statusDescriptors:
+      - description: Current state of the resource Conditions represent the latest
+          available observations of an object's state
+        displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      version: v1beta1
   description: ArkMQ Operator manages ActiveMQ Artemis messaging broker in the cloud
   displayName: ArkMQ Operator
   icon:
