@@ -255,3 +255,15 @@ spec:
         8 }}
       serviceAccountName: activemq-artemis-controller-manager
       terminationGracePeriodSeconds: 10
+      {{- with .Values.controllerManager.manager.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.controllerManager.manager.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.controllerManager.manager.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
