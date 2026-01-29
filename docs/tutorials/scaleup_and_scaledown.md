@@ -24,18 +24,86 @@ git clone https://github.com/arkmq-org/activemq-artemis-operator.git
 cd activemq-artemis-operator
 ```
 
-If you are not sure how to deploy the operator take a look at [this tutorial](using_operator.md).
-
 In this tutorial we assume you deployed the operator to a namespace called **myproject**.
 
-After deployment is done, check the operator is up and running. For example run the following command:
+### Start Minikube and Deploy the Operator
+
+Start a local Minikube cluster:
+
+```{"stage":"init","id":"start_minikube"}
+minikube start --profile tutorialtester
+minikube profile tutorialtester
+kubectl config use-context tutorialtester
+minikube addons enable metrics-server --profile tutorialtester
+```
+```shell markdown_runner
+* [tutorialtester] minikube v1.37.0 on Fedora 43
+* Automatically selected the docker driver. Other choices: kvm2, qemu2, ssh
+* Using Docker driver with root privileges
+* Starting "tutorialtester" primary control-plane node in "tutorialtester" cluster
+* Pulling base image v0.0.48 ...
+* Configuring bridge CNI (Container Networking Interface) ...
+* Verifying Kubernetes components...
+  - Using image gcr.io/k8s-minikube/storage-provisioner:v5
+* Enabled addons: storage-provisioner, default-storageclass
+* Done! kubectl is now configured to use "tutorialtester" cluster and "default" namespace by default
+* minikube profile was successfully set to tutorialtester
+Switched to context "tutorialtester".
+* metrics-server is an addon maintained by Kubernetes. For any concerns contact minikube on GitHub.
+You can view the list of minikube maintainers at: https://github.com/kubernetes/minikube/blob/master/OWNERS
+  - Using image registry.k8s.io/metrics-server/metrics-server:v0.8.0
+* The 'metrics-server' addon is enabled
+```
+
+Create the namespace for the tutorial:
+
+```{"stage":"init","id":"create_namespace","runtime":"bash"}
+kubectl get ns myproject >/dev/null 2>&1 || kubectl create namespace myproject
+kubectl config set-context --current --namespace=myproject
+```
+```shell markdown_runner
+namespace/myproject created
+Context "tutorialtester" modified.
+```
+
+Deploy the operator to the `myproject` namespace:
+
+```{"stage":"init","id":"deploy_operator","rootdir":"$initial_dir"}
+./deploy/install_opr.sh
+```
+```shell markdown_runner
+Deploying operator to watch single namespace
+customresourcedefinition.apiextensions.k8s.io/activemqartemises.broker.amq.io created
+customresourcedefinition.apiextensions.k8s.io/activemqartemisaddresses.broker.amq.io created
+customresourcedefinition.apiextensions.k8s.io/activemqartemisscaledowns.broker.amq.io created
+customresourcedefinition.apiextensions.k8s.io/activemqartemissecurities.broker.amq.io created
+serviceaccount/activemq-artemis-controller-manager created
+role.rbac.authorization.k8s.io/activemq-artemis-operator-role created
+rolebinding.rbac.authorization.k8s.io/activemq-artemis-operator-rolebinding created
+role.rbac.authorization.k8s.io/activemq-artemis-leader-election-role created
+rolebinding.rbac.authorization.k8s.io/activemq-artemis-leader-election-rolebinding created
+deployment.apps/activemq-artemis-controller-manager created
+./deploy/install_opr.sh: line 7: oc: command not found
+Warning: unrecognized format "int32"
+Warning: unrecognized format "int64"
+```
+
+Wait for the operator to be ready:
+
+```{"stage":"init","id":"wait_operator"}
+kubectl wait deployment activemq-artemis-controller-manager --namespace=myproject --for=condition=Available --timeout=300s
+```
+```shell markdown_runner
+deployment.apps/activemq-artemis-controller-manager condition met
+```
+
+Verify the operator is running:
 
 ```{"stage":"init","id":"check_operator"}
 kubectl get pod -n myproject
 ```
 ```shell markdown_runner
-NAME                                                  READY   STATUS    RESTARTS   AGE
-activemq-artemis-controller-manager-5d969499b-gc6t8   1/1     Running   0          18m
+No resources found in myproject namespace.
 ```
 
 ### Step 2 - Deploy Apache ActiveMQ Artemis broker
@@ -107,8 +175,8 @@ kubectl get pod -n myproject
 ```
 ```shell markdown_runner
 NAME                                                  READY   STATUS    RESTARTS   AGE
-activemq-artemis-controller-manager-5d969499b-gc6t8   1/1     Running   0          19m
-ex-aao-ss-0                                           1/1     Running   0          43s
+activemq-artemis-controller-manager-5d969499b-rpxg4   1/1     Running   0          74s
+ex-aao-ss-0                                           1/1     Running   0          62s
 ```
 
 ### Step 3 - Scaling up
@@ -157,9 +225,9 @@ kubectl get pod -n myproject
 ```
 ```shell markdown_runner
 NAME                                                  READY   STATUS     RESTARTS   AGE
-activemq-artemis-controller-manager-5d969499b-gc6t8   1/1     Running    0          19m
-ex-aao-ss-0                                           1/1     Running    0          43s
-ex-aao-ss-1                                           0/1     Init:0/1   0          0s
+activemq-artemis-controller-manager-5d969499b-rpxg4   1/1     Running    0          75s
+ex-aao-ss-0                                           1/1     Running    0          63s
+ex-aao-ss-1                                           0/1     Init:0/1   0          1s
 ```
 
 ### Step 4 - Send messages
@@ -175,7 +243,7 @@ Producer ActiveMQQueue[TEST], thread=0 Started to calculate elapsed time ...
 
 Producer ActiveMQQueue[TEST], thread=0 Produced: 100 messages
 Producer ActiveMQQueue[TEST], thread=0 Elapsed time in second : 0 s
-Producer ActiveMQQueue[TEST], thread=0 Elapsed time in milli second : 413 milli seconds
+Producer ActiveMQQueue[TEST], thread=0 Elapsed time in milli second : 527 milli seconds
 NOTE: Picked up JDK_JAVA_OPTIONS: -Dbroker.properties=/amq/extra/secrets/ex-aao-props/,/amq/extra/secrets/ex-aao-props/broker-${STATEFUL_SET_ORDINAL}/,/amq/extra/secrets/ex-aao-props/?filter=.*\.for_ordinal_${STATEFUL_SET_ORDINAL}_only
 ```
 
@@ -246,9 +314,9 @@ kubectl get pod -n myproject
 ```
 ```shell markdown_runner
 NAME                                                  READY   STATUS    RESTARTS   AGE
-activemq-artemis-controller-manager-5d969499b-gc6t8   1/1     Running   0          19m
-ex-aao-ss-0                                           1/1     Running   0          48s
-ex-aao-ss-1                                           0/1     Running   0          5s
+activemq-artemis-controller-manager-5d969499b-rpxg4   1/1     Running   0          80s
+ex-aao-ss-0                                           1/1     Running   0          68s
+ex-aao-ss-1                                           0/1     Running   0          6s
 ```
 
 Now check the messages in queue TEST at the pod:
@@ -261,21 +329,36 @@ Connection brokerURL = tcp://ex-aao-ss-0:61616
 |NAME                     |ADDRESS                  |CONSUMER|MESSAGE|MESSAGES|DELIVERING|MESSAGES|SCHEDULED| ROUTING |INTERNAL|
 |                         |                         | COUNT  | COUNT | ADDED  |  COUNT   | ACKED  |  COUNT  |  TYPE   |        |
 |$.artemis.internal.sf.my-|$.artemis.internal.sf.my-|   1    |   0   |   0    |    0     |   0    |    0    |MULTICAST|  true  |
-|  cluster.facf996b-fc69-1|  cluster.facf996b-fc69-1|        |       |        |          |        |         |         |        |
-|  1f0-8050-924fc2fe6471  |  1f0-8050-924fc2fe6471  |        |       |        |          |        |         |         |        |
+|  cluster.7823d7ce-fd19-1|  cluster.7823d7ce-fd19-1|        |       |        |          |        |         |         |        |
+|  1f0-bcf2-527b56920ba3  |  1f0-bcf2-527b56920ba3  |        |       |        |          |        |         |         |        |
 |$sys.mqtt.sessions       |$sys.mqtt.sessions       |   0    |   0   |   0    |    0     |   0    |    0    | ANYCAST |  true  |
 |DLQ                      |DLQ                      |   0    |   0   |   0    |    0     |   0    |    0    | ANYCAST | false  |
 |ExpiryQueue              |ExpiryQueue              |   0    |   0   |   0    |    0     |   0    |    0    | ANYCAST | false  |
 |TEST                     |TEST                     |   0    |  100  |  100   |    0     |   0    |    0    | ANYCAST | false  |
-|notif.fbeec518-fc69-11f0-|activemq.notifications   |   1    |   0   |   10   |    0     |   10   |    0    |MULTICAST|  true  |
-|  8050-924fc2fe6471.Activ|                         |        |       |        |          |        |         |         |        |
+|notif.79406b69-fd19-11f0-|activemq.notifications   |   1    |   0   |   10   |    0     |   10   |    0    |MULTICAST|  true  |
+|  bcf2-527b56920ba3.Activ|                         |        |       |        |          |        |         |         |        |
 |  eMQServerImpl_name=amq-|                         |        |       |        |          |        |         |         |        |
 |  broker                 |                         |        |       |        |          |        |         |         |        |
 
+Note: Use [31m--clustered[0m to expand the report to other nodes in the topology.
 
 NOTE: Picked up JDK_JAVA_OPTIONS: -Dbroker.properties=/amq/extra/secrets/ex-aao-props/,/amq/extra/secrets/ex-aao-props/broker-${STATEFUL_SET_ORDINAL}/,/amq/extra/secrets/ex-aao-props/?filter=.*\.for_ordinal_${STATEFUL_SET_ORDINAL}_only
 ```
 
-### More information
+## Cleanup
+
+To leave a pristine environment after executing this tutorial, delete the minikube cluster.
+
+```{"stage":"teardown", "requires":"init/start_minikube"}
+minikube delete --profile tutorialtester
+```
+```shell markdown_runner
+* Deleting "tutorialtester" in docker ...
+* Deleting container "tutorialtester" ...
+* Removing /home/makella19/.minikube/machines/tutorialtester ...
+* Removed all traces of the "tutorialtester" cluster.
+```
+
+## More information
 
 * Check out [arkmq-org project repo](https://github.com/arkmq-org)
