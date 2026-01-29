@@ -225,7 +225,6 @@ metadata:
   labels:
     forWorkQueue: "true"
 spec:
-  image: "quay.io/arkmq-org/activemq-artemis-broker-kubernetes:snapshot"
   resources:
     limits:
       memory: "1Gi"

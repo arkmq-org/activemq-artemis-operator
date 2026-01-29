@@ -173,6 +173,17 @@ func (reconciler *BrokerAppInstanceReconciler) resolveBrokerService() error {
 		}
 	}
 
+	if found && service == nil {
+		err = fmt.Errorf("deployed to service from annotation %s not found", deployedTo)
+		meta.SetStatusCondition(&reconciler.instance.Status.Conditions, metav1.Condition{
+			Type:    broker.ValidConditionType,
+			Status:  metav1.ConditionFalse,
+			Reason:  "DepoloyedToNotFound",
+			Message: err.Error(),
+		})
+		return err
+	}
+
 	if !found {
 		service, err = reconciler.findServiceWithCapacity(list)
 		if service != nil {
