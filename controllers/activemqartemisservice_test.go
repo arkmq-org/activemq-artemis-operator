@@ -38,9 +38,10 @@ import (
 	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/secrets"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
+	"github.com/arkmq-org/activemq-artemis-operator/version"
 )
 
-var _ = Describe("artemis-service", func() {
+var _ = Describe("broker-service", func() {
 
 	var installedCertManager bool = false
 
@@ -144,7 +145,7 @@ var _ = Describe("artemis-service", func() {
 				}
 			})
 
-			brokerImage := "quay.io/arkmq-org/activemq-artemis-broker-kubernetes:snapshot" // version.LatestKubeImage
+			brokerImage := version.LatestKubeImage
 			jvmRemoteDebug := false
 			crd := brokerv1beta1.BrokerService{
 				TypeMeta: metav1.TypeMeta{
@@ -158,8 +159,6 @@ var _ = Describe("artemis-service", func() {
 				},
 				Spec: brokerv1beta1.BrokerServiceSpec{
 
-					// to get jaas config in properties
-					Image: StringToPtr(brokerImage),
 					Env: []corev1.EnvVar{
 						{
 							Name:  "JAVA_ARGS_APPEND",

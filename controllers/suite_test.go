@@ -963,7 +963,7 @@ func uninstallCRDs() {
 				Eventually(func(g Gomega) {
 					err := k8sClient.Get(context.TODO(), types.NamespacedName{Name: crdName}, &crd)
 					g.Expect(errors.IsNotFound(err)).To(BeTrue())
-				}, timeout, interval).Should(Succeed())
+				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 			}
 		}, timeout, interval).Should(Succeed())
 	}
