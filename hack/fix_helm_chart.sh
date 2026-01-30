@@ -1,4 +1,6 @@
 #!/bin/bash
+# to ensure file order independence
+LANG=C
 
 # set byte-value collation for consistent sorting behavior
 LC_COLLATE=C
