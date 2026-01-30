@@ -412,7 +412,7 @@ broker version: 2.42.0
 #### Download the broker
 
 ```{"stage":"test_setup", "rootdir":"$tmpdir.1", "runtime":"bash", "label":"download artemis"}
-wget --quiet https://repo1.maven.org/maven2/org/apache/activemq/apache-artemis/${BROKER_VERSION}/apache-artemis-${BROKER_VERSION}-bin.tar.gz
+wget --quiet https://repo1.maven.org/maven2/org/apache/artemis/apache-artemis/${BROKER_VERSION}/apache-artemis-${BROKER_VERSION}-bin.tar.gz
 tar -zxf apache-artemis-${BROKER_VERSION}-bin.tar.gz apache-artemis-${BROKER_VERSION}/
 # make the rest of commands version agnostic
 mv apache-artemis-${BROKER_VERSION}/ apache-artemis/
