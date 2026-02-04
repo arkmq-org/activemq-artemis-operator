@@ -255,3 +255,9 @@ spec:
         8 }}
       serviceAccountName: activemq-artemis-controller-manager
       terminationGracePeriodSeconds: 10
+<<<<<<< Updated upstream
+=======
+      nodeSelector: {{- toYaml .Values.controllerManager.nodeSelector | nindent 8 }}
+      tolerations: {{ .Values.controllerManager.tolerations | default list | toJson }}
+      topologySpreadConstraints: {{ .Values.controllerManager.topologySpreadConstraints | default list | toJson }}
+>>>>>>> Stashed changes
