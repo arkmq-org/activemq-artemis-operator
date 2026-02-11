@@ -49,6 +49,32 @@ rules:
   verbs:
   - update
 - apiGroups:
+  - arkmq.org
+  resources:
+  - brokers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - arkmq.org
+  resources:
+  - brokers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - arkmq.org
+  resources:
+  - brokers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - broker.amq.io
   resources:
   - activemqartemisaddresses

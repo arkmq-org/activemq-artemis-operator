@@ -4,6 +4,7 @@ import (
 	"hash/fnv"
 
 	"github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
+	"github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
 	"github.com/arkmq-org/activemq-artemis-operator/api/v2alpha3"
 	"github.com/arkmq-org/activemq-artemis-operator/api/v2alpha4"
 	"github.com/arkmq-org/activemq-artemis-operator/api/v2alpha5"
@@ -143,6 +144,12 @@ func MakeBrokerCfgOverrides(customResource interface{}, envVar *string, output *
 				if ok {
 					MakeBrokerCfgOverridesForV1beta1(v1beta1Res, envVar, output, &sb, specials)
 					processed = true
+				} else {
+					v1beta2Res, ok := customResource.(*v1beta2.Broker)
+					if ok {
+						MakeBrokerCfgOverridesForV1beta2(v1beta2Res, envVar, output, &sb, specials)
+						processed = true
+					}
 				}
 			}
 		}
@@ -166,6 +173,12 @@ func MakeBrokerCfgOverrides(customResource interface{}, envVar *string, output *
 		}
 	}
 	return result, specials
+}
+
+func MakeBrokerCfgOverridesForV1beta2(customResource *v1beta2.Broker, envVar *string, output *string, sb *strings.Builder, specials map[string]string) {
+	var addressSettings *[]v1beta2.AddressSettingType = &customResource.Spec.AddressSettings.AddressSetting
+
+	processAddressSettingsV1beta2(sb, addressSettings, specials)
 }
 
 func MakeBrokerCfgOverridesForV1beta1(customResource *v1beta1.ActiveMQArtemis, envVar *string, output *string, sb *strings.Builder, specials map[string]string) {
@@ -609,6 +622,212 @@ func processAddressSettingsV2alpha5(sb *strings.Builder, addressSettings *[]v2al
 }
 
 func processAddressSettingsV1beta1(sb *strings.Builder, addressSettings *[]v1beta1.AddressSettingType, specials map[string]string) {
+
+	if addressSettings == nil || len(*addressSettings) == 0 {
+		return
+	}
+	sb.WriteString("user_address_settings:\n")
+	for _, s := range *addressSettings {
+		if matchValue := checkStringSpecial(&s.Match, specials); matchValue != nil {
+			sb.WriteString("- match: " + *matchValue + "\n")
+		}
+		if value := checkStringSpecial(s.DeadLetterAddress, specials); value != nil {
+			sb.WriteString("  dead_letter_address: " + *value + "\n")
+		}
+		if value := checkBool(s.AutoCreateDeadLetterResources); value != nil {
+			sb.WriteString("  auto_create_dead_letter_resources: " + *value + "\n")
+		}
+		if value := checkStringSpecial(s.DeadLetterQueuePrefix, specials); value != nil {
+			sb.WriteString("  dead_letter_queue_prefix: " + *value + "\n")
+		}
+		if value := checkStringSpecial(s.DeadLetterQueueSuffix, specials); value != nil {
+			sb.WriteString("  dead_letter_queue_suffix: " + *value + "\n")
+		}
+		if value := checkStringSpecial(s.ExpiryAddress, specials); value != nil {
+			sb.WriteString("  expiry_address: " + *value + "\n")
+		}
+		if value := checkBool(s.AutoCreateExpiryResources); value != nil {
+			sb.WriteString("  auto_create_expiry_resources: " + *value + "\n")
+		}
+		if value := checkStringSpecial(s.ExpiryQueuePrefix, specials); value != nil {
+			sb.WriteString("  expiry_queue_prefix: " + *value + "\n")
+		}
+		if value := checkStringSpecial(s.ExpiryQueueSuffix, specials); value != nil {
+			sb.WriteString("  expiry_queue_suffix: " + *value + "\n")
+		}
+		if value := checkInt32(s.ExpiryDelay); value != nil {
+			sb.WriteString("  expiry_delay: " + *value + "\n")
+		}
+		if value := checkInt32(s.MinExpiryDelay); value != nil {
+			sb.WriteString("  min_expiry_delay: " + *value + "\n")
+		}
+		if value := checkInt32(s.MaxExpiryDelay); value != nil {
+			sb.WriteString("  max_expiry_delay: " + *value + "\n")
+		}
+		if value := checkInt32(s.RedeliveryDelay); value != nil {
+			sb.WriteString("  redelivery_delay: " + *value + "\n")
+		}
+		if value := checkInt32(s.MaxRedeliveryDelay); value != nil {
+			sb.WriteString("  max_redelivery_delay: " + *value + "\n")
+		}
+		if value := checkInt32(s.MaxDeliveryAttempts); value != nil {
+			sb.WriteString("  max_delivery_attempts: " + *value + "\n")
+		}
+		if value := checkStringSpecial(s.MaxSizeBytes, specials); value != nil {
+			sb.WriteString("  max_size_bytes: " + *value + "\n")
+		}
+		if value := checkInt32(s.MaxSizeBytesRejectThreshold); value != nil {
+			sb.WriteString("  max_size_bytes_reject_threshold: " + *value + "\n")
+		}
+		if value := checkStringSpecial(s.PageSizeBytes, specials); value != nil {
+			sb.WriteString("  page_size_bytes: " + *value + "\n")
+		}
+		if value := checkInt32(s.PageMaxCacheSize); value != nil {
+			sb.WriteString("  page_max_cache_size: " + *value + "\n")
+		}
+		if value := checkStringSpecial(s.AddressFullPolicy, specials); value != nil {
+			sb.WriteString("  address_full_policy: " + *value + "\n")
+		}
+		if value := checkInt32(s.MessageCounterHistoryDayLimit); value != nil {
+			sb.WriteString("  message_counter_history_day_limit: " + *value + "\n")
+		}
+		if value := checkBool(s.LastValueQueue); value != nil {
+			sb.WriteString("  last_value_queue: " + *value + "\n")
+		}
+		if value := checkBool(s.DefaultLastValueQueue); value != nil {
+			sb.WriteString("  default_last_value_queue: " + *value + "\n")
+		}
+		if value := checkStringSpecial(s.DefaultLastValueKey, specials); value != nil {
+			sb.WriteString("  default_last_value_key: " + *value + "\n")
+		}
+		if value := checkBool(s.DefaultNonDestructive); value != nil {
+			sb.WriteString("  default_non_destructive: " + *value + "\n")
+		}
+		if value := checkBool(s.DefaultExclusiveQueue); value != nil {
+			sb.WriteString("  default_exclusive_queue: " + *value + "\n")
+		}
+		if value := checkBool(s.DefaultGroupRebalance); value != nil {
+			sb.WriteString("  default_group_rebalance: " + *value + "\n")
+		}
+		if value := checkBool(s.DefaultGroupRebalancePauseDispatch); value != nil {
+			sb.WriteString("  default_group_rebalance_pause_dispatch: " + *value + "\n")
+		}
+		if value := checkInt32(s.DefaultGroupBuckets); value != nil {
+			sb.WriteString("  default_group_buckets: " + *value + "\n")
+		}
+		if value := checkStringSpecial(s.DefaultGroupFirstKey, specials); value != nil {
+			sb.WriteString("  default_group_first_key: " + *value + "\n")
+		}
+		if value := checkInt32(s.DefaultConsumersBeforeDispatch); value != nil {
+			sb.WriteString("  default_consumers_before_dispatch: " + *value + "\n")
+		}
+		if value := checkInt32(s.DefaultDelayBeforeDispatch); value != nil {
+			sb.WriteString("  default_delay_before_dispatch: " + *value + "\n")
+		}
+		if value := checkInt32(s.RedistributionDelay); value != nil {
+			sb.WriteString("  redistribution_delay: " + *value + "\n")
+		}
+		if value := checkBool(s.SendToDlaOnNoRoute); value != nil {
+			sb.WriteString("  send_to_dla_on_no_route: " + *value + "\n")
+		}
+		if value := checkInt32(s.SlowConsumerThreshold); value != nil {
+			sb.WriteString("  slow_consumer_threshold: " + *value + "\n")
+		}
+		if value := checkStringSpecial(s.SlowConsumerPolicy, specials); value != nil {
+			sb.WriteString("  slow_consumer_policy: " + *value + "\n")
+		}
+		if value := checkInt32(s.SlowConsumerCheckPeriod); value != nil {
+			sb.WriteString("  slow_consumer_check_period: " + *value + "\n")
+		}
+		if value := checkBool(s.AutoCreateJmsQueues); value != nil {
+			sb.WriteString("  auto_create_jms_queues: " + *value + "\n")
+		}
+		if value := checkBool(s.AutoDeleteJmsQueues); value != nil {
+			sb.WriteString("  auto_delete_jms_queues: " + *value + "\n")
+		}
+		if value := checkBool(s.AutoCreateJmsTopics); value != nil {
+			sb.WriteString("  auto_create_jms_topics: " + *value + "\n")
+		}
+		if value := checkBool(s.AutoDeleteJmsTopics); value != nil {
+			sb.WriteString("  auto_delete_jms_topics: " + *value + "\n")
+		}
+		if value := checkBool(s.AutoCreateQueues); value != nil {
+			sb.WriteString("  auto_create_queues: " + *value + "\n")
+		}
+		if value := checkBool(s.AutoDeleteQueues); value != nil {
+			sb.WriteString("  auto_delete_queues: " + *value + "\n")
+		}
+		if value := checkBool(s.AutoDeleteCreatedQueues); value != nil {
+			sb.WriteString("  auto_delete_created_queues: " + *value + "\n")
+		}
+		if value := checkInt32(s.AutoDeleteQueuesDelay); value != nil {
+			sb.WriteString("  auto_delete_queues_delay: " + *value + "\n")
+		}
+		if value := checkInt32(s.AutoDeleteQueuesMessageCount); value != nil {
+			sb.WriteString("  auto_delete_queues_message_count: " + *value + "\n")
+		}
+		if value := checkStringSpecial(s.ConfigDeleteQueues, specials); value != nil {
+			sb.WriteString("  config_delete_queues: " + *value + "\n")
+		}
+		if value := checkBool(s.AutoCreateAddresses); value != nil {
+			sb.WriteString("  auto_create_addresses: " + *value + "\n")
+		}
+		if value := checkBool(s.AutoDeleteAddresses); value != nil {
+			sb.WriteString("  auto_delete_addresses: " + *value + "\n")
+		}
+		if value := checkInt32(s.AutoDeleteAddressesDelay); value != nil {
+			sb.WriteString("  auto_delete_addresses_delay: " + *value + "\n")
+		}
+		if value := checkStringSpecial(s.ConfigDeleteAddresses, specials); value != nil {
+			sb.WriteString("  config_delete_addresses: " + *value + "\n")
+		}
+		if value := checkInt32(s.ManagementBrowsePageSize); value != nil {
+			sb.WriteString("  management_browse_page_size: " + *value + "\n")
+		}
+		if value := checkBool(s.DefaultPurgeOnNoConsumers); value != nil {
+			sb.WriteString("  default_purge_on_no_consumers: " + *value + "\n")
+		}
+		if value := checkInt32(s.DefaultMaxConsumers); value != nil {
+			sb.WriteString("  default_max_consumers: " + *value + "\n")
+		}
+		if value := checkStringSpecial(s.DefaultQueueRoutingType, specials); value != nil {
+			sb.WriteString("  default_queue_routing_type: " + *value + "\n")
+		}
+		if value := checkStringSpecial(s.DefaultAddressRoutingType, specials); value != nil {
+			sb.WriteString("  default_address_routing_type: " + *value + "\n")
+		}
+		if value := checkInt32(s.DefaultConsumerWindowSize); value != nil {
+			sb.WriteString("  default_consumer_window_size: " + *value + "\n")
+		}
+		if value := checkInt32(s.DefaultRingSize); value != nil {
+			sb.WriteString("  default_ring_size: " + *value + "\n")
+		}
+		if value := checkInt32(s.RetroactiveMessageCount); value != nil {
+			sb.WriteString("  retroactive_message_count: " + *value + "\n")
+		}
+		if value := checkBool(s.EnableMetrics); value != nil {
+			sb.WriteString("  enable_metrics: " + *value + "\n")
+		}
+		if value := checkInt32(s.ManagementMessageAttributeSizeLimit); value != nil {
+			sb.WriteString("  management_message_attribute_size_limit: " + *value + "\n")
+		}
+		if value := checkStringSpecial(s.SlowConsumerThresholdMeasurementUnit, specials); value != nil {
+			sb.WriteString("  slow_consumer_threshold_measurement_unit: " + *value + "\n")
+		}
+		if value := checkBool(s.EnableIngressTimestamp); value != nil {
+			sb.WriteString("  enable_ingress_timestamp: " + *value + "\n")
+		}
+		if value := checkInt64(s.MaxSizeMessages); value != nil {
+			sb.WriteString("  max_size_messages: " + *value + "\n")
+		}
+		if value := checkStringSpecial(s.ConfigDeleteDiverts, specials); value != nil {
+			sb.WriteString("  config_delete_diverts: " + *value + "\n")
+		}
+	}
+
+}
+
+func processAddressSettingsV1beta2(sb *strings.Builder, addressSettings *[]v1beta2.AddressSettingType, specials map[string]string) {
 
 	if addressSettings == nil || len(*addressSettings) == 0 {
 		return

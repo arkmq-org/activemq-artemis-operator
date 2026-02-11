@@ -61,6 +61,7 @@ import (
 
 	brokerv1alpha1 "github.com/arkmq-org/activemq-artemis-operator/api/v1alpha1"
 	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
+	brokerv1beta2 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
 	brokerv2alpha1 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha1"
 	brokerv2alpha2 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha2"
 	brokerv2alpha3 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha3"
@@ -533,6 +534,12 @@ func createControllerManager(disableMetrics bool, watchNamespace string) {
 		ctrl.Log.Error(err, "unable to create controller", "controller", "ActiveMQArtemisReconciler")
 	}
 
+	brokerV1beta2Reconciler := NewBrokerReconciler(k8Manager, ctrl.Log, isOpenshift)
+
+	if err = brokerV1beta2Reconciler.SetupWithManager(k8Manager); err != nil {
+		ctrl.Log.Error(err, "unable to create controller", "controller", "BrokerReconciler")
+	}
+
 	securityReconciler = &ActiveMQArtemisSecurityReconciler{
 		Client:           k8Manager.GetClient(),
 		Scheme:           k8Manager.GetScheme(),
@@ -834,6 +841,9 @@ func setUpK8sClient() {
 	err = brokerv1beta1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
+	err = brokerv1beta2.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
 	//+kubebuilder:scaffold:scheme
 
 	k8sClient, err = client.NewWithWatch(restConfig, client.Options{Scheme: scheme.Scheme})
@@ -925,6 +935,7 @@ func uninstallCRDs() {
 		"activemqartemisaddresses.broker.amq.io",
 		"activemqartemisscaledowns.broker.amq.io",
 		"activemqartemissecurities.broker.amq.io",
+		"brokers.arkmq.org",
 	}
 
 	for _, crdName := range crdNames {

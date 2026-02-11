@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
+	v1beta2 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -41,9 +41,9 @@ import (
 
 func TestValidate(t *testing.T) {
 
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			ResourceTemplates: []brokerv1beta1.ResourceTemplate{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
+			ResourceTemplates: []v1beta2.ResourceTemplate{
 				{
 					// reserved key
 					Labels: map[string]string{selectors.LabelAppKey: "myAppKey"},
@@ -62,17 +62,17 @@ func TestValidate(t *testing.T) {
 	assert.False(t, valid)
 	assert.False(t, retry)
 
-	assert.True(t, meta.IsStatusConditionFalse(cr.Status.Conditions, brokerv1beta1.ValidConditionType))
+	assert.True(t, meta.IsStatusConditionFalse(cr.Status.Conditions, v1beta2.ValidConditionType))
 
-	condition := meta.FindStatusCondition(cr.Status.Conditions, brokerv1beta1.ValidConditionType)
-	assert.Equal(t, condition.Reason, brokerv1beta1.ValidConditionFailedReservedLabelReason)
+	condition := meta.FindStatusCondition(cr.Status.Conditions, v1beta2.ValidConditionType)
+	assert.Equal(t, condition.Reason, v1beta2.ValidConditionFailedReservedLabelReason)
 	assert.True(t, strings.Contains(condition.Message, "Templates[0]"))
 }
 
 func TestValidateBrokerPropsDuplicate(t *testing.T) {
 
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
 			BrokerProperties: []string{
 				"min=X",
 				"min=y",
@@ -90,17 +90,17 @@ func TestValidateBrokerPropsDuplicate(t *testing.T) {
 	assert.False(t, valid)
 	assert.False(t, retry)
 
-	assert.True(t, meta.IsStatusConditionFalse(cr.Status.Conditions, brokerv1beta1.ValidConditionType))
+	assert.True(t, meta.IsStatusConditionFalse(cr.Status.Conditions, v1beta2.ValidConditionType))
 
-	condition := meta.FindStatusCondition(cr.Status.Conditions, brokerv1beta1.ValidConditionType)
-	assert.Equal(t, condition.Reason, brokerv1beta1.ValidConditionFailedDuplicateBrokerPropertiesKey)
+	condition := meta.FindStatusCondition(cr.Status.Conditions, v1beta2.ValidConditionType)
+	assert.Equal(t, condition.Reason, v1beta2.ValidConditionFailedDuplicateBrokerPropertiesKey)
 	assert.True(t, strings.Contains(condition.Message, "min"))
 }
 
 func TestValidateBrokerPropsDuplicateOnFirstEquals(t *testing.T) {
 
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
 			BrokerProperties: []string{
 				"nameWith\\=equals_not_matched=X",
 				"nameWith\\=equals_not_matched=Y",
@@ -118,17 +118,17 @@ func TestValidateBrokerPropsDuplicateOnFirstEquals(t *testing.T) {
 	assert.False(t, valid)
 	assert.False(t, retry)
 
-	assert.True(t, meta.IsStatusConditionFalse(cr.Status.Conditions, brokerv1beta1.ValidConditionType))
+	assert.True(t, meta.IsStatusConditionFalse(cr.Status.Conditions, v1beta2.ValidConditionType))
 
-	condition := meta.FindStatusCondition(cr.Status.Conditions, brokerv1beta1.ValidConditionType)
-	assert.Equal(t, condition.Reason, brokerv1beta1.ValidConditionFailedDuplicateBrokerPropertiesKey)
+	condition := meta.FindStatusCondition(cr.Status.Conditions, v1beta2.ValidConditionType)
+	assert.Equal(t, condition.Reason, v1beta2.ValidConditionFailedDuplicateBrokerPropertiesKey)
 	assert.True(t, strings.Contains(condition.Message, "nameWith"))
 }
 
 func TestValidateBrokerPropsDuplicateOnFirstEqualsIncorrectButUnrealisticForOurBrokerConfigUsecase(t *testing.T) {
 
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
 			BrokerProperties: []string{
 				"nameWith\\=equals_A_not_matched=X",
 				"nameWith\\=equals_B_not_matched=Y",
@@ -146,27 +146,27 @@ func TestValidateBrokerPropsDuplicateOnFirstEqualsIncorrectButUnrealisticForOurB
 	assert.False(t, valid)
 	assert.False(t, retry)
 
-	assert.True(t, meta.IsStatusConditionFalse(cr.Status.Conditions, brokerv1beta1.ValidConditionType))
+	assert.True(t, meta.IsStatusConditionFalse(cr.Status.Conditions, v1beta2.ValidConditionType))
 
-	condition := meta.FindStatusCondition(cr.Status.Conditions, brokerv1beta1.ValidConditionType)
-	assert.Equal(t, condition.Reason, brokerv1beta1.ValidConditionFailedDuplicateBrokerPropertiesKey)
+	condition := meta.FindStatusCondition(cr.Status.Conditions, v1beta2.ValidConditionType)
+	assert.Equal(t, condition.Reason, v1beta2.ValidConditionFailedDuplicateBrokerPropertiesKey)
 	assert.True(t, strings.Contains(condition.Message, "nameWith"))
 }
 
 func TestStatusPodsCheckCached(t *testing.T) {
 
 	replicas := int32(1)
-	cr := &brokerv1beta1.ActiveMQArtemis{
+	cr := &v1beta2.Broker{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "broker",
 			Namespace: "some-ns",
 		},
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+		Spec: v1beta2.BrokerSpec{
+			DeploymentPlan: v1beta2.DeploymentPlanType{
 				Size: &replicas,
 			},
 		},
-		Status: brokerv1beta1.ActiveMQArtemisStatus{
+		Status: v1beta2.BrokerStatus{
 			DeploymentPlanSize: replicas,
 		},
 	}
@@ -203,9 +203,9 @@ func TestStatusPodsCheckCached(t *testing.T) {
 
 func TestJolokiaStatusCached(t *testing.T) {
 
-	cr := &brokerv1beta1.ActiveMQArtemis{
+	cr := &v1beta2.Broker{
 		ObjectMeta: v1.ObjectMeta{Name: "a"},
-		Spec:       brokerv1beta1.ActiveMQArtemisSpec{},
+		Spec:       v1beta2.BrokerSpec{},
 	}
 
 	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, isOpenshift)
@@ -244,8 +244,8 @@ func TestJolokiaStatusCached(t *testing.T) {
 }
 
 func TestMakeExtraVolumeMounts_NoExtraVolumes(t *testing.T) {
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{},
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{},
 	}
 
 	volumeMounts := MakeExtraVolumeMounts(cr)
@@ -253,9 +253,9 @@ func TestMakeExtraVolumeMounts_NoExtraVolumes(t *testing.T) {
 }
 
 func TestMakeExtraVolumeMounts_WithExtraVolumes(t *testing.T) {
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
+			DeploymentPlan: v1beta2.DeploymentPlanType{
 				ExtraVolumes: []corev1.Volume{
 					{
 						Name: "my-volume",
@@ -275,9 +275,9 @@ func TestMakeExtraVolumeMounts_WithExtraVolumes(t *testing.T) {
 }
 
 func TestMakeExtraVolumeMounts_WithExtraVolumesAndMountOverride(t *testing.T) {
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
+			DeploymentPlan: v1beta2.DeploymentPlanType{
 				ExtraVolumes: []corev1.Volume{
 					{
 						Name: "my-volume",
@@ -303,12 +303,12 @@ func TestMakeExtraVolumeMounts_WithExtraVolumesAndMountOverride(t *testing.T) {
 }
 
 func TestMakeExtraVolumeMounts_WithExtraVolumeClaimTemplates(t *testing.T) {
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
-				ExtraVolumeClaimTemplates: []brokerv1beta1.VolumeClaimTemplate{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
+			DeploymentPlan: v1beta2.DeploymentPlanType{
+				ExtraVolumeClaimTemplates: []v1beta2.VolumeClaimTemplate{
 					{
-						ObjectMeta: brokerv1beta1.ObjectMeta{
+						ObjectMeta: v1beta2.ObjectMeta{
 							Name: "my-pvc",
 						},
 						Spec: corev1.PersistentVolumeClaimSpec{
@@ -329,9 +329,9 @@ func TestMakeExtraVolumeMounts_WithExtraVolumeClaimTemplates(t *testing.T) {
 }
 
 func TestMakeExtraVolumeMounts_WithBothExtraVolumesAndClaims(t *testing.T) {
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
+			DeploymentPlan: v1beta2.DeploymentPlanType{
 				ExtraVolumes: []corev1.Volume{
 					{
 						Name: "my-volume",
@@ -340,9 +340,9 @@ func TestMakeExtraVolumeMounts_WithBothExtraVolumesAndClaims(t *testing.T) {
 						},
 					},
 				},
-				ExtraVolumeClaimTemplates: []brokerv1beta1.VolumeClaimTemplate{
+				ExtraVolumeClaimTemplates: []v1beta2.VolumeClaimTemplate{
 					{
-						ObjectMeta: brokerv1beta1.ObjectMeta{
+						ObjectMeta: v1beta2.ObjectMeta{
 							Name: "my-pvc",
 						},
 						Spec: corev1.PersistentVolumeClaimSpec{

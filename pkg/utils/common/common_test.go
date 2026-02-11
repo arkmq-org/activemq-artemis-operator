@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/RHsyseng/operator-utils/pkg/olm"
-	"github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
+	"github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -54,9 +54,9 @@ var _ = Describe("Common Test", func() {
 
 	It("getDeploymentCondition", func() {
 
-		cr := &v1beta1.ActiveMQArtemis{
-			Spec: v1beta1.ActiveMQArtemisSpec{
-				DeploymentPlan: v1beta1.DeploymentPlanType{
+		cr := &v1beta2.Broker{
+			Spec: v1beta2.BrokerSpec{
+				DeploymentPlan: v1beta2.DeploymentPlanType{
 					Size: Int32ToPtr(2),
 				},
 			},
@@ -75,11 +75,11 @@ var _ = Describe("Common Test", func() {
 		cr.Status.PodStatus = olm.DeploymentStatus{
 			Ready: []string{"a", "b", "c"}, // over provisioned still true when scaling down
 		}
-		cr.Status.Conditions = []metav1.Condition{{Status: metav1.ConditionTrue, Type: v1beta1.ScaleDownPendingConditionType, Reason: v1beta1.ScaleDownPendingConditionPendingEmptyReason}}
+		cr.Status.Conditions = []metav1.Condition{{Status: metav1.ConditionTrue, Type: v1beta2.ScaleDownPendingConditionType, Reason: v1beta2.ScaleDownPendingConditionPendingEmptyReason}}
 
 		condition = getDeploymentCondition(cr, nil, true, nil)
 		Expect(condition.Status).Should(BeEquivalentTo(metav1.ConditionTrue))
-		Expect(condition.Reason).ShouldNot(BeEquivalentTo(v1beta1.ScaleDownPendingConditionType))
+		Expect(condition.Reason).ShouldNot(BeEquivalentTo(v1beta2.ScaleDownPendingConditionType))
 
 		cr.Status.PodStatus = olm.DeploymentStatus{
 			Ready: []string{"a"},

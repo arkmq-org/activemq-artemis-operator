@@ -1451,7 +1451,7 @@ var _ = Describe("artemis controller", func() {
 			Expect(matchErr).To(BeNil())
 			Expect(hasMatch).To(BeFalse())
 
-			hasMatch, matchErr = MatchInCapturingLog("The secret " + secret.Name + " is ignored because its onwer references doesn't include ActiveMQArtemis/" + brokerCr.Name)
+			hasMatch, matchErr = MatchInCapturingLog("The secret " + secret.Name + " is ignored because its owner references doesn't include ActiveMQArtemis/" + brokerCr.Name)
 			Expect(matchErr).To(BeNil())
 			Expect(hasMatch).To(BeTrue())
 
@@ -1701,13 +1701,14 @@ var _ = Describe("artemis controller", func() {
 	Context("Versions Test", func() {
 		It("default image to use latest", func() {
 			crd := generateArtemisSpec(defaultNamespace)
-			imageToUse := common.DetermineImageToUse(&crd, "KUBERNETES")
+			brokerObj, convErr := ConvertArtemisToBroker(&crd)
+			Expect(convErr).To(BeNil())
+			imageToUse := common.DetermineImageToUse(brokerObj, "KUBERNETES")
 			Expect(imageToUse).To(Equal(version.GetDefaultKubeImage()), "actual", imageToUse)
 
-			imageToUse = common.DetermineImageToUse(&crd, "INIT")
+			imageToUse = common.DetermineImageToUse(brokerObj, "INIT")
 			Expect(imageToUse).To(Equal(version.GetDefaultInitImage()), "actual", imageToUse)
-			brokerCr := generateArtemisSpec(defaultNamespace)
-			compactVersionToUse, verr := common.DetermineCompactVersionToUse(&brokerCr)
+			compactVersionToUse, verr := common.DetermineCompactVersionToUse(brokerObj)
 			Expect(verr).To(BeNil())
 			Expect(compactVersionToUse).To(Equal(version.GetDefaultCompactVersion()), "actual", compactVersionToUse)
 		})
@@ -3905,8 +3906,11 @@ var _ = Describe("artemis controller", func() {
 			crd.Spec.Console.Expose = true
 			crd.Spec.Console.SSLEnabled = true
 
+			brokerCR, convertErr := ConvertArtemisToBroker(&crd)
+			Expect(convertErr).To(BeNil())
+
 			outer := NewActiveMQArtemisReconciler(k8Manager, ctrl.Log, isOpenshift)
-			reconcilerImpl := NewActiveMQArtemisReconcilerImpl(&crd, outer)
+			reconcilerImpl := NewActiveMQArtemisReconcilerImpl(brokerCR, outer)
 
 			defaultConsoleSecretName := crd.Name + "-console-secret"
 			tlsSecret, err := CreateTlsSecret(defaultConsoleSecretName, defaultNamespace, "password", nil)
@@ -3930,10 +3934,10 @@ var _ = Describe("artemis controller", func() {
 				Name: "init-container",
 			}}
 
-			namer := MakeNamers(&crd)
-			Expect(reconcilerImpl.ProcessConsole(&crd, *namer, brokerReconciler.Client, brokerReconciler.Scheme, currentSS)).Should(Succeed())
+			namers := MakeNamers(brokerCR)
+			Expect(reconcilerImpl.ProcessConsole(brokerCR, *namers, brokerReconciler.Client, brokerReconciler.Scheme, currentSS)).Should(Succeed())
 
-			secretName := namer.SecretsConsoleNameBuilder.Name()
+			secretName := namers.SecretsConsoleNameBuilder.Name()
 			internalSecretName := secretName + "-internal"
 			consoleArgs := "AMQ_CONSOLE_ARGS"
 
@@ -3998,10 +4002,13 @@ var _ = Describe("artemis controller", func() {
 				g.Expect(createdCrd.ResourceVersion).ShouldNot(BeEmpty())
 			}, timeout, interval).Should(Succeed())
 
-			outer := NewActiveMQArtemisReconciler(k8Manager, ctrl.Log, isOpenshift)
-			reconcilerImpl := NewActiveMQArtemisReconcilerImpl(createdCrd, outer)
+			brokerCR, convertErr := ConvertArtemisToBroker(createdCrd)
+			Expect(convertErr).To(BeNil())
 
-			namer := MakeNamers(createdCrd)
+			outer := NewActiveMQArtemisReconciler(k8Manager, ctrl.Log, isOpenshift)
+			reconcilerImpl := NewActiveMQArtemisReconcilerImpl(brokerCR, outer)
+
+			namers := MakeNamers(brokerCR)
 			defaultConsoleSecretName := createdCrd.Name + "-console-secret"
 
 			tlsSecret, err := CreateTlsSecret(defaultConsoleSecretName, defaultNamespace, "password", nil)
@@ -4012,13 +4019,13 @@ var _ = Describe("artemis controller", func() {
 			internalConsoleSecretKey := types.NamespacedName{Namespace: createdCrd.Namespace, Name: internalSecretName}
 
 			currentSS := &appsv1.StatefulSet{}
-			currentSS.Name = namer.SsNameBuilder.Name()
+			currentSS.Name = namers.SsNameBuilder.Name()
 			currentSS.Namespace = defaultNamespace
 
 			By("reconciling expecting generation of secret and secret -internal")
-			reconcilerImpl.ProcessConsole(createdCrd, *namer, k8sClient, k8sClient.Scheme(), currentSS)
+			reconcilerImpl.ProcessConsole(brokerCR, *namers, k8sClient, k8sClient.Scheme(), currentSS)
 			By("creating internal secret via process resources")
-			reconcilerImpl.ProcessResources(createdCrd, k8sClient, k8sClient.Scheme())
+			reconcilerImpl.ProcessResources(brokerCR, k8sClient, k8sClient.Scheme())
 
 			By("finding internal secret with owner ref")
 			createdInternalSecret := &corev1.Secret{}
@@ -4055,10 +4062,10 @@ var _ = Describe("artemis controller", func() {
 			reconcilerImpl.addToDeployed(reflect.TypeOf(corev1.Secret{}), createdInternalSecret)
 
 			By("forcing second reconcile subset with mod to AMQ_CONSOLE_ARGS content for internal secret")
-			createdCrd.Spec.Console.UseClientAuth = true
+			brokerCR.Spec.Console.UseClientAuth = true
 
-			reconcilerImpl.ProcessConsole(createdCrd, *namer, k8sClient, k8sClient.Scheme(), currentSS)
-			reconcilerImpl.ProcessResources(createdCrd, k8sClient, k8sClient.Scheme())
+			reconcilerImpl.ProcessConsole(brokerCR, *namers, k8sClient, k8sClient.Scheme(), currentSS)
+			reconcilerImpl.ProcessResources(brokerCR, k8sClient, k8sClient.Scheme())
 
 			By("finding again internal secret with owner ref")
 			createdInternalSecret = &corev1.Secret{}
@@ -4103,11 +4110,14 @@ var _ = Describe("artemis controller", func() {
 
 			}, timeout, interval).Should(Succeed())
 
+			brokerCR, convertErr := ConvertArtemisToBroker(&crd)
+			Expect(convertErr).To(BeNil())
+
 			outer := NewActiveMQArtemisReconciler(k8Manager, ctrl.Log, isOpenshift)
-			reconcilerImpl := NewActiveMQArtemisReconcilerImpl(&crd, outer)
+			reconcilerImpl := NewActiveMQArtemisReconcilerImpl(brokerCR, outer)
 			reconcilerImpl.deployed = make(map[reflect.Type][]client.Object)
 
-			namer := MakeNamers(&crd)
+			namers := MakeNamers(brokerCR)
 			defaultConsoleSecretName := crd.Name + "-console-secret"
 			internalSecretName := defaultConsoleSecretName + "-internal"
 			internalConsoleSecretKey := types.NamespacedName{Namespace: crd.Namespace, Name: internalSecretName}
@@ -4132,13 +4142,13 @@ var _ = Describe("artemis controller", func() {
 			}, timeout, interval).Should(Succeed())
 
 			currentSS := &appsv1.StatefulSet{}
-			currentSS.Name = namer.SsNameBuilder.Name()
+			currentSS.Name = namers.SsNameBuilder.Name()
 			currentSS.Namespace = defaultNamespace
 
 			By("reconciling expecting generation of secret and adoption of secret -internal")
-			reconcilerImpl.ProcessConsole(createdCrd, *namer, k8sClient, k8sClient.Scheme(), currentSS)
+			reconcilerImpl.ProcessConsole(brokerCR, *namers, k8sClient, k8sClient.Scheme(), currentSS)
 			By("creating internal secret via process resources")
-			reconcilerImpl.ProcessResources(createdCrd, k8sClient, k8sClient.Scheme())
+			reconcilerImpl.ProcessResources(brokerCR, k8sClient, k8sClient.Scheme())
 
 			By("finding internal secret with owner ref updated")
 			Eventually(func(g Gomega) {
@@ -4755,22 +4765,25 @@ var _ = Describe("artemis controller", func() {
 			crd.Spec.DeploymentPlan.Labels["key7"] = "val7"
 			crd.Spec.DeploymentPlan.Labels["key8"] = "val8"
 
-			namer := MakeNamers(&crd)
+			brokerCR, convertErr := ConvertArtemisToBroker(&crd)
+			Expect(convertErr).To(BeNil())
+
+			namers := MakeNamers(brokerCR)
 			namespacedName := types.NamespacedName{Name: crd.Name, Namespace: crd.Namespace}
 
-			crd0 := crd.DeepCopy()
+			crd0 := brokerCR.DeepCopy()
 			By("Processing status 0")
-			common.ProcessStatus(crd0, k8sClient, namespacedName, *namer, nil)
+			common.ProcessStatus(crd0, k8sClient, namespacedName, *namers, nil)
 			Expect(crd0.Status.ScaleLabelSelector).ShouldNot(BeEmpty())
 			Expect(sort.StringsAreSorted(strings.Split(crd0.Status.ScaleLabelSelector, ","))).Should(BeTrue())
 
-			crd1 := crd.DeepCopy()
+			crd1 := brokerCR.DeepCopy()
 			By("Processing status 1")
-			common.ProcessStatus(crd1, k8sClient, namespacedName, *namer, nil)
+			common.ProcessStatus(crd1, k8sClient, namespacedName, *namers, nil)
 			Expect(crd1.Status.ScaleLabelSelector).ShouldNot(BeEmpty())
 			Expect(sort.StringsAreSorted(strings.Split(crd1.Status.ScaleLabelSelector, ","))).Should(BeTrue())
 
-			Expect(EqualCRStatus(&crd0.Status, &crd1.Status)).Should(BeTrue())
+			Expect(EqualBrokerCRStatus(&crd0.Status, &crd1.Status)).Should(BeTrue())
 		})
 	})
 
@@ -5612,7 +5625,9 @@ var _ = Describe("artemis controller", func() {
 			}, timeout, interval).Should(Succeed())
 
 			By("checking deployed resources of valid CR")
-			deployedResources, err = common.GetDeployedResources(&validCrd, k8sClient, isOpenshift)
+			validBrokerCR, convertErr := ConvertArtemisToBroker(&validCrd)
+			Expect(convertErr).To(BeNil())
+			deployedResources, err = common.GetDeployedResources(validBrokerCR, k8sClient, isOpenshift)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(deployedResources).ShouldNot(BeEmpty())
 
@@ -5627,7 +5642,9 @@ var _ = Describe("artemis controller", func() {
 				g.Expect(deployedCrd.Name).Should(Equal(invalidCrd.ObjectMeta.Name))
 			}, timeout, interval).Should(Succeed())
 
-			deployedResources, err = common.GetDeployedResources(&invalidCrd, k8sClient, isOpenshift)
+			invalidBrokerCR, convertErr := ConvertArtemisToBroker(&invalidCrd)
+			Expect(convertErr).To(BeNil())
+			deployedResources, err = common.GetDeployedResources(invalidBrokerCR, k8sClient, isOpenshift)
 			Expect(err).Should(Succeed())
 			Expect(deployedResources).Should(BeEmpty())
 
@@ -5662,7 +5679,9 @@ var _ = Describe("artemis controller", func() {
 			}, timeout, interval).Should(Succeed())
 
 			By("checking deployed resources of updated invalid CR")
-			deployedResources, err = common.GetDeployedResources(&validCrd, k8sClient, isOpenshift)
+			validBrokerCR, convertErr = ConvertArtemisToBroker(&validCrd)
+			Expect(convertErr).To(BeNil())
+			deployedResources, err = common.GetDeployedResources(validBrokerCR, k8sClient, isOpenshift)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(deployedResources).ShouldNot(BeEmpty())
 
@@ -5704,7 +5723,9 @@ var _ = Describe("artemis controller", func() {
 				g.Expect(k8sClient.Get(ctx, crdKey, deployed)).Should(Succeed())
 				g.Expect(deployed.Name).Should(Equal(crd.Name))
 
-				deployedResources, err := common.GetDeployedResources(deployed, k8sClient, true)
+				deployedBrokerCR, convertErr := ConvertArtemisToBroker(deployed)
+				g.Expect(convertErr).To(BeNil())
+				deployedResources, err := common.GetDeployedResources(deployedBrokerCR, k8sClient, true)
 				g.Expect(err).Should(Succeed())
 				g.Expect(deployedResources).ShouldNot(BeEmpty())
 				listOfIngress := deployedResources[ingressType]

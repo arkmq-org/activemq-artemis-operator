@@ -14,7 +14,7 @@ limitations under the License.
 package common
 
 import (
-	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
+	v1beta2 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -31,15 +31,15 @@ const (
 
 func SetReadyCondition(conditions *[]metav1.Condition) {
 	condition := newReadyCondition()
-	ready := meta.IsStatusConditionTrue(*conditions, brokerv1beta1.DeployedConditionType)
+	ready := meta.IsStatusConditionTrue(*conditions, v1beta2.DeployedConditionType)
 	for _, c := range *conditions {
-		if c.Type != brokerv1beta1.ReadyConditionType && c.Status == metav1.ConditionFalse {
+		if c.Type != v1beta2.ReadyConditionType && c.Status == metav1.ConditionFalse {
 			ready = false
 		}
 	}
 	if !ready {
 		condition.Status = metav1.ConditionFalse
-		condition.Reason = brokerv1beta1.NotReadyConditionReason
+		condition.Reason = v1beta2.NotReadyConditionReason
 		condition.Message = NotReadyConditionMessage
 	}
 	meta.SetStatusCondition(conditions, condition)
@@ -70,8 +70,8 @@ func IsConditionPresentAndEqualIgnoringMessage(conditions []metav1.Condition, co
 
 func newReadyCondition() metav1.Condition {
 	return metav1.Condition{
-		Type:   brokerv1beta1.ReadyConditionType,
-		Reason: brokerv1beta1.ReadyConditionReason,
+		Type:   v1beta2.ReadyConditionType,
+		Reason: v1beta2.ReadyConditionReason,
 		Status: metav1.ConditionTrue,
 	}
 }

@@ -1,0 +1,52 @@
+apiVersion: arkmq.org/v1beta2
+kind: Broker
+metadata:
+  name: ex-broker
+spec:
+  deploymentPlan:
+    size: 1
+    image: placeholder
+    requireLogin: false
+    persistenceEnabled: false
+    journalType: nio
+    messageMigration: false
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1024Mi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+    storage:
+      size: "4Gi"
+    jolokiaAgentEnabled: false
+    managementRBACEnabled: true
+  console:
+    expose: true
+  acceptors:
+    - name: amqp
+      protocols: amqp
+      port: 5672
+      sslEnabled: false
+      needClientAuth: true
+      wantClientAuth: true
+      verifyHost: true
+      sslProvider: JDK
+      sniHost: localhost
+      expose: true
+      anycastPrefix: jms.queue.
+      multicastPrefix: /topic/
+  connectors:
+    - name: connector0
+      host: localhost
+      port: 22222
+      sslEnabled: false
+      needClientAuth: true
+      wantClientAuth: true
+      verifyHost: true
+      sslProvider: JDK
+      sniHost: localhost
+      expose: true
+  upgrades:
+      enabled: false
+      minor: false

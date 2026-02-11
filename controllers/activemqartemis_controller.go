@@ -48,6 +48,7 @@ import (
 	"github.com/pkg/errors"
 
 	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
+	v1beta2 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/selectors"
 )
@@ -151,11 +152,11 @@ func NewActiveMQArtemisReconciler(cluster cluster.Cluster, logger logr.Logger, i
 func (r *ActiveMQArtemisReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name, "Reconciling", "ActiveMQArtemis")
 
-	customResource := &brokerv1beta1.ActiveMQArtemis{}
+	artemisResource := &brokerv1beta1.ActiveMQArtemis{}
 
 	result := ctrl.Result{}
 
-	err := r.Get(context.TODO(), request.NamespacedName, customResource)
+	err := r.Get(context.TODO(), request.NamespacedName, artemisResource)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			reqLogger.V(1).Info("ActiveMQArtemis Controller Reconcile encountered a IsNotFound, for request NamespacedName " + request.NamespacedName.String())
@@ -164,6 +165,13 @@ func (r *ActiveMQArtemisReconciler) Reconcile(ctx context.Context, request ctrl.
 		reqLogger.Error(err, "unable to retrieve the ActiveMQArtemis")
 		return result, err
 	}
+
+	customResource, err := ConvertArtemisToBroker(artemisResource)
+	if err != nil {
+		reqLogger.Error(err, "failed to convert ActiveMQArtemis to internal Broker representation")
+		return result, err
+	}
+
 	var reconcileBlocked bool = false
 	if val, present := customResource.Annotations[common.BlockReconcileAnnotation]; present {
 		if boolVal, err := strconv.ParseBool(val); err == nil {
@@ -189,7 +197,12 @@ func (r *ActiveMQArtemisReconciler) Reconcile(ctx context.Context, request ctrl.
 	common.UpdateBlockedStatus(customResource, reconcileBlocked)
 	common.ProcessStatus(customResource, r.Client, request.NamespacedName, *namer, err)
 
-	crStatusUpdateErr := r.UpdateCRStatus(customResource, r.Client, request.NamespacedName)
+	if convertErr := ConvertBrokerStatusToArtemis(customResource, artemisResource); convertErr != nil {
+		reqLogger.Error(convertErr, "failed to convert status back to ActiveMQArtemis")
+		return result, convertErr
+	}
+
+	crStatusUpdateErr := r.UpdateCRStatus(artemisResource, r.Client, request.NamespacedName)
 	if crStatusUpdateErr != nil {
 		requeueRequest = true
 	}
@@ -210,12 +223,12 @@ func (r *ActiveMQArtemisReconciler) Reconcile(ctx context.Context, request ctrl.
 	return result, err
 }
 
-func (r *ActiveMQArtemisReconcilerImpl) validate(customResource *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, namer common.Namers) (bool, retry bool) {
+func (r *ActiveMQArtemisReconcilerImpl) validate(customResource *v1beta2.Broker, client rtclient.Client, namer common.Namers) (bool, retry bool) {
 	// Do additional validation here
 	validationCondition := metav1.Condition{
-		Type:   brokerv1beta1.ValidConditionType,
+		Type:   v1beta2.ValidConditionType,
 		Status: metav1.ConditionTrue,
-		Reason: brokerv1beta1.ValidConditionSuccessReason,
+		Reason: v1beta2.ValidConditionSuccessReason,
 	}
 
 	condition, retry := validateExtraMounts(customResource, client)
@@ -291,13 +304,13 @@ func (r *ActiveMQArtemisReconcilerImpl) validate(customResource *brokerv1beta1.A
 	return validationCondition.Status != metav1.ConditionFalse, retry
 }
 
-func validateNoDupKeysInBrokerProperties(customResource *brokerv1beta1.ActiveMQArtemis) (*metav1.Condition, bool) {
+func validateNoDupKeysInBrokerProperties(customResource *v1beta2.Broker) (*metav1.Condition, bool) {
 	if len(customResource.Spec.BrokerProperties) > 0 {
 		if duplicateKey := DuplicateKeyIn(customResource.Spec.BrokerProperties); duplicateKey != "" {
 			return &metav1.Condition{
-				Type:    brokerv1beta1.ValidConditionType,
+				Type:    v1beta2.ValidConditionType,
 				Status:  metav1.ConditionFalse,
-				Reason:  brokerv1beta1.ValidConditionFailedDuplicateBrokerPropertiesKey,
+				Reason:  v1beta2.ValidConditionFailedDuplicateBrokerPropertiesKey,
 				Message: fmt.Sprintf(".Spec.BrokerProperties has a duplicate key for %v", duplicateKey),
 			}, false
 		}
@@ -306,14 +319,14 @@ func validateNoDupKeysInBrokerProperties(customResource *brokerv1beta1.ActiveMQA
 	return nil, false
 }
 
-func validateReservedLabels(customResource *brokerv1beta1.ActiveMQArtemis) *metav1.Condition {
+func validateReservedLabels(customResource *v1beta2.Broker) *metav1.Condition {
 	if customResource.Spec.DeploymentPlan.Labels != nil {
 		for key := range customResource.Spec.DeploymentPlan.Labels {
 			if key == selectors.LabelAppKey || key == selectors.LabelResourceKey {
 				return &metav1.Condition{
-					Type:    brokerv1beta1.ValidConditionType,
+					Type:    v1beta2.ValidConditionType,
 					Status:  metav1.ConditionFalse,
-					Reason:  brokerv1beta1.ValidConditionFailedReservedLabelReason,
+					Reason:  v1beta2.ValidConditionFailedReservedLabelReason,
 					Message: fmt.Sprintf("'%s' is a reserved label, it is not allowed in Spec.DeploymentPlan.Labels", key),
 				}
 			}
@@ -323,9 +336,9 @@ func validateReservedLabels(customResource *brokerv1beta1.ActiveMQArtemis) *meta
 		for key := range template.Labels {
 			if key == selectors.LabelAppKey || key == selectors.LabelResourceKey {
 				return &metav1.Condition{
-					Type:    brokerv1beta1.ValidConditionType,
+					Type:    v1beta2.ValidConditionType,
 					Status:  metav1.ConditionFalse,
-					Reason:  brokerv1beta1.ValidConditionFailedReservedLabelReason,
+					Reason:  v1beta2.ValidConditionFailedReservedLabelReason,
 					Message: fmt.Sprintf("'%s' is a reserved label, it is not allowed in Spec.DeploymentPlan.Templates[%d].Labels", key, index),
 				}
 			}
@@ -334,16 +347,16 @@ func validateReservedLabels(customResource *brokerv1beta1.ActiveMQArtemis) *meta
 	return nil
 }
 
-func validateAcceptorPorts(customResource *brokerv1beta1.ActiveMQArtemis) (*metav1.Condition, bool) {
+func validateAcceptorPorts(customResource *v1beta2.Broker) (*metav1.Condition, bool) {
 	portMap := map[int32]string{}
 
 	for _, acceptor := range customResource.Spec.Acceptors {
 		if acceptor.Port > 0 { // port == 0 is server chooses free port
 			if existingName, duplicate := portMap[acceptor.Port]; duplicate {
 				return &metav1.Condition{
-					Type:    brokerv1beta1.ValidConditionType,
+					Type:    v1beta2.ValidConditionType,
 					Status:  metav1.ConditionFalse,
-					Reason:  brokerv1beta1.ValidConditionFailedDuplicateAcceptorPort,
+					Reason:  v1beta2.ValidConditionFailedDuplicateAcceptorPort,
 					Message: fmt.Sprintf(".Spec.Acceptors %q and %q contain a duplicate port %v", acceptor.Name, existingName, acceptor.Port),
 				}, false
 			}
@@ -353,73 +366,73 @@ func validateAcceptorPorts(customResource *brokerv1beta1.ActiveMQArtemis) (*meta
 	return nil, false
 }
 
-func (r *ActiveMQArtemisReconcilerImpl) validateExposeModes(customResource *brokerv1beta1.ActiveMQArtemis) (*metav1.Condition, bool) {
+func (r *ActiveMQArtemisReconcilerImpl) validateExposeModes(customResource *v1beta2.Broker) (*metav1.Condition, bool) {
 
 	if !r.isOnOpenShift {
 		for _, acceptor := range customResource.Spec.Acceptors {
-			if acceptor.Expose && acceptor.ExposeMode != nil && *acceptor.ExposeMode == brokerv1beta1.ExposeModes.Route {
+			if acceptor.Expose && acceptor.ExposeMode != nil && *acceptor.ExposeMode == v1beta2.ExposeModes.Route {
 				return &metav1.Condition{
-					Type:    brokerv1beta1.ValidConditionType,
+					Type:    v1beta2.ValidConditionType,
 					Status:  metav1.ConditionFalse,
-					Reason:  brokerv1beta1.ValidConditionFailedInvalidExposeMode,
+					Reason:  v1beta2.ValidConditionFailedInvalidExposeMode,
 					Message: fmt.Sprintf(".Spec.Acceptors %q has invalid expose mode route, it is only supported on OpenShift", acceptor.Name),
 				}, false
 			}
 		}
 
 		for _, connector := range customResource.Spec.Connectors {
-			if connector.Expose && connector.ExposeMode != nil && *connector.ExposeMode == brokerv1beta1.ExposeModes.Route {
+			if connector.Expose && connector.ExposeMode != nil && *connector.ExposeMode == v1beta2.ExposeModes.Route {
 				return &metav1.Condition{
-					Type:    brokerv1beta1.ValidConditionType,
+					Type:    v1beta2.ValidConditionType,
 					Status:  metav1.ConditionFalse,
-					Reason:  brokerv1beta1.ValidConditionFailedInvalidExposeMode,
+					Reason:  v1beta2.ValidConditionFailedInvalidExposeMode,
 					Message: fmt.Sprintf(".Spec.Connectors %q has invalid expose mode route, it is only supported on OpenShift", connector.Name),
 				}, false
 			}
 		}
 
 		console := customResource.Spec.Console
-		if console.Expose && console.ExposeMode != nil && *console.ExposeMode == brokerv1beta1.ExposeModes.Route {
+		if console.Expose && console.ExposeMode != nil && *console.ExposeMode == v1beta2.ExposeModes.Route {
 			return &metav1.Condition{
-				Type:    brokerv1beta1.ValidConditionType,
+				Type:    v1beta2.ValidConditionType,
 				Status:  metav1.ConditionFalse,
-				Reason:  brokerv1beta1.ValidConditionFailedInvalidExposeMode,
+				Reason:  v1beta2.ValidConditionFailedInvalidExposeMode,
 				Message: ".Spec.Console has invalid expose mode route, it is only supported on OpenShift",
 			}, false
 		}
 	}
 
 	for _, acceptor := range customResource.Spec.Acceptors {
-		if acceptor.Expose && (acceptor.ExposeMode != nil && *acceptor.ExposeMode == brokerv1beta1.ExposeModes.Ingress || !r.isOnOpenShift) &&
+		if acceptor.Expose && (acceptor.ExposeMode != nil && *acceptor.ExposeMode == v1beta2.ExposeModes.Ingress || !r.isOnOpenShift) &&
 			customResource.Spec.IngressDomain == "" && acceptor.IngressHost == "" {
 			return &metav1.Condition{
-				Type:    brokerv1beta1.ValidConditionType,
+				Type:    v1beta2.ValidConditionType,
 				Status:  metav1.ConditionFalse,
-				Reason:  brokerv1beta1.ValidConditionFailedInvalidIngressSettings,
+				Reason:  v1beta2.ValidConditionFailedInvalidIngressSettings,
 				Message: fmt.Sprintf(".Spec.Acceptors %q has invalid ingress settings, IngressHost unspecified and no Spec.IngressDomain default domain provided", acceptor.Name),
 			}, false
 		}
 	}
 
 	for _, connector := range customResource.Spec.Connectors {
-		if connector.Expose && (connector.ExposeMode != nil && *connector.ExposeMode == brokerv1beta1.ExposeModes.Ingress || !r.isOnOpenShift) &&
+		if connector.Expose && (connector.ExposeMode != nil && *connector.ExposeMode == v1beta2.ExposeModes.Ingress || !r.isOnOpenShift) &&
 			customResource.Spec.IngressDomain == "" && connector.IngressHost == "" {
 			return &metav1.Condition{
-				Type:    brokerv1beta1.ValidConditionType,
+				Type:    v1beta2.ValidConditionType,
 				Status:  metav1.ConditionFalse,
-				Reason:  brokerv1beta1.ValidConditionFailedInvalidIngressSettings,
+				Reason:  v1beta2.ValidConditionFailedInvalidIngressSettings,
 				Message: fmt.Sprintf(".Spec.Connectors %q has invalid ingress settings, IngressHost unspecified and no Spec.IngressDomain default domain provided", connector.Name),
 			}, false
 		}
 	}
 
 	console := customResource.Spec.Console
-	if console.Expose && (console.ExposeMode != nil && *console.ExposeMode == brokerv1beta1.ExposeModes.Ingress || !r.isOnOpenShift) &&
+	if console.Expose && (console.ExposeMode != nil && *console.ExposeMode == v1beta2.ExposeModes.Ingress || !r.isOnOpenShift) &&
 		customResource.Spec.IngressDomain == "" && console.IngressHost == "" {
 		return &metav1.Condition{
-			Type:    brokerv1beta1.ValidConditionType,
+			Type:    v1beta2.ValidConditionType,
 			Status:  metav1.ConditionFalse,
-			Reason:  brokerv1beta1.ValidConditionFailedInvalidIngressSettings,
+			Reason:  v1beta2.ValidConditionFailedInvalidIngressSettings,
 			Message: ".Spec.Console has invalid ingress settings, IngressHost unspecified and no Spec.IngressDomain default domain provided",
 		}, false
 	}
@@ -427,7 +440,7 @@ func (r *ActiveMQArtemisReconcilerImpl) validateExposeModes(customResource *brok
 	return nil, false
 }
 
-func (r *ActiveMQArtemisReconcilerImpl) validateEnvVars(customResource *brokerv1beta1.ActiveMQArtemis) (*metav1.Condition, bool) {
+func (r *ActiveMQArtemisReconcilerImpl) validateEnvVars(customResource *v1beta2.Broker) (*metav1.Condition, bool) {
 
 	internalVarNames := map[string]string{
 		debugArgsEnvVarName:      debugArgsEnvVarName,
@@ -447,9 +460,9 @@ func (r *ActiveMQArtemisReconcilerImpl) validateEnvVars(customResource *brokerv1
 
 	if len(invalidVars) > 0 {
 		return &metav1.Condition{
-			Type:    brokerv1beta1.ValidConditionType,
+			Type:    v1beta2.ValidConditionType,
 			Status:  metav1.ConditionFalse,
-			Reason:  brokerv1beta1.ValidConditionInvalidInternalVarUsage,
+			Reason:  v1beta2.ValidConditionInvalidInternalVarUsage,
 			Message: fmt.Sprintf("Don't use valueFrom on env vars that the operator can mutate: %v. Instead use a different var and refernece it in its value field.", invalidVars),
 		}, false
 	}
@@ -463,9 +476,9 @@ func (r *ActiveMQArtemisReconcilerImpl) validateStorage() (*metav1.Condition, bo
 			_, err := resource.ParseQuantity(r.customResource.Spec.DeploymentPlan.Storage.Size)
 			if err != nil {
 				return &metav1.Condition{
-					Type:    brokerv1beta1.ValidConditionType,
+					Type:    v1beta2.ValidConditionType,
 					Status:  metav1.ConditionFalse,
-					Reason:  brokerv1beta1.ValidConditionFailureReason,
+					Reason:  v1beta2.ValidConditionFailureReason,
 					Message: fmt.Sprintf(".Spec.DeploymentPlan.Storage.Size quantity string is invalid, %v", err),
 				}, false
 			}
@@ -474,7 +487,7 @@ func (r *ActiveMQArtemisReconcilerImpl) validateStorage() (*metav1.Condition, bo
 	return nil, false
 }
 
-func validateSSLEnabledSecrets(customResource *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, namer common.Namers) (*metav1.Condition, bool) {
+func validateSSLEnabledSecrets(customResource *v1beta2.Broker, client rtclient.Client, namer common.Namers) (*metav1.Condition, bool) {
 
 	var retry = true
 	if customResource.Spec.Console.SSLEnabled {
@@ -488,9 +501,9 @@ func validateSSLEnabledSecrets(customResource *brokerv1beta1.ActiveMQArtemis, cl
 		found := retrieveResource(secretName, customResource.Namespace, &secret, client)
 		if !found {
 			return &metav1.Condition{
-				Type:    brokerv1beta1.ValidConditionType,
+				Type:    v1beta2.ValidConditionType,
 				Status:  metav1.ConditionFalse,
-				Reason:  brokerv1beta1.ValidConditionMissingResourcesReason,
+				Reason:  v1beta2.ValidConditionMissingResourcesReason,
 				Message: fmt.Sprintf(".Spec.Console.SSLEnabled is true but required secret %v is not found", secretName),
 			}, retry
 		}
@@ -523,20 +536,20 @@ func validateSSLEnabledSecrets(customResource *brokerv1beta1.ActiveMQArtemis, cl
 	return nil, false
 }
 
-func validatePodDisruption(customResource *brokerv1beta1.ActiveMQArtemis) *metav1.Condition {
+func validatePodDisruption(customResource *v1beta2.Broker) *metav1.Condition {
 	pdb := customResource.Spec.DeploymentPlan.PodDisruptionBudget
 	if pdb.Selector != nil {
 		return &metav1.Condition{
-			Type:    brokerv1beta1.ValidConditionType,
+			Type:    v1beta2.ValidConditionType,
 			Status:  metav1.ConditionFalse,
-			Reason:  brokerv1beta1.ValidConditionPDBNonNilSelectorReason,
+			Reason:  v1beta2.ValidConditionPDBNonNilSelectorReason,
 			Message: common.PDBNonNilSelectorMessage,
 		}
 	}
 	return nil
 }
 
-func validateExtraMounts(customResource *brokerv1beta1.ActiveMQArtemis, client rtclient.Client) (*metav1.Condition, bool) {
+func validateExtraMounts(customResource *v1beta2.Broker, client rtclient.Client) (*metav1.Condition, bool) {
 
 	instanceCounts := map[string]int{}
 	var Condition *metav1.Condition
@@ -547,9 +560,9 @@ func validateExtraMounts(customResource *brokerv1beta1.ActiveMQArtemis, client r
 		found := retrieveResource(cm, customResource.Namespace, &configMap, client)
 		if !found {
 			return &metav1.Condition{
-				Type:    brokerv1beta1.ValidConditionType,
+				Type:    v1beta2.ValidConditionType,
 				Status:  metav1.ConditionFalse,
-				Reason:  brokerv1beta1.ValidConditionMissingResourcesReason,
+				Reason:  v1beta2.ValidConditionMissingResourcesReason,
 				Message: fmt.Sprintf("%v missing required configMap %v", ContextMessage, cm),
 			}, retry
 		}
@@ -558,9 +571,9 @@ func validateExtraMounts(customResource *brokerv1beta1.ActiveMQArtemis, client r
 			instanceCounts[loggingConfigSuffix]++
 		} else if strings.HasSuffix(cm, jaasConfigSuffix) {
 			Condition = &metav1.Condition{
-				Type:    brokerv1beta1.ValidConditionType,
+				Type:    v1beta2.ValidConditionType,
 				Status:  metav1.ConditionFalse,
-				Reason:  brokerv1beta1.ValidConditionFailedExtraMountReason,
+				Reason:  v1beta2.ValidConditionFailedExtraMountReason,
 				Message: fmt.Sprintf("%v entry %v with suffix %v must be a secret", ContextMessage, cm, jaasConfigSuffix),
 			}
 			retry = false // Cr needs an update
@@ -576,9 +589,9 @@ func validateExtraMounts(customResource *brokerv1beta1.ActiveMQArtemis, client r
 		found := retrieveResource(s, customResource.Namespace, &secret, client)
 		if !found {
 			return &metav1.Condition{
-				Type:    brokerv1beta1.ValidConditionType,
+				Type:    v1beta2.ValidConditionType,
 				Status:  metav1.ConditionFalse,
-				Reason:  brokerv1beta1.ValidConditionMissingResourcesReason,
+				Reason:  v1beta2.ValidConditionMissingResourcesReason,
 				Message: fmt.Sprintf("%v missing required secret %v", ContextMessage, s),
 			}, retry
 		}
@@ -611,9 +624,9 @@ func AssertSyntaxOkOnLoginConfigData(SecretContentForLoginConfigKey []byte, name
 	if !MatchBytesAgainsLoginConfigRegexp(SecretContentForLoginConfigKey) {
 
 		return &metav1.Condition{
-			Type:    brokerv1beta1.ValidConditionType,
+			Type:    v1beta2.ValidConditionType,
 			Status:  metav1.ConditionFalse,
-			Reason:  brokerv1beta1.ValidConditionFailedExtraMountReason,
+			Reason:  v1beta2.ValidConditionFailedExtraMountReason,
 			Message: fmt.Sprintf("%s content of login.config key in secret %v does not match supported jaas config file syntax", contextMessage, name),
 		}
 	}
@@ -640,9 +653,9 @@ func AssertInstanceCounts(instanceCounts map[string]int) *metav1.Condition {
 	for key, v := range instanceCounts {
 		if v > 1 {
 			return &metav1.Condition{
-				Type:    brokerv1beta1.ValidConditionType,
+				Type:    v1beta2.ValidConditionType,
 				Status:  metav1.ConditionFalse,
-				Reason:  brokerv1beta1.ValidConditionFailedExtraMountReason,
+				Reason:  v1beta2.ValidConditionFailedExtraMountReason,
 				Message: fmt.Sprintf("Spec.DeploymentPlan.ExtraMounts, entry with suffix %v can only be supplied once", key),
 			}
 		}
@@ -653,9 +666,9 @@ func AssertInstanceCounts(instanceCounts map[string]int) *metav1.Condition {
 func AssertConfigMapContainsKey(configMap corev1.ConfigMap, key string, contextMessage string) *metav1.Condition {
 	if _, present := configMap.Data[key]; !present {
 		return &metav1.Condition{
-			Type:    brokerv1beta1.ValidConditionType,
+			Type:    v1beta2.ValidConditionType,
 			Status:  metav1.ConditionFalse,
-			Reason:  brokerv1beta1.ValidConditionFailedExtraMountReason,
+			Reason:  v1beta2.ValidConditionFailedExtraMountReason,
 			Message: fmt.Sprintf("%s configmap %v must have key %v", contextMessage, configMap.Name, key),
 		}
 	}
@@ -667,9 +680,9 @@ func AssertNoDupKeyInProperties(secret corev1.Secret, contextMessage string) *me
 		if !strings.HasPrefix(key, UncheckedPrefix) && strings.HasSuffix(key, PropertiesSuffix) {
 			if duplicateKey := DuplicateKeyInPropertiesContent(data); duplicateKey != "" {
 				return &metav1.Condition{
-					Type:    brokerv1beta1.ValidConditionType,
+					Type:    v1beta2.ValidConditionType,
 					Status:  metav1.ConditionFalse,
-					Reason:  brokerv1beta1.ValidConditionFailedExtraMountReason,
+					Reason:  v1beta2.ValidConditionFailedExtraMountReason,
 					Message: fmt.Sprintf("%s properties secret %v entry %v has a duplicate key for %v", contextMessage, secret.Name, key, duplicateKey),
 				}
 			}
@@ -706,17 +719,17 @@ func AssertSecretContainsKey(secret corev1.Secret, key string, contextMessage st
 			return nil
 		}
 		return &metav1.Condition{
-			Type:    brokerv1beta1.ValidConditionType,
+			Type:    v1beta2.ValidConditionType,
 			Status:  metav1.ConditionFalse,
-			Reason:  brokerv1beta1.ValidConditionInvalidCertSecretReason,
+			Reason:  v1beta2.ValidConditionInvalidCertSecretReason,
 			Message: fmt.Sprintf("%s certificate secret %s not valid, must have keys ca.crt tls.crt tls.key", contextMessage, secret.Name),
 		}
 	}
 	if _, present := secret.Data[key]; !present {
 		return &metav1.Condition{
-			Type:    brokerv1beta1.ValidConditionType,
+			Type:    v1beta2.ValidConditionType,
 			Status:  metav1.ConditionFalse,
-			Reason:  brokerv1beta1.ValidConditionFailedExtraMountReason,
+			Reason:  v1beta2.ValidConditionFailedExtraMountReason,
 			Message: fmt.Sprintf("%s secret %v must have key %v", contextMessage, secret.Name, key),
 		}
 	}
@@ -730,9 +743,9 @@ func AssertSecretContainsOneOf(secret corev1.Secret, keys []string, contextMessa
 			return nil
 		}
 		return &metav1.Condition{
-			Type:    brokerv1beta1.ValidConditionType,
+			Type:    v1beta2.ValidConditionType,
 			Status:  metav1.ConditionFalse,
-			Reason:  brokerv1beta1.ValidConditionInvalidCertSecretReason,
+			Reason:  v1beta2.ValidConditionInvalidCertSecretReason,
 			Message: fmt.Sprintf("%s secret %s must contain keys %v", contextMessage, secret.Name, "ca.crt,tls.crt,tls.key"),
 		}
 	}
@@ -743,9 +756,9 @@ func AssertSecretContainsOneOf(secret corev1.Secret, keys []string, contextMessa
 		}
 	}
 	return &metav1.Condition{
-		Type:    brokerv1beta1.ValidConditionType,
+		Type:    v1beta2.ValidConditionType,
 		Status:  metav1.ConditionFalse,
-		Reason:  brokerv1beta1.ValidConditionFailedExtraMountReason,
+		Reason:  v1beta2.ValidConditionFailedExtraMountReason,
 		Message: fmt.Sprintf("%s secret %v must contain one of following keys %v", contextMessage, secret.Name, keys),
 	}
 }
@@ -755,7 +768,7 @@ func retrieveResource(name, namespace string, obj rtclient.Object, client rtclie
 	return err == nil
 }
 
-func hasExtraMounts(cr *brokerv1beta1.ActiveMQArtemis) bool {
+func hasExtraMounts(cr *v1beta2.Broker) bool {
 	if cr == nil {
 		return false
 	}
@@ -765,7 +778,7 @@ func hasExtraMounts(cr *brokerv1beta1.ActiveMQArtemis) bool {
 	return len(cr.Spec.DeploymentPlan.ExtraMounts.Secrets) > 0
 }
 
-func MakeNamers(customResource *brokerv1beta1.ActiveMQArtemis) *common.Namers {
+func MakeNamers(customResource *v1beta2.Broker) *common.Namers {
 	newNamers := common.Namers{
 		SsGlobalName:                  "",
 		SsNameBuilder:                 namer.NamerData{},
@@ -796,7 +809,7 @@ func MakeNamers(customResource *brokerv1beta1.ActiveMQArtemis) *common.Namers {
 	return &newNamers
 }
 
-func GetDefaultLabels(cr *brokerv1beta1.ActiveMQArtemis) map[string]string {
+func GetDefaultLabels(cr *v1beta2.Broker) map[string]string {
 	defaultLabelData := selectors.LabelerData{}
 	defaultLabelData.Base(cr.Name).Suffix("app").Generate()
 	return defaultLabelData.Labels()

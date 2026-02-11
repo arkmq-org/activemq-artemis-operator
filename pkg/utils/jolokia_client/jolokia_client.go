@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
+	v1beta2 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/environments"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/secrets"
@@ -62,7 +62,7 @@ func GetBrokers(resource types.NamespacedName, ssInfos []ss.StatefulSetInfo, cli
 	return artemisArray
 }
 
-func GetMinimalJolokiaAgents(cr *v1beta1.ActiveMQArtemis, client rtclient.Client) []*JkInfo {
+func GetMinimalJolokiaAgents(cr *v1beta2.Broker, client rtclient.Client) []*JkInfo {
 	var artemisArray []*JkInfo = []*JkInfo{} // empty slice
 	var i int32 = 0
 	for i = 0; i < cr.Status.DeploymentPlanSize; i++ {

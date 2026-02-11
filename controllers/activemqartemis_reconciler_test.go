@@ -9,7 +9,7 @@ import (
 
 	"github.com/RHsyseng/operator-utils/pkg/olm"
 	"github.com/RHsyseng/operator-utils/pkg/resource/compare"
-	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
+	"github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -232,7 +232,7 @@ func TestGetSingleStatefulSetStatus(t *testing.T) {
 	ss.Status.Replicas = 1
 	ss.Status.ReadyReplicas = 1
 
-	cr := &brokerv1beta1.ActiveMQArtemis{}
+	cr := &v1beta2.Broker{}
 	statusRunning := common.GetSingleStatefulSetStatus(ss, cr)
 	if statusRunning.Ready[0] != "joe-0" {
 		t.Errorf("not good!, expect correct 0 ordinal %s", statusRunning.Ready[0])
@@ -266,7 +266,7 @@ func TestGetSingleStatefulSetStatus(t *testing.T) {
 }
 
 func TestGetConfigAppliedConfigMapName(t *testing.T) {
-	cr := brokerv1beta1.ActiveMQArtemis{
+	cr := v1beta2.Broker{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-ns",
 			Name:      "test",
@@ -451,10 +451,10 @@ func TestExtractErrors(t *testing.T) {
 }
 
 func TestGetJaasConfigExtraMountPath(t *testing.T) {
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
-				ExtraMounts: brokerv1beta1.ExtraMountsType{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
+			DeploymentPlan: v1beta2.DeploymentPlanType{
+				ExtraMounts: v1beta2.ExtraMountsType{
 					ConfigMaps: []string{
 						"some-cm",
 					},
@@ -470,10 +470,10 @@ func TestGetJaasConfigExtraMountPath(t *testing.T) {
 	assert.Equal(t, path, "/amq/extra/secrets/test-config-jaas-config/login.config")
 	assert.True(t, found)
 
-	cr = &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
-				ExtraMounts: brokerv1beta1.ExtraMountsType{
+	cr = &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
+			DeploymentPlan: v1beta2.DeploymentPlanType{
+				ExtraMounts: v1beta2.ExtraMountsType{
 					ConfigMaps: []string{
 						"test-config",
 						"some-cm",
@@ -492,10 +492,10 @@ func TestGetJaasConfigExtraMountPath(t *testing.T) {
 }
 
 func TestGetJaasConfigExtraMountPathNotPresent(t *testing.T) {
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
-				ExtraMounts: brokerv1beta1.ExtraMountsType{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
+			DeploymentPlan: v1beta2.DeploymentPlanType{
+				ExtraMounts: v1beta2.ExtraMountsType{
 					ConfigMaps: []string{
 						"test-config",
 					},
@@ -510,10 +510,10 @@ func TestGetJaasConfigExtraMountPathNotPresent(t *testing.T) {
 
 func TestNewPodTemplateSpecForCR_IncludesDebugArgs(t *testing.T) {
 
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
-				ExtraMounts: brokerv1beta1.ExtraMountsType{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
+			DeploymentPlan: v1beta2.DeploymentPlanType{
+				ExtraMounts: v1beta2.ExtraMountsType{
 					ConfigMaps: []string{
 						"some-cm",
 					},
@@ -545,19 +545,19 @@ func TestNewPodTemplateSpecForCR_IncludesDebugArgs(t *testing.T) {
 func TestProcess_TemplateIncludesLabelsServiceAndSecret(t *testing.T) {
 
 	var kindMatch string = "Secret"
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
+			DeploymentPlan: v1beta2.DeploymentPlanType{
 				Labels: map[string]string{"myPodKey": "myPodValue"},
 			},
-			ResourceTemplates: []brokerv1beta1.ResourceTemplate{
+			ResourceTemplates: []v1beta2.ResourceTemplate{
 				{
 					// match all
 					Labels: map[string]string{"myKey": "myValue"},
 				},
 				{
 					// match just Secrets
-					Selector: &brokerv1beta1.ResourceSelector{
+					Selector: &v1beta2.ResourceSelector{
 						Kind: &kindMatch,
 					},
 					Labels: map[string]string{"mySecretKey": "mySecretValue"},
@@ -621,18 +621,18 @@ func TestProcess_TemplateIncludesLabelsSecretRegexp(t *testing.T) {
 	var regexpNameMatch string = ".*-props"
 	var exactNameMatch string = "-props"
 
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			ResourceTemplates: []brokerv1beta1.ResourceTemplate{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
+			ResourceTemplates: []v1beta2.ResourceTemplate{
 				{
-					Selector: &brokerv1beta1.ResourceSelector{
+					Selector: &v1beta2.ResourceSelector{
 						// match just -props secrets by name with regex
 						Name: &regexpNameMatch,
 					},
 					Labels: map[string]string{"mySecretKey": "mySecretValue"},
 				},
 				{
-					Selector: &brokerv1beta1.ResourceSelector{
+					Selector: &v1beta2.ResourceSelector{
 						// match just -props secrets by name
 						Name: &exactNameMatch,
 					},
@@ -681,9 +681,9 @@ func TestProcess_TemplateIncludesLabelsSecretRegexp(t *testing.T) {
 
 func TestProcess_TemplateDuplicateKeyReplacesOk(t *testing.T) {
 
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			ResourceTemplates: []brokerv1beta1.ResourceTemplate{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
+			ResourceTemplates: []v1beta2.ResourceTemplate{
 				{
 					Labels: map[string]string{"mySecretKey": "mySecretValueWillBeReplacedByDuplicate"},
 				},
@@ -718,9 +718,9 @@ func TestProcess_TemplateDuplicateKeyReplacesOk(t *testing.T) {
 
 func Test_Respect_existing_JAVA_OPTS_properties_def(t *testing.T) {
 
-	cr := &brokerv1beta1.ActiveMQArtemis{
+	cr := &v1beta2.Broker{
 		ObjectMeta: metav1.ObjectMeta{Name: "cr"},
-		Spec:       brokerv1beta1.ActiveMQArtemisSpec{},
+		Spec:       v1beta2.BrokerSpec{},
 	}
 
 	outer := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log.WithName("Test_Respect_existing_JAVA_OPTS_properties_def"), isOpenshift)
@@ -768,17 +768,17 @@ func TestProcess_TemplateKeyValue(t *testing.T) {
 	var kindMatch string = "Service"
 	var matchOrdinalServices string = ".+-[0-9]+-svc"
 	var matchGvForIngress string = "networking.k8s.io/v1"
-	cr := &brokerv1beta1.ActiveMQArtemis{
+	cr := &v1beta2.Broker{
 		ObjectMeta: metav1.ObjectMeta{Name: "cr"},
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			ResourceTemplates: []brokerv1beta1.ResourceTemplate{
+		Spec: v1beta2.BrokerSpec{
+			ResourceTemplates: []v1beta2.ResourceTemplate{
 				{
 					// match all
 					Labels: map[string]string{"myKey": "myValue-$(CR_NAME)"},
 				},
 				{
 					// match Acceptor Services with Ordinals
-					Selector: &brokerv1beta1.ResourceSelector{
+					Selector: &v1beta2.ResourceSelector{
 						Kind: &kindMatch,
 						Name: &matchOrdinalServices,
 					},
@@ -786,13 +786,13 @@ func TestProcess_TemplateKeyValue(t *testing.T) {
 				},
 				{
 					// match Ingress
-					Selector: &brokerv1beta1.ResourceSelector{
+					Selector: &v1beta2.ResourceSelector{
 						APIGroup: &matchGvForIngress,
 					},
 					Annotations: map[string]string{"myIngressKey-$(CR_NAME)": "myValue-$(BROKER_ORDINAL)"},
 				},
 			},
-			Acceptors: []brokerv1beta1.AcceptorType{{
+			Acceptors: []v1beta2.AcceptorType{{
 				Name:   "aa",
 				Port:   563,
 				Expose: true,
@@ -861,13 +861,13 @@ func TestProcess_TemplateCustomAttributeIngress(t *testing.T) {
 
 	var matchGvForIngress string = "networking.k8s.io/v1"
 	var ingressClassVal = "SomeClass"
-	cr := &brokerv1beta1.ActiveMQArtemis{
+	cr := &v1beta2.Broker{
 		ObjectMeta: metav1.ObjectMeta{Name: "cr"},
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			ResourceTemplates: []brokerv1beta1.ResourceTemplate{
+		Spec: v1beta2.BrokerSpec{
+			ResourceTemplates: []v1beta2.ResourceTemplate{
 				{
 					// match Ingress
-					Selector: &brokerv1beta1.ResourceSelector{
+					Selector: &v1beta2.ResourceSelector{
 						APIGroup: &matchGvForIngress,
 					},
 					Annotations: map[string]string{"myIngressKey-$(CR_NAME)": "myValue-$(BROKER_ORDINAL)"},
@@ -879,12 +879,12 @@ func TestProcess_TemplateCustomAttributeIngress(t *testing.T) {
 					},
 				},
 			},
-			Acceptors: []brokerv1beta1.AcceptorType{{
+			Acceptors: []v1beta2.AcceptorType{{
 				Name:       "aa",
 				Port:       563,
 				Expose:     true,
 				SSLEnabled: false,
-				ExposeMode: &brokerv1beta1.ExposeModes.Ingress,
+				ExposeMode: &v1beta2.ExposeModes.Ingress,
 			}},
 		},
 	}
@@ -922,13 +922,13 @@ func TestProcess_TemplateCustomAttributeMisSpellingIngress(t *testing.T) {
 
 	var matchGvForIngress string = "networking.k8s.io/v1"
 	var ingressClassVal = "SomeClass"
-	cr := &brokerv1beta1.ActiveMQArtemis{
+	cr := &v1beta2.Broker{
 		ObjectMeta: metav1.ObjectMeta{Name: "cr"},
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			ResourceTemplates: []brokerv1beta1.ResourceTemplate{
+		Spec: v1beta2.BrokerSpec{
+			ResourceTemplates: []v1beta2.ResourceTemplate{
 				{
 					// match Ingress
-					Selector: &brokerv1beta1.ResourceSelector{
+					Selector: &v1beta2.ResourceSelector{
 						APIGroup: &matchGvForIngress,
 					},
 					Annotations: map[string]string{"myIngressKey-$(CR_NAME)": "myValue-$(BROKER_ORDINAL)"},
@@ -940,12 +940,12 @@ func TestProcess_TemplateCustomAttributeMisSpellingIngress(t *testing.T) {
 					},
 				},
 			},
-			Acceptors: []brokerv1beta1.AcceptorType{{
+			Acceptors: []v1beta2.AcceptorType{{
 				Name:       "aa",
 				Port:       563,
 				Expose:     true,
 				SSLEnabled: false,
-				ExposeMode: &brokerv1beta1.ExposeModes.Ingress,
+				ExposeMode: &v1beta2.ExposeModes.Ingress,
 			}},
 		},
 	}
@@ -981,12 +981,12 @@ func testTemplateCustomAttributeContainerSecurityContext(t *testing.T, withCRNam
 		containerName = "$(CR_NAME)-container"
 	}
 
-	cr := &brokerv1beta1.ActiveMQArtemis{
+	cr := &v1beta2.Broker{
 		ObjectMeta: metav1.ObjectMeta{Name: "cr"},
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			ResourceTemplates: []brokerv1beta1.ResourceTemplate{
+		Spec: v1beta2.BrokerSpec{
+			ResourceTemplates: []v1beta2.ResourceTemplate{
 				{
-					Selector: &brokerv1beta1.ResourceSelector{
+					Selector: &v1beta2.ResourceSelector{
 						Kind: &kindMatchSs,
 					},
 					Patch: &unstructured.Unstructured{Object: map[string]interface{}{
@@ -1041,12 +1041,12 @@ func TestProcess_TemplateCustomAttributePriorityClassName(t *testing.T) {
 
 	var kindMatchSs string = "StatefulSet"
 
-	cr := &brokerv1beta1.ActiveMQArtemis{
+	cr := &v1beta2.Broker{
 		ObjectMeta: metav1.ObjectMeta{Name: "cr"},
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			ResourceTemplates: []brokerv1beta1.ResourceTemplate{
+		Spec: v1beta2.BrokerSpec{
+			ResourceTemplates: []v1beta2.ResourceTemplate{
 				{
-					Selector: &brokerv1beta1.ResourceSelector{
+					Selector: &v1beta2.ResourceSelector{
 						Kind: &kindMatchSs,
 					},
 					Patch: &unstructured.Unstructured{Object: map[string]interface{}{
@@ -1090,16 +1090,16 @@ func TestProcess_TemplateCustomAttributePriorityClassName(t *testing.T) {
 
 func TestNewPodTemplateSpecForCR_AppendsDebugArgs(t *testing.T) {
 
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
 			Env: []v1.EnvVar{
 				{
 					Name:  "DEBUG_ARGS",
 					Value: "-Dtest.arg=foo",
 				},
 			},
-			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
-				ExtraMounts: brokerv1beta1.ExtraMountsType{
+			DeploymentPlan: v1beta2.DeploymentPlanType{
+				ExtraMounts: v1beta2.ExtraMountsType{
 					ConfigMaps: []string{
 						"some-cm",
 					},
@@ -1128,9 +1128,9 @@ func TestNewPodTemplateSpecForCR_AppendsDebugArgs(t *testing.T) {
 
 func TestNewPodTemplateSpecForCR_IncludesImagePullSecret(t *testing.T) {
 
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
+			DeploymentPlan: v1beta2.DeploymentPlanType{
 				ImagePullSecrets: []v1.LocalObjectReference{
 					{
 						Name: "testPullSecret",
@@ -1161,9 +1161,9 @@ func TestNewPodTemplateSpecForCR_IncludesTopologySpreadConstraints(t *testing.T)
 		MatchLabels: matchLabels,
 	}
 
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
+			DeploymentPlan: v1beta2.DeploymentPlanType{
 				TopologySpreadConstraints: []v1.TopologySpreadConstraint{
 					{
 						MaxSkew:           int32(1),
@@ -1195,9 +1195,9 @@ func TestNewPodTemplateSpecForCR_IncludesTopologySpreadConstraints(t *testing.T)
 func TestNewPodTemplateSpecForCR_IncludesContainerSecurityContext(t *testing.T) {
 	containerSecurityContext := &v1.SecurityContext{RunAsNonRoot: utilpointer.Bool(false)}
 
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
+			DeploymentPlan: v1beta2.DeploymentPlanType{
 				ContainerSecurityContext: containerSecurityContext,
 			},
 		},
@@ -1219,9 +1219,9 @@ func TestNewPodTemplateSpecForCR_IncludesContainerSecurityContext(t *testing.T) 
 }
 
 func TestNewPodTemplateSpecForCR_IncludesExtraVolumes(t *testing.T) {
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
+			DeploymentPlan: v1beta2.DeploymentPlanType{
 				ExtraVolumes: []v1.Volume{
 					{
 						Name: "my-extra-volume",
@@ -1269,9 +1269,9 @@ func TestNewPodTemplateSpecForCR_IncludesExtraVolumes(t *testing.T) {
 }
 
 func TestNewPodTemplateSpecForCR_IncludesExtraVolumesWithCustomMount(t *testing.T) {
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
+			DeploymentPlan: v1beta2.DeploymentPlanType{
 				ExtraVolumes: []v1.Volume{
 					{
 						Name: "my-extra-volume",
@@ -1325,12 +1325,12 @@ func TestNewPodTemplateSpecForCR_IncludesExtraVolumesWithCustomMount(t *testing.
 }
 
 func TestNewPodTemplateSpecForCR_IncludesExtraVolumeClaimTemplates(t *testing.T) {
-	cr := &brokerv1beta1.ActiveMQArtemis{
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
-			DeploymentPlan: brokerv1beta1.DeploymentPlanType{
-				ExtraVolumeClaimTemplates: []brokerv1beta1.VolumeClaimTemplate{
+	cr := &v1beta2.Broker{
+		Spec: v1beta2.BrokerSpec{
+			DeploymentPlan: v1beta2.DeploymentPlanType{
+				ExtraVolumeClaimTemplates: []v1beta2.VolumeClaimTemplate{
 					{
-						ObjectMeta: brokerv1beta1.ObjectMeta{
+						ObjectMeta: v1beta2.ObjectMeta{
 							Name: "my-pvc",
 						},
 						Spec: v1.PersistentVolumeClaimSpec{
@@ -1551,7 +1551,7 @@ func TestLoginConfigSyntaxCheck(t *testing.T) {
 
 func TestStatusMarshall(t *testing.T) {
 
-	Status := brokerv1beta1.ActiveMQArtemisStatus{
+	Status := v1beta2.BrokerStatus{
 		Conditions: []metav1.Condition{},
 		PodStatus: olm.DeploymentStatus{
 			Ready:    []string{},
@@ -1560,9 +1560,9 @@ func TestStatusMarshall(t *testing.T) {
 		},
 		DeploymentPlanSize: 0,
 		ScaleLabelSelector: "",
-		ExternalConfigs:    []brokerv1beta1.ExternalConfigStatus{},
-		Version:            brokerv1beta1.VersionStatus{},
-		Upgrade:            brokerv1beta1.UpgradeStatus{},
+		ExternalConfigs:    []v1beta2.ExternalConfigStatus{},
+		Version:            v1beta2.VersionStatus{},
+		Upgrade:            v1beta2.UpgradeStatus{},
 	}
 	v, err := json.Marshal(Status)
 	assert.Nil(t, err)
@@ -1571,12 +1571,12 @@ func TestStatusMarshall(t *testing.T) {
 }
 
 func TestGetBrokerHost(t *testing.T) {
-	cr := brokerv1beta1.ActiveMQArtemis{
+	cr := v1beta2.Broker{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-ns",
 			Name:      "test",
 		},
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
+		Spec: v1beta2.BrokerSpec{
 			IngressDomain: "my-domain.com",
 		},
 	}
@@ -1595,12 +1595,12 @@ func TestGetBrokerHost(t *testing.T) {
 }
 
 func TestFormatTemplatedStringWithInvalidVariables(t *testing.T) {
-	cr := brokerv1beta1.ActiveMQArtemis{
+	cr := v1beta2.Broker{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-ns",
 			Name:      "test",
 		},
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
+		Spec: v1beta2.BrokerSpec{
 			IngressDomain: "my-domain.com",
 		},
 	}
@@ -1610,12 +1610,12 @@ func TestFormatTemplatedStringWithInvalidVariables(t *testing.T) {
 }
 
 func TestFormatTemplatedObject(t *testing.T) {
-	cr := brokerv1beta1.ActiveMQArtemis{
+	cr := v1beta2.Broker{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-ns",
 			Name:      "test",
 		},
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{
+		Spec: v1beta2.BrokerSpec{
 			IngressDomain: "my-domain.com",
 		},
 	}
@@ -1753,7 +1753,7 @@ func TestBrokerPropertiesDataWithAndWithoutOrdinal(t *testing.T) {
 }
 
 func TestEnsureOwnerReferenceAPIVersion_NoOwnerReferences(t *testing.T) {
-	cr := &brokerv1beta1.ActiveMQArtemis{
+	cr := &v1beta2.Broker{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "broker.amq.io/v1beta1",
 		},
@@ -1786,7 +1786,7 @@ func TestEnsureOwnerReferenceAPIVersion_NoOwnerReferences(t *testing.T) {
 }
 
 func TestEnsureOwnerReferenceAPIVersion_MatchingAPIVersion(t *testing.T) {
-	cr := &brokerv1beta1.ActiveMQArtemis{
+	cr := &v1beta2.Broker{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "broker.amq.io/v1beta1",
 		},
@@ -1826,7 +1826,7 @@ func TestEnsureOwnerReferenceAPIVersion_MatchingAPIVersion(t *testing.T) {
 }
 
 func TestEnsureOwnerReferenceAPIVersion_DifferentAPIVersion(t *testing.T) {
-	cr := &brokerv1beta1.ActiveMQArtemis{
+	cr := &v1beta2.Broker{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "broker.amq.io/v1beta1",
 		},
@@ -1867,7 +1867,7 @@ func TestEnsureOwnerReferenceAPIVersion_DifferentAPIVersion(t *testing.T) {
 }
 
 func TestEnsureOwnerReferenceAPIVersion_MultipleOwnerReferences(t *testing.T) {
-	cr := &brokerv1beta1.ActiveMQArtemis{
+	cr := &v1beta2.Broker{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "broker.amq.io/v1beta1",
 		},
@@ -1915,7 +1915,7 @@ func TestEnsureOwnerReferenceAPIVersion_MultipleOwnerReferences(t *testing.T) {
 }
 
 func TestEnsureOwnerReferenceAPIVersion_DifferentBrokerName(t *testing.T) {
-	cr := &brokerv1beta1.ActiveMQArtemis{
+	cr := &v1beta2.Broker{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "broker.amq.io/v1beta1",
 		},
@@ -1955,7 +1955,7 @@ func TestEnsureOwnerReferenceAPIVersion_DifferentBrokerName(t *testing.T) {
 }
 
 func TestCompareSecret_WithAPIVersionUpdate(t *testing.T) {
-	cr := &brokerv1beta1.ActiveMQArtemis{
+	cr := &v1beta2.Broker{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "broker.amq.io/v1beta1",
 		},
@@ -2004,7 +2004,7 @@ func TestCompareSecret_WithAPIVersionUpdate(t *testing.T) {
 }
 
 func TestCompareConfigMap_WithAPIVersionUpdate(t *testing.T) {
-	cr := &brokerv1beta1.ActiveMQArtemis{
+	cr := &v1beta2.Broker{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "broker.amq.io/v1beta1",
 		},
@@ -2047,7 +2047,7 @@ func TestCompareConfigMap_WithAPIVersionUpdate(t *testing.T) {
 }
 
 func TestCompareMetaAndSpec_WithAPIVersionUpdate(t *testing.T) {
-	cr := &brokerv1beta1.ActiveMQArtemis{
+	cr := &v1beta2.Broker{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "broker.amq.io/v1beta1",
 		},
