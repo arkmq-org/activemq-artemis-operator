@@ -1,0 +1,232 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package controllers
+
+import (
+	"context"
+	"fmt"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
+	"github.com/go-logr/logr"
+	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+)
+
+func TestBrokerServiceReconcileWithAppMove(t *testing.T) {
+	// Setup scheme
+	scheme := runtime.NewScheme()
+	_ = v1beta1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	// Data
+	ns := "default"
+	s1Name := "service1"
+	s2Name := "service2"
+	appName := "my-app"
+
+	s1 := &v1beta1.BrokerService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      s1Name,
+			Namespace: ns,
+			UID:       types.UID("uid-s1"),
+		},
+	}
+	s2 := &v1beta1.BrokerService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      s2Name,
+			Namespace: ns,
+			UID:       types.UID("uid-s2"),
+		},
+	}
+	app := &v1beta1.BrokerApp{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      appName,
+			Namespace: ns,
+			Annotations: map[string]string{
+				common.AppServiceAnnotation: ns + ":" + s1Name,
+			},
+			UID: types.UID("uid-app"),
+		},
+		Spec: v1beta1.BrokerAppSpec{
+			Acceptor: v1beta1.AppAcceptorType{Port: 61616},
+		},
+	}
+
+	// Setup fake client with indexer
+	builder := fake.NewClientBuilder().WithScheme(scheme).WithObjects(s1, s2, app).WithStatusSubresource(s1, s2, app)
+	builder.WithIndex(&v1beta1.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
+		app := rawObj.(*v1beta1.BrokerApp)
+		val, ok := app.Annotations[common.AppServiceAnnotation]
+		if !ok {
+			return nil
+		}
+		return []string{val}
+	})
+
+	cl := builder.Build()
+
+	// Create Reconciler
+	r := NewBrokerServiceReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+
+	// Reconcile S1
+	reqS1 := ctrl.Request{NamespacedName: types.NamespacedName{Name: s1Name, Namespace: ns}}
+	_, err := r.Reconcile(context.TODO(), reqS1)
+	assert.NoError(t, err)
+
+	// Check S1 secret has app config
+	secretS1 := &corev1.Secret{}
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: AppPropertiesSecretName(s1Name), Namespace: ns}, secretS1)
+	assert.NoError(t, err)
+	// Check for some key related to the app
+	assert.True(t, hasKeyContaining(secretS1.Data, appName), "S1 secret should contain app config")
+
+	// Move App to S2
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: appName, Namespace: ns}, app)
+	assert.NoError(t, err)
+	app.Annotations[common.AppServiceAnnotation] = ns + ":" + s2Name
+	assert.NoError(t, cl.Update(context.TODO(), app))
+
+	// Reconcile S1 (should remove app)
+	_, err = r.Reconcile(context.TODO(), reqS1)
+	assert.NoError(t, err)
+
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: AppPropertiesSecretName(s1Name), Namespace: ns}, secretS1)
+	assert.NoError(t, err)
+	assert.False(t, hasKeyContaining(secretS1.Data, appName), "S1 secret should NOT contain app config after move")
+
+	// Reconcile S2 (should add app)
+	reqS2 := ctrl.Request{NamespacedName: types.NamespacedName{Name: s2Name, Namespace: ns}}
+	_, err = r.Reconcile(context.TODO(), reqS2)
+	assert.NoError(t, err)
+
+	secretS2 := &corev1.Secret{}
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: AppPropertiesSecretName(s2Name), Namespace: ns}, secretS2)
+	assert.NoError(t, err)
+	assert.True(t, hasKeyContaining(secretS2.Data, appName), "S2 secret should contain app config after move")
+}
+
+func hasKeyContaining(data map[string][]byte, substring string) bool {
+	for k := range data {
+		if strings.Contains(k, substring) {
+			return true
+		}
+	}
+	return false
+}
+
+func TestBrokerServiceReconcileErrorPropagation(t *testing.T) {
+	// Setup scheme
+	scheme := runtime.NewScheme()
+	_ = v1beta1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	s1Name := "service1"
+	ns := "default"
+	s1 := &v1beta1.BrokerService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      s1Name,
+			Namespace: ns,
+			UID:       types.UID("uid-s1"),
+		},
+	}
+
+	// Setup fake client with interceptor to fail List
+	interceptorFuncs := interceptor.Funcs{
+		List: func(ctx context.Context, client client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+			if _, ok := list.(*corev1.SecretList); ok {
+				return fmt.Errorf("simulated list error")
+			}
+			return client.List(ctx, list, opts...)
+		},
+	}
+
+	// Setup fake client with indexer
+	builder := fake.NewClientBuilder().WithScheme(scheme).WithObjects(s1).WithStatusSubresource(s1).WithInterceptorFuncs(interceptorFuncs)
+	builder.WithIndex(&v1beta1.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
+		app := rawObj.(*v1beta1.BrokerApp)
+		val, ok := app.Annotations[common.AppServiceAnnotation]
+		if !ok {
+			return nil
+		}
+		return []string{val}
+	})
+
+	cl := builder.Build()
+
+	// Create Reconciler
+	r := NewBrokerServiceReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+
+	// Reconcile S1
+	reqS1 := ctrl.Request{NamespacedName: types.NamespacedName{Name: s1Name, Namespace: ns}}
+	_, err := r.Reconcile(context.TODO(), reqS1)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "simulated list error")
+}
+
+func TestBrokerServiceReconcileStatusUpdateFailure(t *testing.T) {
+	// Setup scheme
+	scheme := runtime.NewScheme()
+	_ = v1beta1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	s1Name := "service1"
+	ns := "default"
+	s1 := &v1beta1.BrokerService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      s1Name,
+			Namespace: ns,
+			UID:       types.UID("uid-s1"),
+		},
+	}
+
+	// Setup fake client with interceptor to fail Status Update
+	interceptorFuncs := interceptor.Funcs{
+		SubResourceUpdate: func(ctx context.Context, client client.Client, subResourceName string, obj client.Object, opts ...client.SubResourceUpdateOption) error {
+			return fmt.Errorf("simulated status update error")
+		},
+	}
+
+	// Setup fake client with indexer
+	builder := fake.NewClientBuilder().WithScheme(scheme).WithObjects(s1).WithStatusSubresource(s1).WithInterceptorFuncs(interceptorFuncs)
+	builder.WithIndex(&v1beta1.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
+		return nil
+	})
+
+	cl := builder.Build()
+
+	// Create Reconciler
+	r := NewBrokerServiceReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+
+	// Reconcile S1
+	reqS1 := ctrl.Request{NamespacedName: types.NamespacedName{Name: s1Name, Namespace: ns}}
+	result, err := r.Reconcile(context.TODO(), reqS1)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "simulated status update error")
+	assert.Equal(t, time.Duration(0), result.RequeueAfter)
+}
