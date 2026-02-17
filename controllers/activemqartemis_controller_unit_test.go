@@ -23,7 +23,9 @@ import (
 	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -38,6 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func TestValidate(t *testing.T) {
@@ -468,4 +471,40 @@ func TestValidateRestrictedNeedsSecret(t *testing.T) {
 	assert.False(t, retry)
 	assert.True(t, meta.IsStatusConditionTrue(cr.Status.Conditions, brokerv1beta1.ValidConditionType))
 
+}
+
+func TestReconcileRequeuesOnNotReady(t *testing.T) {
+	s := runtime.NewScheme()
+	_ = brokerv1beta1.AddToScheme(s)
+	_ = corev1.AddToScheme(s)
+	_ = appsv1.AddToScheme(s)
+
+	crd := &brokerv1beta1.ActiveMQArtemis{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "test-broker",
+			Namespace: "default",
+		},
+		Spec: brokerv1beta1.ActiveMQArtemisSpec{},
+	}
+
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(crd).WithStatusSubresource(crd).Build()
+
+	r := NewActiveMQArtemisReconciler(&NillCluster{}, ctrl.Log, false)
+	r.Client = cl
+	r.Scheme = s
+
+	req := ctrl.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      "test-broker",
+			Namespace: "default",
+		},
+	}
+
+	res, err := r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+	assert.Equal(t, common.GetReconcileResyncPeriod(), res.RequeueAfter)
+
+	// refresh the crd to see the status update
+	assert.NoError(t, cl.Get(context.TODO(), req.NamespacedName, crd))
+	assert.True(t, meta.IsStatusConditionFalse(crd.Status.Conditions, brokerv1beta1.DeployedConditionType))
 }

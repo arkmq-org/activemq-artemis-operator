@@ -29,6 +29,7 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -188,6 +189,13 @@ func (r *ActiveMQArtemisReconciler) Reconcile(ctx context.Context, request ctrl.
 
 	common.UpdateBlockedStatus(customResource, reconcileBlocked)
 	common.ProcessStatus(customResource, r.Client, request.NamespacedName, *namer, err)
+
+	if !requeueRequest {
+		deployedCondition := meta.FindStatusCondition(customResource.Status.Conditions, brokerv1beta1.DeployedConditionType)
+		if deployedCondition != nil && deployedCondition.Status == metav1.ConditionFalse && deployedCondition.Reason == brokerv1beta1.DeployedConditionNotReadyReason {
+			requeueRequest = true
+		}
+	}
 
 	crStatusUpdateErr := r.UpdateCRStatus(customResource, r.Client, request.NamespacedName)
 	if crStatusUpdateErr != nil {
