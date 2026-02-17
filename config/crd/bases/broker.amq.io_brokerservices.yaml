@@ -12,7 +12,7 @@ spec:
     listKind: BrokerServiceList
     plural: brokerservices
     shortNames:
-    - absvc
+    - bsvc
     singular: brokerservice
   scope: Namespaced
   versions:

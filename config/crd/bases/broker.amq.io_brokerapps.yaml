@@ -12,7 +12,7 @@ spec:
     listKind: BrokerAppList
     plural: brokerapps
     shortNames:
-    - abapp
+    - bapp
     singular: brokerapp
   scope: Namespaced
   versions:

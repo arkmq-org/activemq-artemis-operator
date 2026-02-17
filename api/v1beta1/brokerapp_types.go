@@ -24,21 +24,44 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-type BrokerServiceSpec struct {
+type BrokerAppSpec struct {
+	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+	// Important: Run "make" to regenerate code after modifying this file
+
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="ServiceSelector"
+	ServiceSelector *metav1.LabelSelector `json:"selector,omitempty"`
+
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Acceptor"
+	Acceptor AppAcceptorType `json:"acceptor"`
+
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Messaging Capabilities"
+	Capabilities []AppCapabilityType `json:"capabilities,omitempty"`
 
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Resources"
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-
-	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Environment"
-	Env []corev1.EnvVar `json:"env,omitempty"`
-
-	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Broker image"
-	Image *string `json:"image,omitempty"`
 }
 
-type BrokerServiceStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+type AppAcceptorType struct {
+	Port int32 `json:"port"`
+}
+
+type AppAddressType struct {
+	Address string `json:"address"`
+	// Shared *bool `json:"shared,omitempty"`
+	// Filter string `json:"filter,omitempty"`
+}
+
+type AppCapabilityType struct {
+	Role string `json:"role,omitempty"`
+
+	ProducerOf []AppAddressType `json:"producerOf,omitempty"`
+
+	ConsumerOf []AppAddressType `json:"consumerOf,omitempty"`
+
+	SubscriberOf []AppAddressType `json:"subscriberOf,omitempty"`
+}
+
+type BrokerAppStatus struct {
 
 	// Current state of the resource
 	// Conditions represent the latest available observations of an object's state
@@ -52,29 +75,27 @@ type BrokerServiceStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:storageversion
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:path=brokerservices,shortName=absvc
+//+kubebuilder:resource:path=brokerapps,shortName=bapp
 //+operator-sdk:csv:customresourcedefinitions:resources={{"Secret", "v1"}}
-//+operator-sdk:csv:customresourcedefinitions:resources={{"Service", "v1"}}
-//+operator-sdk:csv:customresourcedefinitions:resources={{"ActiveMQArtemis", "v1beta1"}}
 
-// Provides a broker service
-// +operator-sdk:csv:customresourcedefinitions:displayName="Broker Service"
-type BrokerService struct {
+// Describes the messaging requirements of an application
+// +operator-sdk:csv:customresourapplicationcedefinitions:displayName="Apache Artemis Messaging Application"
+type BrokerApp struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   BrokerServiceSpec   `json:"spec,omitempty"`
-	Status BrokerServiceStatus `json:"status,omitempty"`
+	Spec   BrokerAppSpec   `json:"spec,omitempty"`
+	Status BrokerAppStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
-type BrokerServiceList struct {
+type BrokerAppList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []BrokerService `json:"items"`
+	Items           []BrokerApp `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&BrokerService{}, &BrokerServiceList{})
+	SchemeBuilder.Register(&BrokerApp{}, &BrokerAppList{})
 }

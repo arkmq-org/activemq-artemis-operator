@@ -9002,7 +9002,7 @@ spec:
     listKind: BrokerAppList
     plural: brokerapps
     shortNames:
-      - abapp
+      - bapp
     singular: brokerapp
   scope: Namespaced
   versions:
@@ -9256,7 +9256,7 @@ spec:
     listKind: BrokerServiceList
     plural: brokerservices
     shortNames:
-      - absvc
+      - bsvc
     singular: brokerservice
   scope: Namespaced
   versions:

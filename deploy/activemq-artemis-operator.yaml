@@ -8993,7 +8993,7 @@ spec:
     listKind: BrokerAppList
     plural: brokerapps
     shortNames:
-    - abapp
+    - bapp
     singular: brokerapp
   scope: Namespaced
   versions:
@@ -9244,7 +9244,7 @@ spec:
     listKind: BrokerServiceList
     plural: brokerservices
     shortNames:
-    - absvc
+    - bsvc
     singular: brokerservice
   scope: Namespaced
   versions:
@@ -9597,6 +9597,7 @@ rules:
   - activemqartemises
   - activemqartemisscaledowns
   - activemqartemissecurities
+  - brokerapps
   - brokerservices
   verbs:
   - create
@@ -9613,6 +9614,7 @@ rules:
   - activemqartemises/finalizers
   - activemqartemisscaledowns/finalizers
   - activemqartemissecurities/finalizers
+  - brokerapps/finalizers
   - brokerservices/finalizers
   verbs:
   - update
@@ -9623,6 +9625,7 @@ rules:
   - activemqartemises/status
   - activemqartemisscaledowns/status
   - activemqartemissecurities/status
+  - brokerapps/status
   - brokerservices/status
   verbs:
   - get

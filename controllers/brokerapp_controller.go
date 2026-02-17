@@ -52,8 +52,11 @@ func NewBrokerAppReconciler(client client.Client, scheme *runtime.Scheme, config
 	return &reconciler
 }
 
-// +kubebuilder:rbac:groups=broker.amq.io,namespace=activemq-artemis-operator,resources=brokerapps,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=broker.amq.io,namespace=activemq-artemis-operator,resources=brokerapps/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=broker.amq.io,namespace=activemq-artemis-operator,resources=brokerapps,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=broker.amq.io,namespace=activemq-artemis-operator,resources=brokerapps/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=broker.amq.io,namespace=activemq-artemis-operator,resources=brokerapps/finalizers,verbs=update
+//+kubebuilder:rbac:groups=broker.amq.io,namespace=activemq-artemis-operator,resources=brokerservices,verbs=get;list;watch;update
+
 func (reconciler *BrokerAppReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	reqLogger := reconciler.log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name, "Reconciling", "BrokerApp")
 
@@ -161,7 +164,7 @@ func (reconciler *BrokerAppInstanceReconciler) resolveBrokerService() error {
 		meta.SetStatusCondition(&reconciler.instance.Status.Conditions, metav1.Condition{
 			Type:    broker.ValidConditionType,
 			Status:  metav1.ConditionFalse,
-			Reason:  "DepoloyedToNotFound",
+			Reason:  "DeployedToNotFound",
 			Message: err.Error(),
 		})
 		return err

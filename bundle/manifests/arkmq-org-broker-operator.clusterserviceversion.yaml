@@ -5929,6 +5929,7 @@ spec:
           - activemqartemises
           - activemqartemisscaledowns
           - activemqartemissecurities
+          - brokerapps
           - brokerservices
           verbs:
           - create
@@ -5945,6 +5946,7 @@ spec:
           - activemqartemises/finalizers
           - activemqartemisscaledowns/finalizers
           - activemqartemissecurities/finalizers
+          - brokerapps/finalizers
           - brokerservices/finalizers
           verbs:
           - update
@@ -5955,6 +5957,7 @@ spec:
           - activemqartemises/status
           - activemqartemisscaledowns/status
           - activemqartemissecurities/status
+          - brokerapps/status
           - brokerservices/status
           verbs:
           - get
