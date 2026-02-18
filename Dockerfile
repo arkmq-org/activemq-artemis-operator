@@ -64,7 +64,7 @@ COPY --from=builder /opt/app-root/src/entrypoint/entrypoint ${USER_HOME}/bin/ent
 RUN chown -R `id -u`:0 ${USER_HOME}/bin && chmod -R 755 ${USER_HOME}/bin
 
 # Upgrade packages
-RUN microdnf update -y --nobest --setopt=install_weak_deps=0 && rm -rf /var/cache/yum
+RUN microdnf update -y --setopt=install_weak_deps=0 && rm -rf /var/cache/yum
 
 USER ${USER_UID}
 ENTRYPOINT ["${USER_HOME}/bin/entrypoint"]
