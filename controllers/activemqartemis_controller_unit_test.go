@@ -267,6 +267,7 @@ func TestErrOnNotFoundSecret(t *testing.T) {
 	}
 
 	common.SetOperatorNameSpace("test")
+	t.Cleanup(common.UnsetOperatorNameSpace)
 
 	client := fake.NewClientBuilder().WithInterceptorFuncs(interceptorFuncs).Build()
 
@@ -420,6 +421,7 @@ func TestValidateRestrictedNeedsSecret(t *testing.T) {
 	}
 
 	common.SetOperatorNameSpace("test")
+	t.Cleanup(common.UnsetOperatorNameSpace)
 
 	client := fake.NewClientBuilder().WithInterceptorFuncs(interceptorFuncs).Build()
 

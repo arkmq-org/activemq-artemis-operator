@@ -48,6 +48,19 @@ func TestBrokerServiceReconcileWithAppMove(t *testing.T) {
 	s2Name := "service2"
 	appName := "my-app"
 
+	common.SetOperatorCASecretName("op_ca")
+	t.Cleanup(common.UnsetOperatorCASecretName)
+
+	common.SetOperatorNameSpace(ns)
+	t.Cleanup(common.UnsetOperatorNameSpace)
+
+	oc := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "op_ca",
+			Namespace: ns,
+		},
+		Data: map[string][]byte{"ca.pem": []byte("bla")},
+	}
 	s1 := &v1beta1.BrokerService{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      s1Name,
@@ -77,7 +90,7 @@ func TestBrokerServiceReconcileWithAppMove(t *testing.T) {
 	}
 
 	// Setup fake client with indexer
-	builder := fake.NewClientBuilder().WithScheme(scheme).WithObjects(s1, s2, app).WithStatusSubresource(s1, s2, app)
+	builder := fake.NewClientBuilder().WithScheme(scheme).WithObjects(oc, s1, s2, app).WithStatusSubresource(s1, s2, app)
 	builder.WithIndex(&v1beta1.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
 		app := rawObj.(*v1beta1.BrokerApp)
 		val, ok := app.Annotations[common.AppServiceAnnotation]
@@ -229,4 +242,52 @@ func TestBrokerServiceReconcileStatusUpdateFailure(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "simulated status update error")
 	assert.Equal(t, time.Duration(0), result.RequeueAfter)
+}
+
+func TestBrokerServiceReconcileRequiresIndex(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = v1beta1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	// Data
+	ns := "default"
+	s1Name := "service1"
+	appName := "my-app"
+
+	s1 := &v1beta1.BrokerService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      s1Name,
+			Namespace: ns,
+			UID:       types.UID("uid-s1"),
+		},
+	}
+	app := &v1beta1.BrokerApp{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      appName,
+			Namespace: ns,
+			Annotations: map[string]string{
+				common.AppServiceAnnotation: ns + ":" + s1Name,
+			},
+			UID: types.UID("uid-app"),
+		},
+		Spec: v1beta1.BrokerAppSpec{
+			Acceptor: v1beta1.AppAcceptorType{Port: 61616},
+		},
+	}
+
+	// Setup fake client WITHOUT indexer
+	// This simulates what happens if SetupWithManager doesn't register the indexer
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(s1, app).WithStatusSubresource(s1, app).Build()
+
+	// Create Reconciler
+	r := NewBrokerServiceReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+
+	// Reconcile S1
+	reqS1 := ctrl.Request{NamespacedName: types.NamespacedName{Name: s1Name, Namespace: ns}}
+	_, err := r.Reconcile(context.TODO(), reqS1)
+
+	// Expect error because List with MatchingFields requires an index in the fake client (and real client)
+	assert.Error(t, err)
+	// The error message from controller-runtime fake client when index is missing
+	assert.Contains(t, err.Error(), "index")
 }

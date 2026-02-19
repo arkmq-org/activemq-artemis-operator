@@ -140,7 +140,7 @@ func (reconciler *BrokerServiceInstanceReconciler) processSpec() (err error) {
 	return err
 }
 
-func (reconciler *BrokerServiceInstanceReconciler) processBroker() error {
+func (reconciler *BrokerServiceInstanceReconciler) processBroker() (err error) {
 
 	var desired *broker.ActiveMQArtemis
 	obj := reconciler.CloneOfDeployed(reflect.TypeOf(broker.ActiveMQArtemis{}), reconciler.instance.Name)
@@ -168,14 +168,14 @@ func (reconciler *BrokerServiceInstanceReconciler) processBroker() error {
 	}
 
 	// a place the app controller can modify
-	reconciler.processAppSecrets()
+	err = reconciler.processAppSecrets()
 
 	reconciler.TrackDesired(desired)
 
-	return nil
+	return err
 }
 
-func (reconciler *BrokerServiceInstanceReconciler) processAppSecrets() error {
+func (reconciler *BrokerServiceInstanceReconciler) processAppSecrets() (err error) {
 	// avoid restart for app onboarding with existing mount points
 	// TODO potentially N app-secrets to overcome 1Mb size limit
 	resourceName := types.NamespacedName{
@@ -195,7 +195,7 @@ func (reconciler *BrokerServiceInstanceReconciler) processAppSecrets() error {
 	// find all apps that select this service
 	apps := &broker.BrokerAppList{}
 	serviceKey := fmt.Sprintf("%s:%s", reconciler.instance.Namespace, reconciler.instance.Name)
-	if err := reconciler.Client.List(context.TODO(), apps, client.MatchingFields{common.AppServiceAnnotation: serviceKey}); err != nil {
+	if err = reconciler.Client.List(context.TODO(), apps, client.MatchingFields{common.AppServiceAnnotation: serviceKey}); err != nil {
 		return err
 	}
 
@@ -203,18 +203,18 @@ func (reconciler *BrokerServiceInstanceReconciler) processAppSecrets() error {
 	desired.Data = make(map[string][]byte)
 
 	for _, app := range apps.Items {
-		if app.DeletionTimestamp == nil {
-			if err := reconciler.processCapabilities(desired, &app); err != nil {
-				reconciler.log.Error(err, "failed to process capabilities for app", "app", app.Name)
-			}
-			if err := reconciler.processAcceptor(desired, &app); err != nil {
-				reconciler.log.Error(err, "failed to process acceptor for app", "app", app.Name)
-			}
+		if err = reconciler.processCapabilities(desired, &app); err != nil {
+			reconciler.log.Error(err, "failed to process capabilities for app", "app", app.Name)
+			break
+		}
+		if err = reconciler.processAcceptor(desired, &app); err != nil {
+			reconciler.log.Error(err, "failed to process acceptor for app", "app", app.Name)
+			break
 		}
 	}
 
 	reconciler.TrackDesired(desired)
-	return nil
+	return err
 }
 
 func (reconciler *BrokerServiceInstanceReconciler) appPropertiesSecretName() string {

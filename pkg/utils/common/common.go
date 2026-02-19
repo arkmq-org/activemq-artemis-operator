@@ -771,11 +771,23 @@ func GetOperatorCertSecretName() string {
 	return *operatorCertSecretName
 }
 
+func SetOperatorCertSecretName(name string) {
+	operatorCertSecretName = &name
+}
+
 func GetOperatorCASecretName() string {
 	if operatorCASecretName == nil {
 		operatorCASecretName = fromEnv("ACTIVEMQ_ARTEMIS_MANAGER_CA_SECRET_NAME", DefaultOperatorCASecretName)
 	}
 	return *operatorCASecretName
+}
+
+func SetOperatorCASecretName(name string) {
+	operatorCASecretName = &name
+}
+
+func UnsetOperatorCASecretName() {
+	operatorCASecretName = nil
 }
 
 func GetPrometheusCertSecretName(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client) string {
@@ -903,6 +915,10 @@ func GetOperatorNamespaceFromEnv() (ns string, err error) {
 
 func SetOperatorNameSpace(ns string) {
 	operatorNameSpaceFromEnv = &ns
+}
+
+func UnsetOperatorNameSpace() {
+	operatorNameSpaceFromEnv = nil
 }
 
 func GetOperatorCASecret(client rtclient.Client) (*corev1.Secret, error) {
