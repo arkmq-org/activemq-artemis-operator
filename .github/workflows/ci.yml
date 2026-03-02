@@ -50,7 +50,7 @@ jobs:
           echo "HOSTNAME=${HOSTNAME}" >> ${GITHUB_ENV}
 
       - name: Set up Docker
-        uses: docker/setup-docker-action@v4
+        uses: docker/setup-docker-action@v5
         with:
           daemon-config: |
             {
