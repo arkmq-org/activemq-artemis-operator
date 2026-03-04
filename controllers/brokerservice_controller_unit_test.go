@@ -26,6 +26,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -199,6 +200,12 @@ func TestBrokerServiceReconcileErrorPropagation(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "simulated list error")
+
+	err = cl.Get(context.TODO(), reqS1.NamespacedName, s1)
+	assert.Nil(t, err)
+
+	assert.True(t, meta.IsStatusConditionPresentAndEqual(s1.Status.Conditions, v1beta1.DeployedConditionType, metav1.ConditionUnknown))
+	assert.True(t, meta.IsStatusConditionFalse(s1.Status.Conditions, v1beta1.ReadyConditionType))
 }
 
 func TestBrokerServiceReconcileStatusUpdateFailure(t *testing.T) {
@@ -290,4 +297,85 @@ func TestBrokerServiceReconcileRequiresIndex(t *testing.T) {
 	assert.Error(t, err)
 	// The error message from controller-runtime fake client when index is missing
 	assert.Contains(t, err.Error(), "index")
+}
+
+func TestReconcileDeployedConditionTransition(t *testing.T) {
+	// Setup scheme
+	scheme := runtime.NewScheme()
+	_ = v1beta1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	// Data
+	ns := "default"
+	svcName := "my-broker-service"
+
+	// Create BrokerService
+	svc := &v1beta1.BrokerService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      svcName,
+			Namespace: ns,
+		},
+	}
+
+	// Setup fake client with indexer required by controller
+	builder := fake.NewClientBuilder().WithScheme(scheme).WithObjects(svc).WithStatusSubresource(svc, &v1beta1.ActiveMQArtemis{})
+	builder.WithIndex(&v1beta1.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
+		app := rawObj.(*v1beta1.BrokerApp)
+		val, ok := app.Annotations[common.AppServiceAnnotation]
+		if !ok {
+			return nil
+		}
+		return []string{val}
+	})
+	cl := builder.Build()
+
+	// Create Reconciler
+	r := NewBrokerServiceReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+
+	// 1. Reconcile - should create broker but it won't be ready
+	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: svcName, Namespace: ns}}
+	_, err := r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	// Verify Deployed condition is False (NotReady)
+	updatedSvc := &v1beta1.BrokerService{}
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+	assert.NoError(t, err)
+
+	deployedCond := meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta1.DeployedConditionType)
+	assert.NotNil(t, deployedCond)
+	assert.Equal(t, metav1.ConditionFalse, deployedCond.Status)
+	assert.Equal(t, v1beta1.DeployedConditionNotReadyReason, deployedCond.Reason)
+	creationTime := deployedCond.LastTransitionTime
+
+	// Wait a bit to ensure time difference
+	time.Sleep(1 * time.Second)
+
+	// 2. Update underlying ActiveMQArtemis to be Ready
+	brokerCR := &v1beta1.ActiveMQArtemis{}
+	err = cl.Get(context.TODO(), req.NamespacedName, brokerCR)
+	assert.NoError(t, err)
+
+	// Update status of brokerCR
+	meta.SetStatusCondition(&brokerCR.Status.Conditions, metav1.Condition{
+		Type:   v1beta1.ReadyConditionType,
+		Status: metav1.ConditionTrue,
+		Reason: "Ready",
+	})
+	err = cl.Status().Update(context.TODO(), brokerCR)
+	assert.NoError(t, err)
+
+	// Reconcile again
+	_, err = r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	// Verify Deployed condition is True and time updated
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+	assert.NoError(t, err)
+
+	deployedCond = meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta1.DeployedConditionType)
+	assert.NotNil(t, deployedCond)
+	assert.Equal(t, metav1.ConditionTrue, deployedCond.Status)
+	assert.Equal(t, v1beta1.ReadyConditionReason, deployedCond.Reason)
+	assert.True(t, deployedCond.LastTransitionTime.After(creationTime.Time))
 }

@@ -20,9 +20,11 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 
 	broker "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/secrets"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -30,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,6 +46,40 @@ type BrokerAppInstanceReconciler struct {
 	*BrokerAppReconciler
 	instance *broker.BrokerApp
 	service  *broker.BrokerService
+	status   *broker.BrokerAppStatus
+}
+
+func (reconciler BrokerAppInstanceReconciler) processBindingSecret() error {
+
+	bindingSecretNsName := types.NamespacedName{
+		Namespace: reconciler.instance.Namespace,
+		Name:      BindingsSecretName(reconciler.instance.Name),
+	}
+
+	var desired *corev1.Secret
+
+	obj := reconciler.CloneOfDeployed(reflect.TypeOf(corev1.Secret{}), bindingSecretNsName.Name)
+	if obj != nil {
+		desired = obj.(*corev1.Secret)
+	} else {
+		desired = secrets.NewSecret(bindingSecretNsName, nil, nil)
+	}
+
+	if reconciler.service != nil {
+		desired.Data = map[string][]byte{
+			// host as FQQN to work everywhere in the cluster
+			"host": []byte(fmt.Sprintf("%s.%s.svc.%s", reconciler.service.Name, reconciler.service.Namespace, common.GetClusterDomain())),
+			"port": []byte(fmt.Sprintf("%d", reconciler.instance.Spec.Acceptor.Port)),
+			"uri":  []byte(fmt.Sprintf("amqps://%s.%s.svc:%d", reconciler.service.Name, reconciler.service.Namespace, reconciler.instance.Spec.Acceptor.Port)),
+		}
+	} else {
+		desired.Data = nil
+	}
+	reconciler.status.Binding = &corev1.LocalObjectReference{
+		Name: bindingSecretNsName.Name,
+	}
+	reconciler.TrackDesired(desired)
+	return nil
 }
 
 func NewBrokerAppReconciler(client client.Client, scheme *runtime.Scheme, config *rest.Config, logger logr.Logger) *BrokerAppReconciler {
@@ -77,15 +114,21 @@ func (reconciler *BrokerAppReconciler) Reconcile(ctx context.Context, request ct
 	processor := BrokerAppInstanceReconciler{
 		BrokerAppReconciler: &BrokerAppReconciler{ReconcilerLoop: localLoop},
 		instance:            instance,
+		status:              instance.Status.DeepCopy(),
 	}
 
 	reqLogger.V(2).Info("Reconciler Processing...", "CRD.Name", instance.Name, "CRD ver", instance.ObjectMeta.ResourceVersion, "CRD Gen", instance.ObjectMeta.Generation)
-
-	if err = processor.resolveBrokerService(); err == nil {
-		// no-op
+	if err = processor.verifyCapabilityAddressType(); err == nil {
+		if err = processor.resolveBrokerService(); err == nil {
+			if err = processor.InitDeployed(instance, processor.getOwned()...); err == nil {
+				if err = processor.processBindingSecret(); err == nil {
+					err = processor.SyncDesiredWithDeployed(processor.instance)
+				}
+			}
+		}
 	}
 
-	if statusErr := processor.processStatus(instance, err); statusErr != nil {
+	if statusErr := processor.processStatus(err); statusErr != nil {
 		if err == nil {
 			return ctrl.Result{}, statusErr
 		}
@@ -112,7 +155,7 @@ func (reconciler *BrokerAppInstanceReconciler) resolveBrokerService() error {
 	var opts, err = metav1.LabelSelectorAsSelector(reconciler.instance.Spec.ServiceSelector)
 	if err != nil {
 		err = fmt.Errorf("failed to evaluate Spec.Selector %v", err)
-		meta.SetStatusCondition(&reconciler.instance.Status.Conditions, metav1.Condition{
+		meta.SetStatusCondition(&reconciler.status.Conditions, metav1.Condition{
 			Type:    broker.ValidConditionType,
 			Status:  metav1.ConditionFalse,
 			Reason:  "SpecSelectorError",
@@ -123,7 +166,7 @@ func (reconciler *BrokerAppInstanceReconciler) resolveBrokerService() error {
 	err = reconciler.Client.List(context.TODO(), list, &client.ListOptions{LabelSelector: opts})
 	if err != nil {
 		err = fmt.Errorf("Spec.Selector list error %v", err)
-		meta.SetStatusCondition(&reconciler.instance.Status.Conditions, metav1.Condition{
+		meta.SetStatusCondition(&reconciler.status.Conditions, metav1.Condition{
 			Type:    broker.ValidConditionType,
 			Status:  metav1.ConditionFalse,
 			Reason:  "SpecSelectorListError",
@@ -135,7 +178,7 @@ func (reconciler *BrokerAppInstanceReconciler) resolveBrokerService() error {
 
 	if len(list.Items) == 0 {
 		err = fmt.Errorf("no matching services available for selector %v", opts)
-		meta.SetStatusCondition(&reconciler.instance.Status.Conditions, metav1.Condition{
+		meta.SetStatusCondition(&reconciler.status.Conditions, metav1.Condition{
 			Type:    broker.ValidConditionType,
 			Status:  metav1.ConditionFalse,
 			Reason:  "SpecSelectorNoMatch",
@@ -161,7 +204,7 @@ func (reconciler *BrokerAppInstanceReconciler) resolveBrokerService() error {
 
 	if found && service == nil {
 		err = fmt.Errorf("deployed to service from annotation %s not found", deployedTo)
-		meta.SetStatusCondition(&reconciler.instance.Status.Conditions, metav1.Condition{
+		meta.SetStatusCondition(&reconciler.status.Conditions, metav1.Condition{
 			Type:    broker.ValidConditionType,
 			Status:  metav1.ConditionFalse,
 			Reason:  "DeployedToNotFound",
@@ -173,13 +216,12 @@ func (reconciler *BrokerAppInstanceReconciler) resolveBrokerService() error {
 	if !found {
 		service, err = reconciler.findServiceWithCapacity(list)
 		if service != nil {
-			// annotate with service identity
+			// annotate with service identity, the service operator will reconcile
 			common.ApplyAnnotations(&reconciler.instance.ObjectMeta, map[string]string{common.AppServiceAnnotation: annotationNameFromService(service)})
 			err = resources.Update(reconciler.Client, reconciler.instance)
-
 		} else {
 			err = fmt.Errorf("no service with capacity available for selector %v, %v", opts, err)
-			meta.SetStatusCondition(&reconciler.instance.Status.Conditions, metav1.Condition{
+			meta.SetStatusCondition(&reconciler.status.Conditions, metav1.Condition{
 				Type:    broker.ValidConditionType,
 				Status:  metav1.ConditionFalse,
 				Reason:  "NoServiceCapacity",
@@ -188,7 +230,18 @@ func (reconciler *BrokerAppInstanceReconciler) resolveBrokerService() error {
 		}
 	}
 	reconciler.service = service
+	if err == nil {
+		meta.SetStatusCondition(&reconciler.status.Conditions, metav1.Condition{
+			Type:   broker.ValidConditionType,
+			Status: metav1.ConditionTrue,
+			Reason: "ServiceResolved",
+		})
+	}
 	return err
+}
+
+func BindingsSecretName(crName string) string {
+	return fmt.Sprintf("%s-binding-secret", crName)
 }
 
 func annotationNameFromService(service *broker.BrokerService) string {
@@ -201,45 +254,52 @@ func (reconciler *BrokerAppInstanceReconciler) findServiceWithCapacity(list *bro
 	return &first, nil
 }
 
-func (reconciler *BrokerAppInstanceReconciler) processStatus(cr *broker.BrokerApp, reconcilerError error) (err error) {
+func (reconciler *BrokerAppInstanceReconciler) verifyCapabilityAddressType() (err error) {
 
-	var conditions []metav1.Condition = cr.Status.Conditions
+	for _, capability := range reconciler.instance.Spec.Capabilities {
+		for index, address := range capability.SubscriberOf {
+			if !strings.Contains(address.Address, "::") {
+				err = fmt.Errorf("Spec.Capability.SubscriberOf[%d] address must specify a FQQN, %v", index, err)
+				break
+			}
+		}
+	}
+	if err != nil {
+		meta.SetStatusCondition(&reconciler.status.Conditions, metav1.Condition{
+			Type:    broker.ValidConditionType,
+			Status:  metav1.ConditionFalse,
+			Reason:  "AddressTypeError",
+			Message: err.Error(),
+		})
+	}
+	return err
+}
 
-	var reconciledCondition metav1.Condition = metav1.Condition{
-		Type: "Reconciled",
+func (reconciler *BrokerAppInstanceReconciler) processStatus(reconcilerError error) (err error) {
+
+	var deployedCondition metav1.Condition = metav1.Condition{
+		Type: "Deployed",
 	}
 	if reconcilerError != nil {
-		reconciledCondition.Status = metav1.ConditionFalse
-		reconciledCondition.Reason = broker.DeployedConditionCrudKindErrorReason
-		reconciledCondition.Message = fmt.Sprintf("error on resource crud %v", reconcilerError)
-	} else {
-		reconciledCondition.Status = metav1.ConditionTrue
-		reconciledCondition.Reason = "ok"
-	}
+		deployedCondition.Status = metav1.ConditionUnknown
+		deployedCondition.Reason = broker.DeployedConditionCrudKindErrorReason
+		deployedCondition.Message = fmt.Sprintf("error on resource crud %v", reconcilerError)
+	} else if _, found := reconciler.instance.Annotations[common.AppServiceAnnotation]; found {
 
-	meta.SetStatusCondition(&conditions, reconciledCondition)
-
-	/* need some knowledge, typically only one broker or ss, read status in leader follower is
-	type dependent */
-
-	// check for deployed annotation set by service
-
-	if _, found := reconciler.instance.Annotations[common.AppServiceAnnotation]; found {
-
-		var deployedCondition metav1.Condition = metav1.Condition{
-			Type: broker.DeployedConditionType,
-		}
-
+		// conditional on the relevant properties in the broker status or the service status?
 		deployedCondition.Status = metav1.ConditionTrue
 		deployedCondition.Reason = broker.ReadyConditionReason
-		meta.SetStatusCondition(&conditions, deployedCondition)
+
+	} else {
+		deployedCondition.Status = metav1.ConditionFalse
+		deployedCondition.Reason = "NoMatchingService"
 	}
+	meta.SetStatusCondition(&reconciler.status.Conditions, deployedCondition)
+	common.SetReadyCondition(&reconciler.status.Conditions)
 
-	common.SetReadyCondition(&conditions)
-
-	if !reflect.DeepEqual(cr.Status.Conditions, conditions) {
-		cr.Status.Conditions = conditions
-		err = resources.UpdateStatus(reconciler.Client, cr)
+	if !reflect.DeepEqual(reconciler.instance.Status, reconciler.status) {
+		reconciler.instance.Status = *reconciler.status
+		err = resources.UpdateStatus(reconciler.Client, reconciler.instance)
 	}
 	return err
 }

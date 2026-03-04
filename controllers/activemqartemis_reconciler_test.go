@@ -2088,7 +2088,7 @@ func TestCompareMetaAndSpec_WithAPIVersionUpdate(t *testing.T) {
 			},
 		},
 		Spec: appsv1.StatefulSetSpec{
-			Replicas: utilpointer.Int32Ptr(1),
+			Replicas: pointer.To(int32(1)),
 		},
 	}
 
@@ -2101,7 +2101,7 @@ func TestCompareMetaAndSpec_WithAPIVersionUpdate(t *testing.T) {
 			},
 		},
 		Spec: appsv1.StatefulSetSpec{
-			Replicas: utilpointer.Int32Ptr(1),
+			Replicas: pointer.To(int32(1)),
 		},
 	}
 

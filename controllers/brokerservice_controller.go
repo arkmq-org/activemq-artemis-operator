@@ -33,7 +33,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -53,6 +52,7 @@ type BrokerServiceReconciler struct {
 type BrokerServiceInstanceReconciler struct {
 	*BrokerServiceReconciler
 	instance *broker.BrokerService
+	status   *broker.BrokerServiceStatus
 }
 
 func NewBrokerServiceReconciler(client client.Client, scheme *runtime.Scheme, config *rest.Config, logger logr.Logger) *BrokerServiceReconciler {
@@ -88,28 +88,27 @@ func (reconciler *BrokerServiceReconciler) Reconcile(ctx context.Context, reques
 	processor := BrokerServiceInstanceReconciler{
 		BrokerServiceReconciler: &BrokerServiceReconciler{ReconcilerLoop: localLoop},
 		instance:                instance,
+		status:                  instance.Status.DeepCopy(),
 	}
 
 	reqLogger.V(2).Info("Reconciler Processing...", "CRD.Name", instance.Name, "CRD ver", instance.ObjectMeta.ResourceVersion, "CRD Gen", instance.ObjectMeta.Generation)
 
-	err = processor.InitDeployed(instance, processor.getOwned()...)
-	if err != nil {
-		reqLogger.Error(err, "failed to initialised owned resources")
-		return ctrl.Result{}, err
-	}
-
-	// reconcile
-	if err = processor.processSpec(); err == nil {
-		if err = processor.SyncDesiredWithDeployed(instance); err == nil {
-			// all good
+	if err = processor.InitDeployed(instance, processor.getOwned()...); err == nil {
+		// reconcile
+		if err = processor.processSpec(); err == nil {
+			if err = processor.SyncDesiredWithDeployed(instance); err == nil {
+				// all good
+			} else {
+				reqLogger.Error(err, "failed to sync resources")
+			}
 		} else {
-			reqLogger.Error(err, "failed to sync resources")
+			reqLogger.Error(err, "failed to process spec")
 		}
 	} else {
-		reqLogger.Error(err, "failed to process spec")
+		reqLogger.Error(err, "failed to init deployed")
 	}
 
-	if statusErr := processor.processStatus(instance, err); statusErr != nil {
+	if statusErr := processor.processStatus(err); statusErr != nil {
 		if err == nil {
 			return ctrl.Result{}, statusErr
 		}
@@ -233,58 +232,45 @@ func certSecretName(cr *broker.BrokerService) string {
 	return fmt.Sprintf("%s-%s", cr.Name, common.DefaultOperandCertSecretName)
 }
 
-func (reconciler *BrokerServiceInstanceReconciler) processStatus(cr *broker.BrokerService, reconcilerError error) (err error) {
-
-	var conditions []metav1.Condition = nil
-
-	var reconciledCondition metav1.Condition = metav1.Condition{
-		Type: "Reconciled",
-	}
-	if reconcilerError != nil {
-		reconciledCondition.Status = metav1.ConditionFalse
-		reconciledCondition.Reason = broker.DeployedConditionCrudKindErrorReason
-		reconciledCondition.Message = fmt.Sprintf("error on resource crud %v", reconcilerError)
-	} else {
-		reconciledCondition.Status = metav1.ConditionTrue
-		reconciledCondition.Reason = "ok"
-	}
-
-	meta.SetStatusCondition(&conditions, reconciledCondition)
-
-	/* need some knowledge, typically only one broker or ss, read status in leader follower is
-	type dependent */
+func (reconciler *BrokerServiceInstanceReconciler) processStatus(reconcilerError error) (err error) {
 
 	var deployedCondition metav1.Condition = metav1.Condition{
 		Type: broker.DeployedConditionType,
 	}
 
-	var ready bool = false
-	obj := reconciler.CloneOfDeployed(reflect.TypeOf(broker.ActiveMQArtemis{}), cr.Name)
-	if obj != nil {
-		deployed := obj.(*broker.ActiveMQArtemis)
-		brokerReady := meta.FindStatusCondition(deployed.Status.Conditions, broker.ReadyConditionType)
+	if reconcilerError != nil {
+		deployedCondition.Status = metav1.ConditionUnknown
+		deployedCondition.Reason = broker.DeployedConditionCrudKindErrorReason
+		deployedCondition.Message = fmt.Sprintf("error on resource crud %v", reconcilerError)
+	} else {
+		var ready bool = false
+		obj := reconciler.CloneOfDeployed(reflect.TypeOf(broker.ActiveMQArtemis{}), reconciler.instance.Name)
+		if obj != nil {
+			deployed := obj.(*broker.ActiveMQArtemis)
+			brokerReady := meta.FindStatusCondition(deployed.Status.Conditions, broker.ReadyConditionType)
 
-		if brokerReady != nil && brokerReady.Status == metav1.ConditionTrue {
-			ready = true
+			if brokerReady != nil && brokerReady.Status == metav1.ConditionTrue {
+				ready = true
+			} else {
+				deployedCondition.Message = fmt.Sprintf("not ready status %v", deployed.Status)
+			}
+		}
+
+		if ready {
+			deployedCondition.Status = metav1.ConditionTrue
+			deployedCondition.Reason = broker.ReadyConditionReason
 		} else {
-			deployedCondition.Message = fmt.Sprintf("not ready status %v", deployed.Status)
+			deployedCondition.Status = metav1.ConditionFalse
+			deployedCondition.Reason = broker.DeployedConditionNotReadyReason
 		}
 	}
+	meta.SetStatusCondition(&reconciler.status.Conditions, deployedCondition)
 
-	if ready {
-		deployedCondition.Status = metav1.ConditionTrue
-		deployedCondition.Reason = broker.ReadyConditionReason
-	} else {
-		deployedCondition.Status = metav1.ConditionFalse
-		deployedCondition.Reason = broker.DeployedConditionNotReadyReason
-	}
-	meta.SetStatusCondition(&conditions, deployedCondition)
+	common.SetReadyCondition(&reconciler.status.Conditions)
 
-	common.SetReadyCondition(&conditions)
-
-	if !reflect.DeepEqual(cr.Status.Conditions, conditions) {
-		cr.Status.Conditions = conditions
-		err = resources.UpdateStatus(reconciler.Client, cr)
+	if !reflect.DeepEqual(reconciler.instance.Status, reconciler.status) {
+		reconciler.instance.Status = *reconciler.status
+		err = resources.UpdateStatus(reconciler.Client, reconciler.instance)
 	}
 	return err
 }
@@ -301,7 +287,6 @@ func (reconciler *BrokerServiceInstanceReconciler) processService() error {
 	if obj != nil {
 		desired = obj.(*corev1.Service)
 	} else {
-		// TODO labels ?
 		desired = &corev1.Service{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "v1",
@@ -311,18 +296,14 @@ func (reconciler *BrokerServiceInstanceReconciler) processService() error {
 				Name:      reconciler.instance.Name,
 				Namespace: reconciler.instance.Namespace,
 			},
-			Spec: corev1.ServiceSpec{},
+			Spec: corev1.ServiceSpec{
+				ClusterIP: corev1.ClusterIPNone,
+			},
 		}
 	}
 
 	desired.Spec.Selector = map[string]string{
 		getPeerLabelKey(reconciler.instance): reconciler.instance.Name,
-	}
-	desired.Spec.Ports = []corev1.ServicePort{
-		{
-			Port:       DefaultServicePort,
-			TargetPort: intstr.IntOrString{IntVal: DefaultServicePort},
-		},
 	}
 	reconciler.TrackDesired(desired)
 	return nil
@@ -390,12 +371,6 @@ func (t *AddressTracker) track(address *broker.AppAddressType) *AddressConfig {
 }
 
 func (reconciler *BrokerServiceInstanceReconciler) processCapabilities(secret *corev1.Secret, app *broker.BrokerApp) (err error) {
-
-	err = reconciler.verifyCapabilityAddressType(app)
-	if err != nil {
-		return err
-	}
-
 	addressTracker := newAddressTracker()
 
 	for _, capability := range app.Spec.Capabilities {
@@ -458,27 +433,6 @@ func (reconciler *BrokerServiceInstanceReconciler) processCapabilities(secret *c
 	}
 	secret.Data[AppIdentityPrefixed(app, "capabilities.properties")] = buf.Bytes()
 
-	return err
-}
-
-func (reconciler *BrokerServiceInstanceReconciler) verifyCapabilityAddressType(app *broker.BrokerApp) (err error) {
-
-	for _, capability := range app.Spec.Capabilities {
-		for index, address := range capability.SubscriberOf {
-			if !strings.Contains(address.Address, "::") {
-				err = fmt.Errorf("Spec.Capability.SubscriptionOf[%d] address must specify a FQQN, %v", index, err)
-				break
-			}
-		}
-	}
-	if err != nil {
-		meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{
-			Type:    broker.ValidConditionType,
-			Status:  metav1.ConditionFalse,
-			Reason:  "AddressTypeError",
-			Message: err.Error(),
-		})
-	}
 	return err
 }
 
@@ -569,7 +523,6 @@ func (reconciler *BrokerServiceInstanceReconciler) processAcceptor(serverConfigP
 	// need a matching realm
 	fmt.Fprintf(buf, "jaasConfigs.\"%s\".modules.cert.loginModuleClass=org.apache.activemq.artemis.spi.core.security.jaas.TextFileCertificateLoginModule\n", realmName)
 	fmt.Fprintf(buf, "jaasConfigs.\"%s\".modules.cert.controlFlag=required\n", realmName)
-	fmt.Fprintf(buf, "jaasConfigs.\"%s\".modules.cert.params.debug=true\n", realmName)
 	fmt.Fprintf(buf, "jaasConfigs.\"%s\".modules.cert.params.\"org.apache.activemq.jaas.textfiledn.role\"=%s\n", realmName, certRolesCfgKey)
 	fmt.Fprintf(buf, "jaasConfigs.\"%s\".modules.cert.params.\"org.apache.activemq.jaas.textfiledn.user\"=%s\n", realmName, certUsersCfgKey)
 	fmt.Fprintf(buf, "jaasConfigs.\"%s\".modules.cert.params.baseDir=%s%s\n", realmName, secretPathBase, AppPropertiesSecretName(reconciler.instance.Name))

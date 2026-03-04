@@ -127,7 +127,7 @@ var _ = Describe("broker-service", func() {
 			InstallCert(sharedOperandCertName, defaultNamespace, func(candidate *cmv1.Certificate) {
 				candidate.Spec.SecretName = sharedOperandCertName
 				candidate.Spec.CommonName = serviceName
-				candidate.Spec.DNSNames = []string{serviceName, common.ClusterDNSWildCard(serviceName, defaultNamespace)}
+				candidate.Spec.DNSNames = []string{serviceName, fmt.Sprintf("%s.%s", serviceName, defaultNamespace), fmt.Sprintf("%s.%s.svc.%s", serviceName, defaultNamespace, common.GetClusterDomain()), common.ClusterDNSWildCard(serviceName, defaultNamespace)}
 				candidate.Spec.IssuerRef = cmmetav1.ObjectReference{
 					Name: caIssuer.Name,
 					Kind: "ClusterIssuer",
@@ -252,6 +252,7 @@ var _ = Describe("broker-service", func() {
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
 			By("deploying a matching app")
+			appPort := int32(62616)
 			appName := "first-app" // a lowercase RFC 1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')",
 			app := brokerv1beta1.BrokerApp{
 				TypeMeta: metav1.TypeMeta{
@@ -270,7 +271,7 @@ var _ = Describe("broker-service", func() {
 						}},
 
 					Acceptor: brokerv1beta1.AppAcceptorType{
-						Port: 61616,
+						Port: appPort,
 					},
 
 					Capabilities: []brokerv1beta1.AppCapabilityType{
@@ -314,6 +315,7 @@ var _ = Describe("broker-service", func() {
 			By("verify app status")
 			appKey := types.NamespacedName{Name: app.Name, Namespace: crd.Namespace}
 			createdApp := &brokerv1beta1.BrokerApp{}
+			var bindingSecretNameFromAppStatus string
 
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, appKey, createdApp)).Should(Succeed())
@@ -322,6 +324,9 @@ var _ = Describe("broker-service", func() {
 					fmt.Printf("App STATUS: %v\n\n", createdApp.Status.Conditions)
 				}
 				g.Expect(meta.IsStatusConditionTrue(createdApp.Status.Conditions, brokerv1beta1.ReadyConditionType)).Should(BeTrue())
+
+				g.Expect(createdApp.Status.Binding).ShouldNot(BeNil())
+				bindingSecretNameFromAppStatus = createdApp.Status.Binding.Name
 
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
@@ -351,6 +356,7 @@ var _ = Describe("broker-service", func() {
 
 			By("provisioning pemcfg secret for app client cert")
 
+			serviceHostEnvVar := "BROKER_SERVICE_HOST"
 			appClientPemcfgSecretName := "cert-pemcfg"
 			appClientPemcfgKey := types.NamespacedName{Name: appClientPemcfgSecretName, Namespace: defaultNamespace}
 			appClientPemcfgSecret := secrets.NewSecret(appClientPemcfgKey, map[string][]byte{
@@ -381,6 +387,18 @@ var _ = Describe("broker-service", func() {
 											{
 												Name:  "JDK_JAVA_OPTIONS",
 												Value: "-Djava.security.properties=/app/tls/pem/java.security",
+											},
+											{
+												Name: serviceHostEnvVar,
+												ValueFrom: &corev1.EnvVarSource{
+													SecretKeyRef: &corev1.SecretKeySelector{
+														LocalObjectReference: corev1.LocalObjectReference{
+															Name: bindingSecretNameFromAppStatus,
+														},
+														Key:      "host",
+														Optional: &boolFalse,
+													},
+												},
 											},
 										},
 										VolumeMounts: []corev1.VolumeMount{
@@ -433,7 +451,7 @@ var _ = Describe("broker-service", func() {
 			}
 
 			buf := &bytes.Buffer{}
-			fmt.Fprintf(buf, "amqps://%s:%d", serviceName, DefaultServicePort)
+			fmt.Fprintf(buf, "amqps://${%s}:%d", serviceHostEnvVar, appPort)
 			fmt.Fprintf(buf, "?transport.trustStoreType=PEMCA\\&transport.trustStoreLocation=/app/tls/ca/ca.pem")
 			fmt.Fprintf(buf, "\\&transport.keyStoreType=PEMCFG\\&transport.keyStoreLocation=/app/tls/pem/tls.pemcfg")
 

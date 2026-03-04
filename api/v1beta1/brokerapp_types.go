@@ -70,6 +70,8 @@ type BrokerAppStatus struct {
 	//+patchStrategy=merge
 	//+operator-sdk:csv:customresourcedefinitions:type=status,displayName="Conditions",xDescriptors="urn:alm:descriptor:io.kubernetes.conditions"
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,2,rep,name=conditions"`
+
+	Binding *corev1.LocalObjectReference `json:"binding,omitempty"`
 }
 
 //+kubebuilder:object:root=true

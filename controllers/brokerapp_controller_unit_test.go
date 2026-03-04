@@ -90,9 +90,22 @@ func TestSimpleReconcile(t *testing.T) {
 	assert.Equal(t, expectedAnnotation, updatedApp.Annotations[common.AppServiceAnnotation])
 
 	// Verify Status
-	assert.True(t, meta.IsStatusConditionTrue(updatedApp.Status.Conditions, "Reconciled"))
 	assert.True(t, meta.IsStatusConditionTrue(updatedApp.Status.Conditions, v1beta1.DeployedConditionType))
 	assert.True(t, meta.IsStatusConditionTrue(updatedApp.Status.Conditions, v1beta1.ReadyConditionType))
+	assert.NotNil(t, updatedApp.Status.Binding)
+
+	bindingSecret := &corev1.Secret{}
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: updatedApp.Status.Binding.Name, Namespace: ns}, bindingSecret)
+	assert.NoError(t, err)
+
+	assert.Equal(t, fmt.Sprintf("%s.%s.svc.%s", svcName, ns, common.GetClusterDomain()), string(bindingSecret.Data["host"]))
+	assert.Equal(t, fmt.Sprintf("%d", app.Spec.Acceptor.Port), string(bindingSecret.Data["port"]))
+	assert.Equal(t, fmt.Sprintf("amqps://%s.%s.svc:%d", svcName, ns, app.Spec.Acceptor.Port), string(bindingSecret.Data["uri"]))
+
+	// Reconcile again
+	_, err = r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
 }
 
 func TestReconcileNoMatchingService(t *testing.T) {
@@ -139,6 +152,82 @@ func TestReconcileNoMatchingService(t *testing.T) {
 	assert.NotNil(t, validCondition)
 	assert.Equal(t, v1.ConditionFalse, validCondition.Status)
 	assert.Equal(t, "SpecSelectorNoMatch", validCondition.Reason)
+}
+
+func TestReconcileValidConditionTransition(t *testing.T) {
+	// Setup scheme
+	scheme := runtime.NewScheme()
+	_ = v1beta1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	// Data
+	ns := "default"
+	svcName := "my-broker-service"
+	appName := "my-app"
+
+	// Create BrokerService
+	svc := &v1beta1.BrokerService{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      svcName,
+			Namespace: ns,
+			Labels:    map[string]string{"type": "broker"},
+		},
+	}
+
+	// Create BrokerApp with non-matching selector
+	app := &v1beta1.BrokerApp{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      appName,
+			Namespace: ns,
+		},
+		Spec: v1beta1.BrokerAppSpec{
+			ServiceSelector: &v1.LabelSelector{
+				MatchLabels: map[string]string{"type": "non-existent"},
+			},
+		},
+	}
+
+	// Setup fake client
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(svc, app).WithStatusSubresource(app).Build()
+
+	// Create Reconciler
+	r := NewBrokerAppReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+
+	// 1. Reconcile with non-matching selector
+	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: appName, Namespace: ns}}
+	_, err := r.Reconcile(context.TODO(), req)
+	assert.Error(t, err) // Expect error because no service found
+
+	// Verify Valid condition is False
+	updatedApp := &v1beta1.BrokerApp{}
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedApp)
+	assert.NoError(t, err)
+
+	validCond := meta.FindStatusCondition(updatedApp.Status.Conditions, v1beta1.ValidConditionType)
+	assert.NotNil(t, validCond)
+	assert.Equal(t, v1.ConditionFalse, validCond.Status)
+	creationTime := validCond.LastTransitionTime
+
+	// Wait a bit to ensure time difference
+	time.Sleep(1 * time.Second)
+
+	// 2. Update App to match service
+	updatedApp.Spec.ServiceSelector.MatchLabels["type"] = "broker"
+	err = cl.Update(context.TODO(), updatedApp)
+	assert.NoError(t, err)
+
+	// Reconcile again
+	_, err = r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	// Verify Valid condition is True and time updated
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedApp)
+	assert.NoError(t, err)
+
+	validCond = meta.FindStatusCondition(updatedApp.Status.Conditions, v1beta1.ValidConditionType)
+	assert.NotNil(t, validCond)
+	assert.Equal(t, v1.ConditionTrue, validCond.Status)
+	assert.True(t, validCond.LastTransitionTime.After(creationTime.Time))
 }
 
 func TestReconcileStatusUpdateFailure(t *testing.T) {
@@ -194,4 +283,58 @@ func TestReconcileStatusUpdateFailure(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "simulated status update error")
 	assert.Equal(t, time.Duration(0), result.RequeueAfter)
+}
+
+func TestReconcileAddressTypeError(t *testing.T) {
+	// Setup scheme
+	scheme := runtime.NewScheme()
+	_ = v1beta1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	// Data
+	ns := "default"
+	appName := "my-app"
+
+	// Create BrokerApp with invalid subscriber address (simple address instead of FQQN)
+	app := &v1beta1.BrokerApp{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      appName,
+			Namespace: ns,
+		},
+		Spec: v1beta1.BrokerAppSpec{
+			ServiceSelector: &v1.LabelSelector{
+				MatchLabels: map[string]string{"type": "broker"},
+			},
+			Capabilities: []v1beta1.AppCapabilityType{
+				{
+					SubscriberOf: []v1beta1.AppAddressType{
+						{Address: "simple-address"}, // Missing "::"
+					},
+				},
+			},
+		},
+	}
+
+	// Setup fake client
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(app).WithStatusSubresource(app).Build()
+
+	// Create Reconciler
+	r := NewBrokerAppReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+
+	// Reconcile
+	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: appName, Namespace: ns}}
+	_, err := r.Reconcile(context.TODO(), req)
+	assert.Error(t, err)
+
+	// Verify BrokerApp status
+	updatedApp := &v1beta1.BrokerApp{}
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedApp)
+	assert.NoError(t, err)
+
+	// Check Valid condition
+	validCondition := meta.FindStatusCondition(updatedApp.Status.Conditions, v1beta1.ValidConditionType)
+	assert.NotNil(t, validCondition)
+	assert.Equal(t, v1.ConditionFalse, validCondition.Status)
+	assert.Equal(t, "AddressTypeError", validCondition.Reason)
+	assert.Contains(t, validCondition.Message, "must specify a FQQN")
 }
