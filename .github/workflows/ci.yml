@@ -1,7 +1,7 @@
 name: CI
 
 env:
-  IMAGE_NAME: activemq-artemis-operator
+  IMAGE_NAME: arkmq-org-broker-operator
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 on:
@@ -227,5 +227,5 @@ jobs:
         run: |
           minikube delete
           find docs/tutorials -type f -exec sed -i "s|^minikube start|minikube start  --cpus 2 --memory 8000 --insecure-registry=$HOSTNAME:5000|" {} +
-          sed -i "s|image: quay.io/arkmq-org/activemq-artemis-operator:.*|image: ${HOSTNAME}:5000/$IMAGE_NAME:dev.latest|" deploy/operator.yaml
+          sed -i "s|image: quay.io/arkmq-org/arkmq-org-broker-operator:.*|image: ${HOSTNAME}:5000/$IMAGE_NAME:dev.latest|" deploy/operator.yaml
           markdown-runner docs/tutorials -v

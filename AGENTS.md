@@ -1,8 +1,8 @@
-# ActiveMQ Artemis Operator - AI Assistant Configuration
+# ArkMQ Broker Operator - AI Assistant Configuration
 
 ## Project Overview
 
-This is a Kubernetes operator for Apache Artemis, written in Go using
+This is a Kubernetes operator for managing the ArkMQ Broker, written in Go using
 the controller-runtime framework.
 
 ## When Writing Code

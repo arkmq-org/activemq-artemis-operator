@@ -1,7 +1,7 @@
 name: Release
 
 env:
-  IMAGE_NAME: activemq-artemis-operator
+  IMAGE_NAME: arkmq-org-broker-operator
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 on:

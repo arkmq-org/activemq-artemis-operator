@@ -414,14 +414,14 @@ type ActiveMQArtemisSecurityStatus struct {
 
 // +kubebuilder:deprecatedversion:warning="The ActiveMQArtemisSecurity CRD is deprecated. Use the spec.brokerProperties attribute in the ActiveMQArtemis CR and -jaas-config extraMount to configure security instead"
 // Security configuration for the broker
-// +operator-sdk:csv:customresourcedefinitions:displayName="ActiveMQ Artemis Security"
+// +operator-sdk:csv:customresourcedefinitions:displayName="ArkMQ Security"
 type ActiveMQArtemisSecurity struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec ActiveMQArtemisSecuritySpec `json:"spec,omitempty"`
 	// Specifies the security status modules
-	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="ActiveMQ Artemis Security Status"
+	// +operator-sdk:csv:customresourcedefinitions:type=status,displayName="ArkMQ Security Status"
 	Status ActiveMQArtemisSecurityStatus `json:"status,omitempty"`
 }
 

@@ -40,16 +40,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/certutil"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/namer"
+	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/resources"
+	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/utils/certutil"
+	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/utils/namer"
 	"github.com/go-logr/logr"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/pkg/errors"
 
-	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/selectors"
+	brokerv1beta1 "github.com/arkmq-org/arkmq-org-broker-operator/api/v1beta1"
+	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/utils/common"
+	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/utils/selectors"
 )
 
 var namespaceToConfigHandler = make(map[types.NamespacedName]common.ActiveMQArtemisConfigHandler)

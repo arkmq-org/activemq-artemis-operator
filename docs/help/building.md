@@ -32,7 +32,7 @@ Install Docker following the [installation instructions](https://docs.docker.com
 ## Get the code
 
 ```$xslt
-git clone https://github.com/arkmq-org/activemq-artemis-operator
+git clone https://github.com/arkmq-org/arkmq-org-broker-operator
 cd activemq-artemis-operator
 git checkout main
 ```

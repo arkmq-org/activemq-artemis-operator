@@ -772,7 +772,7 @@ type ExternalConfigStatus struct {
 //+operator-sdk:csv:customresourcedefinitions:resources={{"StatefulSet", "apps/v1"}}
 
 // A stateful deployment of one or more brokers
-// +operator-sdk:csv:customresourcedefinitions:displayName="ActiveMQ Artemis"
+// +operator-sdk:csv:customresourcedefinitions:displayName="ArkMQ Broker"
 type ActiveMQArtemis struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
