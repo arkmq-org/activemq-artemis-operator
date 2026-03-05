@@ -21,8 +21,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
+	"github.com/arkmq-org/arkmq-org-broker-operator/api/v1beta1"
+	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/utils/common"
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
 	ctrl "sigs.k8s.io/controller-runtime"

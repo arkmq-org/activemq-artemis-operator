@@ -20,7 +20,7 @@ other kubernetes or OpenShift environments may require minor adjustment.
 
 One important note about operators in general is that to get the operator
 installed requires cluster-admin level privileges. Once installed, a regular
-user should be able to install Apache ActiveMQ Artemis via the provided custom
+user should be able to install ArkMQ Broker via the provided custom
 resource.
 
 ## General environment requirements
@@ -34,11 +34,11 @@ There are multiple methods of installing the operator: [from releases](#install-
 ### Install the operator from releases
 In order to install the operator from the latest release is by running the following command:
 ```shell
-kubectl apply -f https://github.com/arkmq-org/activemq-artemis-operator/releases/latest/download/activemq-artemis-operator.yaml
+kubectl apply -f https://github.com/arkmq-org/arkmq-org-broker-operator/releases/latest/download/activemq-artemis-operator.yaml
 ```
 You can also install a specific operator version, i.e. to install the version `2.0.5`
 ```shell
-kubectl apply -f https://github.com/arkmq-org/activemq-artemis-operator/releases/download/v2.0.5/activemq-artemis-operator.yaml
+kubectl apply -f https://github.com/arkmq-org/arkmq-org-broker-operator/releases/download/v2.0.5/activemq-artemis-operator.yaml
 ```
 
 ### Install the operator from helm charts
@@ -50,7 +50,7 @@ You can also install a specific operator version, i.e. to install the version `2
 ```shell
 helm install my-arkmq-org-broker-operator oci://quay.io/arkmq-org/helm-charts/arkmq-org-broker-operator --version 2.1.0
 ```
-Use the `--set` option to customize the default [values](https://github.com/arkmq-org/activemq-artemis-operator/blob/main/helm-charts/arkmq-org-broker-operator/values.yaml),
+Use the `--set` option to customize the default [values](https://github.com/arkmq-org/arkmq-org-broker-operator/blob/main/helm-charts/arkmq-org-broker-operator/values.yaml),
 i.e. to install the operator without the CRDs:
 ```shell
 helm install my-arkmq-org-broker-operator oci://quay.io/arkmq-org/helm-charts/arkmq-org-broker-operator --set crds.apply=false
@@ -66,7 +66,7 @@ For further details see https://operatorhub.io/operator/arkmq-org-broker-operato
 ### Install the operator from sources
 In order to install the operator from sources, first clone the git repository with the following command:
 ```shell
-git clone https://github.com/arkmq-org/activemq-artemis-operator.git
+git clone https://github.com/arkmq-org/arkmq-org-broker-operator.git
 ```
 
 Create the namespace activemq-artemis-operator and save it for all subsequent kubectl commands
@@ -413,7 +413,7 @@ configuration information as files to be used in the artemis configuration. One 
 redefine the log4j file used by artemis to log information. [Here](https://activemq.apache.org/components/artemis/documentation/latest/logging.html#logging) you can find details about artemis logging configuration.
 
 To use a custom logging you will need a log4j configuration file. The default log4j configuration file can be used as
-an initial example and can be downloaded from [here](https://raw.githubusercontent.com/arkmq-org/activemq-artemis-broker-kubernetes-image/main/modules/activemq-artemis-launch/added/log4j2.properties)
+an initial example and can be downloaded from [here](https://raw.githubusercontent.com/arkmq-org/arkmq-org-broker-kubernetes-image/main/modules/activemq-artemis-launch/added/log4j2.properties)
 
 Assuming you already have the operator deployed, in our example we are going to modify the default logging file and enable the audit logging. You will need to modify the log4j2.properties file and change the lines as below:
 

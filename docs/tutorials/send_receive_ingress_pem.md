@@ -287,7 +287,7 @@ Store the output in the `/tmp/IssuerCA.pem` file:
 kubectl get secrets send-receive-issuer-cert-secret -o json | jq -r '.data."tls.crt"' | base64 -d > /tmp/IssuerCA.pem
 ```
 
-### Deploy the Apache ActiveMQ Artemis Broker
+### Deploy the ArkMQ Broker
 
 #### Ingress and ssl configuration
 

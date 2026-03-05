@@ -30,10 +30,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
-	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/configmaps"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/namer"
+	brokerv1beta1 "github.com/arkmq-org/arkmq-org-broker-operator/api/v1beta1"
+	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/resources/configmaps"
+	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/utils/common"
+	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/utils/namer"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -106,12 +106,13 @@ rootLogger = INFO, STDOUT`
 					ScaleDownConfigTrigger,
 				}
 
-				brokerCrd.Spec.DeploymentPlan.Image = "quay.io/arkmq-org/activemq-artemis-broker-kubernetes:snapshot"
-				brokerCrd.Spec.DeploymentPlan.InitImage = "quay.io/arkmq-org/activemq-artemis-broker-init:snapshot"
+				brokerCrd.Spec.DeploymentPlan.Image = "quay.io/arkmq-org/arkmq-org-broker-kubernetes:snapshot"
+				brokerCrd.Spec.DeploymentPlan.InitImage = "quay.io/arkmq-org/arkmq-org-broker-init:snapshot"
 
 				Expect(k8sClient.Create(ctx, brokerCrd)).Should(Succeed())
 
 				createdBrokerCrd := &brokerv1beta1.ActiveMQArtemis{}
+
 				By("verifying ready")
 				Eventually(func(g Gomega) {
 
@@ -274,12 +275,13 @@ rootLogger = INFO, STDOUT`
 					ScaleDownConfigTrigger,
 				}
 
-				brokerCrd.Spec.DeploymentPlan.Image = "quay.io/arkmq-org/activemq-artemis-broker-kubernetes:snapshot"
-				brokerCrd.Spec.DeploymentPlan.InitImage = "quay.io/arkmq-org/activemq-artemis-broker-init:snapshot"
+				brokerCrd.Spec.DeploymentPlan.Image = "quay.io/arkmq-org/arkmq-org-broker-kubernetes:snapshot"
+				brokerCrd.Spec.DeploymentPlan.InitImage = "quay.io/arkmq-org/arkmq-org-broker-init:snapshot"
 
 				Expect(k8sClient.Create(ctx, brokerCrd)).Should(Succeed())
 
 				createdBrokerCrd := &brokerv1beta1.ActiveMQArtemis{}
+
 				By("verifying ready")
 				Eventually(func(g Gomega) {
 

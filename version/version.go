@@ -19,8 +19,8 @@ const (
 	LatestVersion        = "2.50.0"
 	CompactLatestVersion = "2500"
 
-	LatestKubeImage = "quay.io/arkmq-org/activemq-artemis-broker-kubernetes:artemis." + LatestVersion
-	LatestInitImage = "quay.io/arkmq-org/activemq-artemis-broker-init:artemis." + LatestVersion
+	LatestKubeImage = "quay.io/arkmq-org/arkmq-org-broker-kubernetes:artemis." + LatestVersion
+	LatestInitImage = "quay.io/arkmq-org/arkmq-org-broker-init:artemis." + LatestVersion
 )
 
 var (
@@ -140,7 +140,7 @@ var YacfgProfileVersionFromFullVersion map[string]string = map[string]string{
 
 var YacfgProfileName string = "artemis"
 
-// Sorted array of supported Apache ActiveMQ Artemis versions
+// Sorted array of supported Apache Artemis versions
 var SupportedActiveMQArtemisVersions = []string{
 	"2.21.0",
 	"2.22.0",

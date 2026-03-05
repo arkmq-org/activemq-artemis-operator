@@ -27,13 +27,13 @@ Create a repository that Kubernetes will uses to pull your catalog image. You ca
 ## Build a catalog image
 Set your repository in CATALOG_IMG and execute the following command:
 ```
-make CATALOG_IMG=quay.io/my-org/activemq-artemis-operator-catalog:latest catalog-build
+make CATALOG_IMG=quay.io/my-org/arkmq-org-broker-operator-catalog:latest catalog-build
 ```
 
 ## Push a catalog image
 Set your repository in CATALOG_IMG and execute the following command:
 ```
-make CATALOG_IMG=quay.io/my-org/activemq-artemis-operator-catalog:latest catalog-push
+make CATALOG_IMG=quay.io/my-org/arkmq-org-broker-operator-catalog:latest catalog-push
 ```
 
 ## Create a catalog source (e.g. catalog-source.yaml):
@@ -48,7 +48,7 @@ metadata:
   namespace: operators
 spec:
   displayName: ArkMQ Broker Operator Catalog Source
-  image: quay.io/my-org/activemq-artemis-operator-catalog:latest
+  image: quay.io/my-org/arkmq-org-broker-operator-catalog:latest
   sourceType: grpc
 ```
 
@@ -94,9 +94,9 @@ activemq-artemis-controller-manager-54c99b9df6-6xdzh              1/1     Runnin
 activemq-artemis-operator-source-g94fd                            1/1     Running     0          58m
 ```
 
-## Deploy a single Apache ActiveMQ Artemis
+## Deploy a single ArkMQ Broker instance
 
-The following command line deployes a single Apache ActiveMQ Artemis broker instance by applying the ActiveMQArtemis custom resource (CR) defined in artemis_single.yaml file:
+The following command line deployes a single ArkMQ Broker broker instance by applying the ActiveMQArtemis custom resource (CR) defined in artemis_single.yaml file:
 
 ```$xslt
 $ kubectl apply -f examples/artemis/artemis_single.yaml

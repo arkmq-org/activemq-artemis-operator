@@ -60,7 +60,7 @@ type ActiveMQArtemisAddressStatus struct {
 
 // +kubebuilder:deprecatedversion:warning="The ActiveMQArtemisAddress CRD is deprecated. Use the spec.brokerProperties attribute in the ActiveMQArtemis CR to create addresses and queues instead"
 // Adding and removing addresses using custom resource definitions
-// +operator-sdk:csv:customresourcedefinitions:displayName="ActiveMQ Artemis Address"
+// +operator-sdk:csv:customresourcedefinitions:displayName="ArkMQ Address"
 type ActiveMQArtemisAddress struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

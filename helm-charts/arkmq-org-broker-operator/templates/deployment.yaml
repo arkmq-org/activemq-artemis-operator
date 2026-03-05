@@ -16,19 +16,19 @@ spec:
   selector:
     matchLabels:
       control-plane: controller-manager
-      name: activemq-artemis-operator
+      name: arkmq-broker-operator
     {{- include "arkmq-org-broker-operator.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
         control-plane: controller-manager
-        name: activemq-artemis-operator
+        name: arkmq-broker-operator
       {{- include "arkmq-org-broker-operator.selectorLabels" . | nindent 8 }}
     spec:
       containers:
       - args: {{- toYaml .Values.controllerManager.manager.args | nindent 8 }}
         command:
-        - /home/activemq-artemis-operator/bin/entrypoint
+        - /home/arkmq-broker-operator/bin/entrypoint
         env:
         - name: RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_2150
           value: {{ quote (printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInit2150.digest)

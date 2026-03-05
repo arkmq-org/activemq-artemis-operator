@@ -136,7 +136,7 @@ After editing the Subscription yaml as such, save it and the operator will resta
 
 This procedure shows how to access and prepare the code you need to install the latest version of the Operator for arkmq-org.
 
-Download the latest version of the Operator from https://github.com/arkmq-org/activemq-artemis-operator/tags
+Download the latest version of the Operator from https://github.com/arkmq-org/arkmq-org-broker-operator/tags
 
 When the download has completed, move the archive to your chosen installation directory.
 ```shell script
@@ -261,7 +261,7 @@ spec:
     template:
         spec:
             containers:
-                image: quay.io/arkmq-org/activemq-artemis-operator:latest
+                image: quay.io/arkmq-org/arkmq-org-broker-operator:latest
 ```
 
 Deploy the Operator.
@@ -600,7 +600,7 @@ spec:
 #### The Readiness Probe
 
 As with the Liveness Probe the Readiness probe has a default probe if not configured. Unlike the Readiness probe this is 
-a script that is shipped in the Kubernetes Image, this can be found [here](https://github.com/arkmq-org/activemq-artemis-broker-kubernetes-image/blob/main/modules/activemq-artemis-launch/added/readinessProbe.sh)
+a script that is shipped in the Kubernetes Image, this can be found [here](https://github.com/arkmq-org/arkmq-org-broker-kubernetes-image/blob/main/modules/activemq-artemis-launch/added/readinessProbe.sh)
 
 The script will try to establish a tcp connection to each port configured in the broker.xml.  
 
@@ -756,7 +756,7 @@ spec:
 It is possible to configure ResourceTemplate(s) for resources that are managed by the operator.
 The TemplateType contains Labels and Annotations with an optional Selector. If the selector is empty
 the template matches all resources. Otherwise, it can be used to restrict what is matched.
-Note: the relevant variables supported by [`ingressHost`](https://github.com/arkmq-org/activemq-artemis-operator/issues/614) in the CRD can be referenced in keys and values for both labels and annotations.
+Note: the relevant variables supported by [`ingressHost`](https://github.com/arkmq-org/arkmq-org-broker-operator/issues/614) in the CRD can be referenced in keys and values for both labels and annotations.
 In the following example, the annotation "someKey=someValue" is added to all Services
 
 ```yaml
@@ -1003,7 +1003,7 @@ The ActiveMQArtemisAddress and ActiveMQArtemisSecurity CRDs are deprecated in fa
 ## Configuring Logging for Brokers
 
 By default the operator deploys a broker with a default logging configuration that comes with the [Artemis container image]
-(https://github.com/arkmq-org/activemq-artemis-broker-kubernetes-image). Broker logs its messages to console only.
+(https://github.com/arkmq-org/arkmq-org-broker-kubernetes-image). Broker logs its messages to console only.
 
 Users can change the broker logging configuration by providing their own in a configmap or secret. The name of the configmap
 or secret must have the suffix **-logging-config**. There must be a key **logging.properties** and the value must've the full content of the logging configuration. (The broker is using slf4j with
@@ -1135,7 +1135,7 @@ In cases where a rollout of the stateful set is necessitated via a new feature o
 
 ## Enable broker's metrics plugin
 
-The ArkMQ ActiveMQ Artemis Broker container image comes with a metrics plugin to expose metrics data. The metrics data can be collected by tools such as Prometheus and visualized by tools such as Grafana.
+The ArkMQ Broker container image comes with a metrics plugin to expose metrics data. The metrics data can be collected by tools such as Prometheus and visualized by tools such as Grafana.
 By default, the metrics plugin is disabled.
 To instruct the Operator to enable metrics for each broker Pod in a deployment, you must set the value of the `deploymentPlan.enableMetricsPlugin` property to true in the Custom Resource (CR) instance used to create the deployment.
 In addition, you need to expose the console, for example
@@ -1777,7 +1777,7 @@ kubectl create secret generic artemis-ssl-secret --namespace test \
 --from-literal=trustStorePassword=artemis
 ```
 
-The Apache ActiveMQ Artemis with the secured internal acceptor and connector can be created by using the following command:
+The ArkMQ Broker with the secured internal acceptor and connector can be created by using the following command:
 ```
 kubectl apply -f - <<EOF
 apiVersion: broker.amq.io/v1beta1

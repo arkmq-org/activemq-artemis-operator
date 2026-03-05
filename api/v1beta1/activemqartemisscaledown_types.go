@@ -59,7 +59,7 @@ type ActiveMQArtemisScaledownStatus struct {
 
 // +kubebuilder:deprecatedversion:warning="The ActiveMQArtemisScaledown CRD is deprecated, it is an internal only api"
 // Provides internal message migration on clustered broker scaledown
-// +operator-sdk:csv:customresourcedefinitions:displayName="ActiveMQ Artemis Scaledown"
+// +operator-sdk:csv:customresourcedefinitions:displayName="ArkMQ Scaledown"
 type ActiveMQArtemisScaledown struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

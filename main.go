@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/arkmq-org/activemq-artemis-operator/version"
+	"github.com/arkmq-org/arkmq-org-broker-operator/version"
 	"github.com/go-logr/logr"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -51,18 +51,18 @@ import (
 
 	routev1 "github.com/openshift/api/route/v1"
 
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/log"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/sdkk8sutil"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
+	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/log"
+	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/sdkk8sutil"
+	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/utils/common"
 
-	brokerv1alpha1 "github.com/arkmq-org/activemq-artemis-operator/api/v1alpha1"
-	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
-	brokerv2alpha1 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha1"
-	brokerv2alpha2 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha2"
-	brokerv2alpha3 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha3"
-	brokerv2alpha4 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha4"
-	brokerv2alpha5 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha5"
-	"github.com/arkmq-org/activemq-artemis-operator/controllers"
+	brokerv1alpha1 "github.com/arkmq-org/arkmq-org-broker-operator/api/v1alpha1"
+	brokerv1beta1 "github.com/arkmq-org/arkmq-org-broker-operator/api/v1beta1"
+	brokerv2alpha1 "github.com/arkmq-org/arkmq-org-broker-operator/api/v2alpha1"
+	brokerv2alpha2 "github.com/arkmq-org/arkmq-org-broker-operator/api/v2alpha2"
+	brokerv2alpha3 "github.com/arkmq-org/arkmq-org-broker-operator/api/v2alpha3"
+	brokerv2alpha4 "github.com/arkmq-org/arkmq-org-broker-operator/api/v2alpha4"
+	brokerv2alpha5 "github.com/arkmq-org/arkmq-org-broker-operator/api/v2alpha5"
+	"github.com/arkmq-org/arkmq-org-broker-operator/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -84,7 +84,7 @@ func printVersion() {
 	setupLog.Info(fmt.Sprintf("Go OS/Arch: %s/%s", goruntime.GOOS, goruntime.GOARCH))
 	setupLog.Info(fmt.Sprintf("Version of operator-sdk: %v", sdkVersion))
 	setupLog.Info(fmt.Sprintf("Version of the operator: %s %s", version.Version, version.BuildTimestamp))
-	setupLog.Info(fmt.Sprintf("Supported ActiveMQArtemis Kubernetes Image Versions: %s", getSupportedBrokerVersions()))
+	setupLog.Info(fmt.Sprintf("Supported ArkMQ Broker Kubernetes Image Versions: %s", getSupportedBrokerVersions()))
 }
 
 func init() {
