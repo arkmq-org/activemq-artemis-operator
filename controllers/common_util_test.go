@@ -38,6 +38,7 @@ import (
 	"strings"
 	"time"
 
+	brokerv1 "github.com/arkmq-org/activemq-artemis-operator/api/v1"
 	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/secrets"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
@@ -256,6 +257,47 @@ func DeployCustomBroker(targetNamespace string, customFunc func(candidate *broke
 	Expect(k8sClient.Create(ctx, &brokerCrd)).Should(Succeed())
 
 	createdBrokerCrd := brokerv1beta1.ActiveMQArtemis{}
+
+	Eventually(func() bool {
+		return getPersistedVersionedCrd(brokerCrd.Name, targetNamespace, &createdBrokerCrd)
+	}, timeout, interval).Should(BeTrue())
+	Expect(createdBrokerCrd.Name).Should(Equal(brokerCrd.ObjectMeta.Name))
+	Expect(createdBrokerCrd.Namespace).Should(Equal(targetNamespace))
+
+	return &brokerCrd, &createdBrokerCrd
+}
+
+func generateBrokerSpec(namespace string) brokerv1.Broker {
+	return brokerv1.Broker{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Broker",
+			APIVersion: brokerv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      NextSpecResourceName(),
+			Namespace: namespace,
+		},
+		Spec: brokerv1.BrokerSpec{
+			DeploymentPlan: brokerv1.DeploymentPlanType{
+				ReadinessProbe: &corev1.Probe{InitialDelaySeconds: 1, PeriodSeconds: 3},
+			},
+		},
+	}
+}
+
+func DeployCustomBrokerV1(targetNamespace string, customFunc func(candidate *brokerv1.Broker)) (*brokerv1.Broker, *brokerv1.Broker) {
+	ctx := context.Background()
+	brokerCrd := generateBrokerSpec(targetNamespace)
+
+	brokerCrd.Spec.DeploymentPlan.Size = common.Int32ToPtr(1)
+
+	if customFunc != nil {
+		customFunc(&brokerCrd)
+	}
+
+	Expect(k8sClient.Create(ctx, &brokerCrd)).Should(Succeed())
+
+	createdBrokerCrd := brokerv1.Broker{}
 
 	Eventually(func() bool {
 		return getPersistedVersionedCrd(brokerCrd.Name, targetNamespace, &createdBrokerCrd)
