@@ -1185,19 +1185,20 @@ var _ = Describe("artemis controller", func() {
 				clusterUserFound := false
 				clusterPasswordFound := false
 				for _, envVar := range initContainer.Env {
-					if envVar.Name == "AMQ_USER" {
+					switch envVar.Name {
+					case "AMQ_USER":
 						userFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(credSecretKey.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_USER"))
-					} else if envVar.Name == "AMQ_PASSWORD" {
+					case "AMQ_PASSWORD":
 						passwordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(credSecretKey.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_PASSWORD"))
-					} else if envVar.Name == "AMQ_CLUSTER_USER" {
+					case "AMQ_CLUSTER_USER":
 						clusterUserFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(credSecretKey.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_USER"))
-					} else if envVar.Name == "AMQ_CLUSTER_PASSWORD" {
+					case "AMQ_CLUSTER_PASSWORD":
 						clusterPasswordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(credSecretKey.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_PASSWORD"))
@@ -1342,19 +1343,20 @@ var _ = Describe("artemis controller", func() {
 				clusterUserFound := false
 				clusterPasswordFound := false
 				for _, envVar := range initContainer.Env {
-					if envVar.Name == "AMQ_USER" {
+					switch envVar.Name {
+					case "AMQ_USER":
 						userFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_USER"))
-					} else if envVar.Name == "AMQ_PASSWORD" {
+					case "AMQ_PASSWORD":
 						passwordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_PASSWORD"))
-					} else if envVar.Name == "AMQ_CLUSTER_USER" {
+					case "AMQ_CLUSTER_USER":
 						clusterUserFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_USER"))
-					} else if envVar.Name == "AMQ_CLUSTER_PASSWORD" {
+					case "AMQ_CLUSTER_PASSWORD":
 						clusterPasswordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_PASSWORD"))
@@ -1413,19 +1415,20 @@ var _ = Describe("artemis controller", func() {
 				clusterUserFound := false
 				clusterPasswordFound := false
 				for _, envVar := range initContainer.Env {
-					if envVar.Name == "AMQ_USER" {
+					switch envVar.Name {
+					case "AMQ_USER":
 						userFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_USER"))
-					} else if envVar.Name == "AMQ_PASSWORD" {
+					case "AMQ_PASSWORD":
 						passwordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_PASSWORD"))
-					} else if envVar.Name == "AMQ_CLUSTER_USER" {
+					case "AMQ_CLUSTER_USER":
 						clusterUserFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_USER"))
-					} else if envVar.Name == "AMQ_CLUSTER_PASSWORD" {
+					case "AMQ_CLUSTER_PASSWORD":
 						clusterPasswordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_PASSWORD"))
@@ -1507,19 +1510,20 @@ var _ = Describe("artemis controller", func() {
 				clusterUserFound := false
 				clusterPasswordFound := false
 				for _, envVar := range initContainer.Env {
-					if envVar.Name == "AMQ_USER" {
+					switch envVar.Name {
+					case "AMQ_USER":
 						userFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_USER"))
-					} else if envVar.Name == "AMQ_PASSWORD" {
+					case "AMQ_PASSWORD":
 						passwordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_PASSWORD"))
-					} else if envVar.Name == "AMQ_CLUSTER_USER" {
+					case "AMQ_CLUSTER_USER":
 						clusterUserFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_USER"))
-					} else if envVar.Name == "AMQ_CLUSTER_PASSWORD" {
+					case "AMQ_CLUSTER_PASSWORD":
 						clusterPasswordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_PASSWORD"))
@@ -1575,19 +1579,20 @@ var _ = Describe("artemis controller", func() {
 				clusterUserFound := false
 				clusterPasswordFound := false
 				for _, envVar := range initContainer.Env {
-					if envVar.Name == "AMQ_USER" {
+					switch envVar.Name {
+					case "AMQ_USER":
 						userFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_USER"))
-					} else if envVar.Name == "AMQ_PASSWORD" {
+					case "AMQ_PASSWORD":
 						passwordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_PASSWORD"))
-					} else if envVar.Name == "AMQ_CLUSTER_USER" {
+					case "AMQ_CLUSTER_USER":
 						clusterUserFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_USER"))
-					} else if envVar.Name == "AMQ_CLUSTER_PASSWORD" {
+					case "AMQ_CLUSTER_PASSWORD":
 						clusterPasswordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_PASSWORD"))
@@ -2541,7 +2546,7 @@ var _ = Describe("artemis controller", func() {
 				host := ingress.Name + "-" + defaultNamespace + "." + deployedCrd.Spec.IngressDomain
 
 				By("check console is reachable")
-				httpClient := http.Client{Timeout: timeout, Transport: &http.Transport{
+				httpClient := http.Client{Timeout: 3 * time.Second, Transport: &http.Transport{
 					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 						return (&net.Dialer{}).DialContext(ctx, network, clusterIngressHost+":80")
 					}}}
@@ -4191,7 +4196,7 @@ var _ = Describe("artemis controller", func() {
 			By("Creating a non-default SELinuxOptions CR instance")
 			nonDefaultCR := generateArtemisSpec(defaultNamespace)
 
-			credentialSpecName := "CredentialSpecName0"
+			credentialSpecName := "credentialcpecname0"
 			credentialSpec := "CredentialSpec0"
 			runAsUserName := "RunAsUserName0"
 			hostProcess := false
@@ -4203,20 +4208,19 @@ var _ = Describe("artemis controller", func() {
 			supplementalGroups := []int64{supplementalGroupA, supplementalGroupB}
 			var fsGroup int64 = 3000
 			sysctlA := corev1.Sysctl{
-				Name:  "NameA",
-				Value: "ValueA",
+				Name:  "namea",
+				Value: "valuea",
 			}
 			sysctlB := corev1.Sysctl{
-				Name:  "NameB",
-				Value: "ValueB",
+				Name:  "nameb",
+				Value: "valueb",
 			}
 			sysctls := []corev1.Sysctl{sysctlA, sysctlB}
 
-			fsGCPString := "GroupChangePolicy0"
-			fsGCP := corev1.PodFSGroupChangePolicy(fsGCPString)
+			fsGCP := corev1.PodFSGroupChangePolicy(corev1.FSGroupChangeAlways)
 			localhostProfile := "LocalhostProfile0"
 			seccompProfile := corev1.SeccompProfile{
-				Type:             corev1.SeccompProfileTypeUnconfined,
+				Type:             corev1.SeccompProfileTypeLocalhost,
 				LocalhostProfile: &localhostProfile,
 			}
 
@@ -4280,7 +4284,9 @@ var _ = Describe("artemis controller", func() {
 			labelSelector.MatchLabels = make(map[string]string)
 			labelSelector.MatchLabels["key"] = "value"
 
-			podAffinityTerm := corev1.PodAffinityTerm{}
+			podAffinityTerm := corev1.PodAffinityTerm{
+				TopologyKey: "aa",
+			}
 			podAffinityTerm.LabelSelector = &labelSelector
 
 			podAffinity := corev1.PodAffinity{
@@ -4327,7 +4333,9 @@ var _ = Describe("artemis controller", func() {
 				labelSelector.MatchLabels = make(map[string]string)
 				labelSelector.MatchLabels["key"] = "differentvalue"
 
-				podAffinityTerm = corev1.PodAffinityTerm{}
+				podAffinityTerm = corev1.PodAffinityTerm{
+					TopologyKey: "bb",
+				}
 				podAffinityTerm.LabelSelector = &labelSelector
 				podAffinity = corev1.PodAffinity{
 					RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
@@ -4362,7 +4370,9 @@ var _ = Describe("artemis controller", func() {
 			labelSelector.MatchLabels = make(map[string]string)
 			labelSelector.MatchLabels["key"] = "value"
 
-			podAffinityTerm := corev1.PodAffinityTerm{}
+			podAffinityTerm := corev1.PodAffinityTerm{
+				TopologyKey: "cc",
+			}
 			podAffinityTerm.LabelSelector = &labelSelector
 			podAntiAffinity := corev1.PodAntiAffinity{
 				RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
@@ -4407,7 +4417,9 @@ var _ = Describe("artemis controller", func() {
 				labelSelector.MatchLabels = make(map[string]string)
 				labelSelector.MatchLabels["key"] = "differentvalue"
 
-				podAffinityTerm = corev1.PodAffinityTerm{}
+				podAffinityTerm = corev1.PodAffinityTerm{
+					TopologyKey: "dd",
+				}
 				podAffinityTerm.LabelSelector = &labelSelector
 				podAntiAffinity = corev1.PodAntiAffinity{
 					RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
@@ -4439,8 +4451,9 @@ var _ = Describe("artemis controller", func() {
 			crd := generateArtemisSpec(defaultNamespace)
 
 			nodeSelectorRequirement := corev1.NodeSelectorRequirement{
-				Key:    "foo",
-				Values: make([]string, 1),
+				Key:      "foo",
+				Operator: corev1.NodeSelectorOpIn,
+				Values:   []string{"A", "b"},
 			}
 			nodeSelectorRequirements := [1]corev1.NodeSelectorRequirement{nodeSelectorRequirement}
 			nodeSelectorRequirements[0] = nodeSelectorRequirement
@@ -4486,8 +4499,9 @@ var _ = Describe("artemis controller", func() {
 				original := createdCrd
 
 				nodeSelectorRequirement = corev1.NodeSelectorRequirement{
-					Key:    "bar",
-					Values: make([]string, 2),
+					Key:      "bar",
+					Operator: corev1.NodeSelectorOpIn,
+					Values:   []string{"A", "b"},
 				}
 				nodeSelectorRequirements = [1]corev1.NodeSelectorRequirement{nodeSelectorRequirement}
 				nodeSelectorRequirements[0] = nodeSelectorRequirement
@@ -4941,7 +4955,7 @@ var _ = Describe("artemis controller", func() {
 			livenessProbe.PeriodSeconds = 5
 			livenessProbe.InitialDelaySeconds = 6
 			livenessProbe.TimeoutSeconds = 7
-			livenessProbe.SuccessThreshold = 8
+			livenessProbe.SuccessThreshold = 1
 			livenessProbe.FailureThreshold = 9
 			crd.Spec.DeploymentPlan.LivenessProbe = &livenessProbe
 			createdCrd := &brokerv1beta1.ActiveMQArtemis{}
@@ -4974,7 +4988,7 @@ var _ = Describe("artemis controller", func() {
 			Expect(createdSs.Spec.Template.Spec.Containers[0].LivenessProbe.PeriodSeconds == 5).Should(BeTrue())
 			Expect(createdSs.Spec.Template.Spec.Containers[0].LivenessProbe.InitialDelaySeconds == 6).Should(BeTrue())
 			Expect(createdSs.Spec.Template.Spec.Containers[0].LivenessProbe.TimeoutSeconds == 7).Should(BeTrue())
-			Expect(createdSs.Spec.Template.Spec.Containers[0].LivenessProbe.SuccessThreshold == 8).Should(BeTrue())
+			Expect(createdSs.Spec.Template.Spec.Containers[0].LivenessProbe.SuccessThreshold == 1).Should(BeTrue())
 			Expect(createdSs.Spec.Template.Spec.Containers[0].LivenessProbe.FailureThreshold == 9).Should(BeTrue())
 
 			By("Updating the CR")
@@ -4987,7 +5001,7 @@ var _ = Describe("artemis controller", func() {
 				original.Spec.DeploymentPlan.LivenessProbe.PeriodSeconds = 15
 				original.Spec.DeploymentPlan.LivenessProbe.InitialDelaySeconds = 16
 				original.Spec.DeploymentPlan.LivenessProbe.TimeoutSeconds = 17
-				original.Spec.DeploymentPlan.LivenessProbe.SuccessThreshold = 18
+				original.Spec.DeploymentPlan.LivenessProbe.SuccessThreshold = 1
 				original.Spec.DeploymentPlan.LivenessProbe.FailureThreshold = 19
 				exec := corev1.ExecAction{
 					Command: []string{"/broker/bin/artemis check node"},
@@ -5015,7 +5029,7 @@ var _ = Describe("artemis controller", func() {
 			Expect(createdSs.Spec.Template.Spec.Containers[0].LivenessProbe.PeriodSeconds == 15).Should(BeTrue())
 			Expect(createdSs.Spec.Template.Spec.Containers[0].LivenessProbe.InitialDelaySeconds == 16).Should(BeTrue())
 			Expect(createdSs.Spec.Template.Spec.Containers[0].LivenessProbe.TimeoutSeconds == 17).Should(BeTrue())
-			Expect(createdSs.Spec.Template.Spec.Containers[0].LivenessProbe.SuccessThreshold == 18).Should(BeTrue())
+			Expect(createdSs.Spec.Template.Spec.Containers[0].LivenessProbe.SuccessThreshold == 1).Should(BeTrue())
 			Expect(createdSs.Spec.Template.Spec.Containers[0].LivenessProbe.FailureThreshold == 19).Should(BeTrue())
 
 			CleanResource(createdCrd, createdCrd.Name, defaultNamespace)
@@ -5034,7 +5048,7 @@ var _ = Describe("artemis controller", func() {
 			livenessProbe.PeriodSeconds = 5
 			livenessProbe.InitialDelaySeconds = 6
 			livenessProbe.TimeoutSeconds = 7
-			livenessProbe.SuccessThreshold = 8
+			livenessProbe.SuccessThreshold = 1
 			livenessProbe.FailureThreshold = 9
 			livenessProbe.Exec = &exec
 			crd.Spec.DeploymentPlan.LivenessProbe = &livenessProbe
@@ -5067,7 +5081,7 @@ var _ = Describe("artemis controller", func() {
 			Expect(createdSs.Spec.Template.Spec.Containers[0].LivenessProbe.PeriodSeconds == 5).Should(BeTrue())
 			Expect(createdSs.Spec.Template.Spec.Containers[0].LivenessProbe.InitialDelaySeconds == 6).Should(BeTrue())
 			Expect(createdSs.Spec.Template.Spec.Containers[0].LivenessProbe.TimeoutSeconds == 7).Should(BeTrue())
-			Expect(createdSs.Spec.Template.Spec.Containers[0].LivenessProbe.SuccessThreshold == 8).Should(BeTrue())
+			Expect(createdSs.Spec.Template.Spec.Containers[0].LivenessProbe.SuccessThreshold == 1).Should(BeTrue())
 			Expect(createdSs.Spec.Template.Spec.Containers[0].LivenessProbe.FailureThreshold == 9).Should(BeTrue())
 
 			CleanResource(createdCrd, createdCrd.Name, defaultNamespace)
