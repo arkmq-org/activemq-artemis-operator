@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	broker "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/secrets"
@@ -49,6 +50,19 @@ type BrokerAppInstanceReconciler struct {
 	status   *broker.BrokerAppStatus
 }
 
+func (reconciler BrokerAppInstanceReconciler) validateResourceName() error {
+	err := common.ValidateResourceName(reconciler.instance.Name)
+	if err != nil {
+		meta.SetStatusCondition(&reconciler.status.Conditions, metav1.Condition{
+			Type:    broker.ValidConditionType,
+			Status:  metav1.ConditionFalse,
+			Reason:  "InvalidResourceName",
+			Message: err.Error(),
+		})
+	}
+	return err
+}
+
 func (reconciler BrokerAppInstanceReconciler) processBindingSecret() error {
 
 	bindingSecretNsName := types.NamespacedName{
@@ -70,7 +84,7 @@ func (reconciler BrokerAppInstanceReconciler) processBindingSecret() error {
 			// host as FQQN to work everywhere in the cluster
 			"host": []byte(fmt.Sprintf("%s.%s.svc.%s", reconciler.service.Name, reconciler.service.Namespace, common.GetClusterDomain())),
 			"port": []byte(fmt.Sprintf("%d", reconciler.instance.Spec.Acceptor.Port)),
-			"uri":  []byte(fmt.Sprintf("amqps://%s.%s.svc:%d", reconciler.service.Name, reconciler.service.Namespace, reconciler.instance.Spec.Acceptor.Port)),
+			"uri":  []byte(fmt.Sprintf("amqps://%s.%s.svc.%s:%d", reconciler.service.Name, reconciler.service.Namespace, common.GetClusterDomain(), reconciler.instance.Spec.Acceptor.Port)),
 		}
 	} else {
 		desired.Data = nil
@@ -118,22 +132,26 @@ func (reconciler *BrokerAppReconciler) Reconcile(ctx context.Context, request ct
 	}
 
 	reqLogger.V(2).Info("Reconciler Processing...", "CRD.Name", instance.Name, "CRD ver", instance.ObjectMeta.ResourceVersion, "CRD Gen", instance.ObjectMeta.Generation)
-	if err = processor.verifyCapabilityAddressType(); err == nil {
-		if err = processor.resolveBrokerService(); err == nil {
-			if err = processor.InitDeployed(instance, processor.getOwned()...); err == nil {
-				if err = processor.processBindingSecret(); err == nil {
-					err = processor.SyncDesiredWithDeployed(processor.instance)
+	if err = processor.validateResourceName(); err == nil {
+		if err = processor.verifyCapabilityAddressType(); err == nil {
+			if err = processor.resolveBrokerService(); err == nil {
+				if err = processor.InitDeployed(instance, processor.getOwned()...); err == nil {
+					if err = processor.processBindingSecret(); err == nil {
+						err = processor.SyncDesiredWithDeployed(processor.instance)
+					}
 				}
 			}
 		}
 	}
 
-	if statusErr := processor.processStatus(err); statusErr != nil {
-		if err == nil {
-			return ctrl.Result{}, statusErr
-		}
+	statusErr, retry := processor.processStatus(err)
+	if err == nil {
+		err = statusErr
 	}
 	reqLogger.V(2).Info("Reconciler Processed...", "CRD.Name", instance.Name, "CRD ver", instance.ObjectMeta.ResourceVersion, "CRD Gen", instance.ObjectMeta.Generation, "error", err)
+	if err == nil && retry {
+		return ctrl.Result{Requeue: true, RequeueAfter: common.GetReconcileResyncPeriod()}, nil
+	}
 	return ctrl.Result{}, err
 }
 
@@ -275,10 +293,10 @@ func (reconciler *BrokerAppInstanceReconciler) verifyCapabilityAddressType() (er
 	return err
 }
 
-func (reconciler *BrokerAppInstanceReconciler) processStatus(reconcilerError error) (err error) {
+func (reconciler *BrokerAppInstanceReconciler) processStatus(reconcilerError error) (err error, retry bool) {
 
 	var deployedCondition metav1.Condition = metav1.Condition{
-		Type: "Deployed",
+		Type: v1beta1.DeployedConditionType,
 	}
 	if reconcilerError != nil {
 		deployedCondition.Status = metav1.ConditionUnknown
@@ -286,9 +304,21 @@ func (reconciler *BrokerAppInstanceReconciler) processStatus(reconcilerError err
 		deployedCondition.Message = fmt.Sprintf("error on resource crud %v", reconcilerError)
 	} else if _, found := reconciler.instance.Annotations[common.AppServiceAnnotation]; found {
 
-		// conditional on the relevant properties in the broker status or the service status?
-		deployedCondition.Status = metav1.ConditionTrue
-		deployedCondition.Reason = broker.ReadyConditionReason
+		deployedCondition.Status = metav1.ConditionFalse
+		deployedCondition.Reason = "BrokerPropertiesNotSynced"
+		deployedCondition.Message = "Waiting for broker to apply application properties"
+
+		if reconciler.service != nil {
+			appIdentity := AppIdentity(reconciler.instance)
+			for _, appliedApp := range reconciler.service.Status.ProvisionedApps {
+				if appliedApp == appIdentity {
+					deployedCondition.Status = metav1.ConditionTrue
+					deployedCondition.Reason = "BrokerPropertiesSynced"
+					deployedCondition.Message = ""
+					break
+				}
+			}
+		}
 
 	} else {
 		deployedCondition.Status = metav1.ConditionFalse
@@ -297,11 +327,13 @@ func (reconciler *BrokerAppInstanceReconciler) processStatus(reconcilerError err
 	meta.SetStatusCondition(&reconciler.status.Conditions, deployedCondition)
 	common.SetReadyCondition(&reconciler.status.Conditions)
 
-	if !reflect.DeepEqual(reconciler.instance.Status, reconciler.status) {
+	if !reflect.DeepEqual(reconciler.instance.Status, *reconciler.status) {
 		reconciler.instance.Status = *reconciler.status
 		err = resources.UpdateStatus(reconciler.Client, reconciler.instance)
 	}
-	return err
+	retry = meta.IsStatusConditionTrue(reconciler.instance.Status.Conditions, v1beta1.ValidConditionType) &&
+		meta.IsStatusConditionFalse(reconciler.instance.Status.Conditions, v1beta1.DeployedConditionType)
+	return err, retry
 }
 
 func (r *BrokerAppReconciler) SetupWithManager(mgr ctrl.Manager) error {

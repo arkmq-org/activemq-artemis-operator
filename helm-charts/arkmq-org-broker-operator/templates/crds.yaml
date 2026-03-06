@@ -9512,6 +9512,11 @@ spec:
                       - type
                     type: object
                   type: array
+                provisionedApps:
+                  description: List of BrokerApp identities that have been applied to the service
+                  items:
+                    type: string
+                  type: array
               type: object
           type: object
       served: true

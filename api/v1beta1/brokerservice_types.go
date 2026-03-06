@@ -47,6 +47,10 @@ type BrokerServiceStatus struct {
 	//+patchStrategy=merge
 	//+operator-sdk:csv:customresourcedefinitions:type=status,displayName="Conditions",xDescriptors="urn:alm:descriptor:io.kubernetes.conditions"
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,2,rep,name=conditions"`
+
+	// List of BrokerApp identities that have been applied to the service
+	//+operator-sdk:csv:customresourcedefinitions:type=status,displayName="Provisioned Applications"
+	ProvisionedApps []string `json:"provisionedApps,omitempty"`
 }
 
 //+kubebuilder:object:root=true

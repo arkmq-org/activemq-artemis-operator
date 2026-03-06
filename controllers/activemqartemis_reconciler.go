@@ -75,10 +75,8 @@ const (
 	TCPLivenessPort                  = 8161
 	jaasConfigSuffix                 = "-jaas-config"
 	loggingConfigSuffix              = "-logging-config"
-	BrokerPropsSuffix                = "-bp"
 
 	cfgMapPathBase = "/amq/extra/configmaps/"
-	secretPathBase = "/amq/extra/secrets/"
 
 	OrdinalPrefix            = "broker-"
 	OrdinalPrefixSep         = "."
@@ -2202,7 +2200,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 	additionalSystemPropsForRestricted := []string{}
 	if common.IsRestricted(customResource) {
 
-		mountPathRoot := secretPathBase + getPropertiesResourceNsName(customResource).Name
+		mountPathRoot := common.SecretPathBase + getPropertiesResourceNsName(customResource).Name
 		security_properties := NewPropsWithHeader()
 		fmt.Fprintf(security_properties, "login.config.url.1=file:%s/login.config\n", mountPathRoot)
 		fmt.Fprintf(security_properties, "security.provider.13=de.dentrassi.crypto.pem.PemKeyStoreProvider\n")
@@ -2322,9 +2320,9 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		jolokia_config := NewPropsWithHeader()
 		fmt.Fprintln(jolokia_config, "protocol=https")
 		fmt.Fprintln(jolokia_config, "authClass=org.apache.activemq.artemis.spi.core.security.jaas.HttpServerAuthenticator")
-		fmt.Fprintf(jolokia_config, "caCert=%s%s/%s\n", secretPathBase, caSecret, caSecretKey)
-		fmt.Fprintf(jolokia_config, "serverCert=%s%s/tls.crt\n", secretPathBase, operandCertSecretName)
-		fmt.Fprintf(jolokia_config, "serverKey=%s%s/tls.key\n", secretPathBase, operandCertSecretName)
+		fmt.Fprintf(jolokia_config, "caCert=%s%s/%s\n", common.SecretPathBase, caSecret, caSecretKey)
+		fmt.Fprintf(jolokia_config, "serverCert=%s%s/tls.crt\n", common.SecretPathBase, operandCertSecretName)
+		fmt.Fprintf(jolokia_config, "serverKey=%s%s/tls.key\n", common.SecretPathBase, operandCertSecretName)
 		fmt.Fprintln(jolokia_config, "port=8778")
 		// https://github.com/jolokia/jolokia/issues/751 at some point host=$(env:HOSTNAME), host= is on the command line below
 		fmt.Fprintln(jolokia_config, "useSslClientAuthentication=true")
@@ -2337,8 +2335,8 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		pem_cfg := NewPropsWithHeader()
 
 		fmt.Fprintf(pem_cfg, "alias=alias\n")
-		fmt.Fprintf(pem_cfg, "source.cert=%s%s/tls.crt\n", secretPathBase, operandCertSecretName)
-		fmt.Fprintf(pem_cfg, "source.key=%s%s/tls.key\n", secretPathBase, operandCertSecretName)
+		fmt.Fprintf(pem_cfg, "source.cert=%s%s/tls.crt\n", common.SecretPathBase, operandCertSecretName)
+		fmt.Fprintf(pem_cfg, "source.key=%s%s/tls.key\n", common.SecretPathBase, operandCertSecretName)
 		brokerPropertiesMapData["_cert.pemcfg"] = pem_cfg.Bytes()
 
 		prometheus_config := NewPropsWithHeader() // yaml
@@ -2353,7 +2351,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 		fmt.Fprintf(prometheus_config, "      filename: %s/_cert.pemcfg\n", mountPathRoot)
 		fmt.Fprintf(prometheus_config, "      type: PEMCFG\n")
 		fmt.Fprintf(prometheus_config, "    trustStore:\n")
-		fmt.Fprintf(prometheus_config, "      filename: %s%s/%s\n", secretPathBase, caSecret, caSecretKey)
+		fmt.Fprintf(prometheus_config, "      filename: %s%s/%s\n", common.SecretPathBase, caSecret, caSecretKey)
 		fmt.Fprintf(prometheus_config, "      type: PEMCA\n")
 		fmt.Fprintf(prometheus_config, "    certificate:\n")
 		fmt.Fprintf(prometheus_config, "      alias: alias\n")
@@ -2416,7 +2414,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 							"/bin/bash",
 							"-c",
 							// use curl with mtls as the broker-cert to pull the status to find start state using dns
-							fmt.Sprintf(`export STATEFUL_SET_ORDINAL=${HOSTNAME##*-};curl --cacert %s%s/%s --cert %s%s/tls.crt --key %s%s/tls.key  https://%s:8778/jolokia/read/org.apache.activemq.artemis:broker=%%22%s%%22/Status | grep -w -P "(START|STOPP)(ED|ING)"`, secretPathBase, caSecret, caSecretKey, secretPathBase, operandCertSecretName, secretPathBase, operandCertSecretName, common.OrdinalStringFQDNS(customResource.Name, customResource.Namespace, "$STATEFUL_SET_ORDINAL"), environments.ResolveBrokerNameFromEnvs(customResource.Spec.Env, customResource.Name)),
+							fmt.Sprintf(`export STATEFUL_SET_ORDINAL=${HOSTNAME##*-};curl --cacert %s%s/%s --cert %s%s/tls.crt --key %s%s/tls.key  https://%s:8778/jolokia/read/org.apache.activemq.artemis:broker=%%22%s%%22/Status | grep -w -P "(START|STOPP)(ED|ING)"`, common.SecretPathBase, caSecret, caSecretKey, common.SecretPathBase, operandCertSecretName, common.SecretPathBase, operandCertSecretName, common.OrdinalStringFQDNS(customResource.Name, customResource.Namespace, "$STATEFUL_SET_ORDINAL"), environments.ResolveBrokerNameFromEnvs(customResource.Spec.Env, customResource.Name)),
 						},
 					},
 				},
@@ -2638,7 +2636,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) PodTemplateSpecForCR(customReso
 
 	reqLogger.V(2).Info("Total volumes ", "volumes", podSpec.Volumes)
 
-	var mountPoint = secretPathBase
+	var mountPoint = common.SecretPathBase
 	if !isSecret {
 		mountPoint = cfgMapPathBase
 	}
@@ -2811,9 +2809,9 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) brokerPropertiesConfigSystemPro
 	}
 
 	for _, extraSecretName := range reconciler.customResource.Spec.DeploymentPlan.ExtraMounts.Secrets {
-		if strings.HasSuffix(extraSecretName, BrokerPropsSuffix) {
+		if strings.HasSuffix(extraSecretName, common.BrokerPropsSuffix) {
 			// append to ordinal path
-			result = fmt.Sprintf("%s,%s%s/,%s%s/%s${STATEFUL_SET_ORDINAL}/", result, secretPathBase, extraSecretName, secretPathBase, extraSecretName, OrdinalPrefix)
+			result = fmt.Sprintf("%s,%s%s/,%s%s/%s${STATEFUL_SET_ORDINAL}/", result, common.SecretPathBase, extraSecretName, common.SecretPathBase, extraSecretName, OrdinalPrefix)
 		}
 	}
 
@@ -3287,7 +3285,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) createExtraConfigmapsAndSecrets
 				reconciler.log.V(2).Info("No Secret name specified, ignore", "Secret", secret)
 				continue
 			}
-			secretPath := secretPathBase + secret
+			secretPath := common.SecretPathBase + secret
 			//now we have a secret. First create a volume
 			secretVol := volumes.MakeVolumeForSecret(secret)
 
@@ -3304,7 +3302,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) createExtraConfigmapsAndSecrets
 				}
 			}
 
-			if strings.HasSuffix(secret, BrokerPropsSuffix) {
+			if strings.HasSuffix(secret, common.BrokerPropsSuffix) {
 				bpSecret := &corev1.Secret{}
 				bpSecretKey := types.NamespacedName{
 					Name:      secret,
@@ -3732,7 +3730,7 @@ func (reconciler *ActiveMQArtemisReconcilerImpl) AssertBrokerPropertiesStatus(cr
 
 	if errorStatus == nil {
 		for _, extraSecretName := range cr.Spec.DeploymentPlan.ExtraMounts.Secrets {
-			if strings.HasSuffix(extraSecretName, BrokerPropsSuffix) {
+			if strings.HasSuffix(extraSecretName, common.BrokerPropsSuffix) {
 				secretProjection, err = reconciler.getSecretProjection(types.NamespacedName{Name: extraSecretName, Namespace: cr.Namespace}, client)
 				if err != nil {
 					reqLogger.V(2).Info("error retrieving -bp extra mount resource.")

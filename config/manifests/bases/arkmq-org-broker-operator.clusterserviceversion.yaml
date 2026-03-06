@@ -5309,6 +5309,9 @@ spec:
         path: conditions
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes.conditions
+      - description: List of BrokerApp identities that have been applied to the service
+        displayName: Provisioned Applications
+        path: provisionedApps
       version: v1beta1
   description: ArkMQ Operator manages ActiveMQ Artemis messaging broker in the cloud
   displayName: ArkMQ Operator

@@ -71,7 +71,7 @@ func TestSimpleReconcile(t *testing.T) {
 	}
 
 	// Setup fake client
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(svc, app).WithStatusSubresource(app).Build()
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(svc, app).WithStatusSubresource(app, svc).Build()
 
 	// Create Reconciler
 	r := NewBrokerAppReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
@@ -90,8 +90,8 @@ func TestSimpleReconcile(t *testing.T) {
 	assert.Equal(t, expectedAnnotation, updatedApp.Annotations[common.AppServiceAnnotation])
 
 	// Verify Status
-	assert.True(t, meta.IsStatusConditionTrue(updatedApp.Status.Conditions, v1beta1.DeployedConditionType))
-	assert.True(t, meta.IsStatusConditionTrue(updatedApp.Status.Conditions, v1beta1.ReadyConditionType))
+	assert.False(t, meta.IsStatusConditionTrue(updatedApp.Status.Conditions, v1beta1.DeployedConditionType))
+	assert.False(t, meta.IsStatusConditionTrue(updatedApp.Status.Conditions, v1beta1.ReadyConditionType))
 	assert.NotNil(t, updatedApp.Status.Binding)
 
 	bindingSecret := &corev1.Secret{}
@@ -100,11 +100,22 @@ func TestSimpleReconcile(t *testing.T) {
 
 	assert.Equal(t, fmt.Sprintf("%s.%s.svc.%s", svcName, ns, common.GetClusterDomain()), string(bindingSecret.Data["host"]))
 	assert.Equal(t, fmt.Sprintf("%d", app.Spec.Acceptor.Port), string(bindingSecret.Data["port"]))
-	assert.Equal(t, fmt.Sprintf("amqps://%s.%s.svc:%d", svcName, ns, app.Spec.Acceptor.Port), string(bindingSecret.Data["uri"]))
+	assert.Equal(t, fmt.Sprintf("amqps://%s.%s.svc.%s:%d", svcName, ns, common.GetClusterDomain(), app.Spec.Acceptor.Port), string(bindingSecret.Data["uri"]))
 
-	// Reconcile again
+	// update broker service status to reflect ready with deployed app
+	svc.Status.ProvisionedApps = []string{AppIdentity(app)}
+	err = cl.Status().Update(context.TODO(), svc)
+	assert.NoError(t, err)
+
 	_, err = r.Reconcile(context.TODO(), req)
 	assert.NoError(t, err)
+
+	// Verify Status
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedApp)
+	assert.NoError(t, err)
+	assert.True(t, meta.IsStatusConditionTrue(updatedApp.Status.Conditions, v1beta1.DeployedConditionType))
+	assert.True(t, meta.IsStatusConditionTrue(updatedApp.Status.Conditions, v1beta1.ReadyConditionType))
+	assert.NotNil(t, updatedApp.Status.Binding)
 
 }
 
@@ -337,4 +348,153 @@ func TestReconcileAddressTypeError(t *testing.T) {
 	assert.Equal(t, v1.ConditionFalse, validCondition.Status)
 	assert.Equal(t, "AddressTypeError", validCondition.Reason)
 	assert.Contains(t, validCondition.Message, "must specify a FQQN")
+}
+
+func TestReconcileDeployedConditionFromBrokerServiceStatus(t *testing.T) {
+	// Setup scheme
+	scheme := runtime.NewScheme()
+	_ = v1beta1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	// Data
+	ns := "default"
+	svcName := "my-broker-service"
+	appName := "my-app"
+
+	// Create BrokerService
+	svc := &v1beta1.BrokerService{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      svcName,
+			Namespace: ns,
+			Labels:    map[string]string{"type": "broker"},
+		},
+	}
+
+	// Create BrokerApp matching the service
+	app := &v1beta1.BrokerApp{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      appName,
+			Namespace: ns,
+		},
+		Spec: v1beta1.BrokerAppSpec{
+			ServiceSelector: &v1.LabelSelector{
+				MatchLabels: map[string]string{"type": "broker"},
+			},
+		},
+	}
+
+	// Setup fake client
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(svc, app).WithStatusSubresource(app, svc).Build()
+
+	// Create Reconciler
+	r := NewBrokerAppReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+
+	// 1. Reconcile with BrokerService status not having the app.
+	// This first reconcile will annotate the app. The Deployed condition will be False.
+	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: appName, Namespace: ns}}
+	_, err := r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	// Verify Deployed condition is False
+	updatedApp := &v1beta1.BrokerApp{}
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedApp)
+	assert.NoError(t, err)
+
+	deployedCond := meta.FindStatusCondition(updatedApp.Status.Conditions, v1beta1.DeployedConditionType)
+	assert.NotNil(t, deployedCond)
+	assert.Equal(t, v1.ConditionFalse, deployedCond.Status)
+	assert.Equal(t, "BrokerPropertiesNotSynced", deployedCond.Reason)
+
+	// 2. Update BrokerService status to include the app
+	updatedSvc := &v1beta1.BrokerService{}
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: svcName, Namespace: ns}, updatedSvc)
+	assert.NoError(t, err)
+
+	appIdentity := AppIdentity(app)
+	updatedSvc.Status.ProvisionedApps = []string{appIdentity}
+	err = cl.Status().Update(context.TODO(), updatedSvc)
+	assert.NoError(t, err)
+
+	// Reconcile again to pick up the status change
+	_, err = r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	// Verify Deployed condition is True
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedApp)
+	assert.NoError(t, err)
+
+	deployedCond = meta.FindStatusCondition(updatedApp.Status.Conditions, v1beta1.DeployedConditionType)
+	assert.NotNil(t, deployedCond)
+	assert.Equal(t, v1.ConditionTrue, deployedCond.Status)
+	assert.Equal(t, "BrokerPropertiesSynced", deployedCond.Reason)
+}
+
+func TestReconcileIdempotentStatus(t *testing.T) {
+	// Setup scheme
+	scheme := runtime.NewScheme()
+	_ = v1beta1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	// Data
+	ns := "default"
+	svcName := "my-broker-service"
+	appName := "my-app"
+
+	// Create BrokerService
+	svc := &v1beta1.BrokerService{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      svcName,
+			Namespace: ns,
+			Labels:    map[string]string{"type": "broker"},
+		},
+	}
+
+	// Create BrokerApp matching the service
+	app := &v1beta1.BrokerApp{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      appName,
+			Namespace: ns,
+		},
+		Spec: v1beta1.BrokerAppSpec{
+			ServiceSelector: &v1.LabelSelector{
+				MatchLabels: map[string]string{"type": "broker"},
+			},
+		},
+	}
+
+	// Setup fake client for first reconcile
+	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(svc, app).WithStatusSubresource(app, svc).Build()
+
+	// Create Reconciler
+	r := NewBrokerAppReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+
+	// 1. First Reconcile to establish a status
+	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: appName, Namespace: ns}}
+	_, err := r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	// Get the updated app from the fake client
+	updatedApp := &v1beta1.BrokerApp{}
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedApp)
+	assert.NoError(t, err)
+
+	// 2. Second Reconcile with the already updated app
+	// We need a new client with the updated app and an interceptor to track status updates.
+	updateCalled := false
+	interceptorFuncs := interceptor.Funcs{
+		SubResourceUpdate: func(ctx context.Context, client client.Client, subResourceName string, obj client.Object, opts ...client.SubResourceUpdateOption) error {
+			if _, ok := obj.(*v1beta1.BrokerApp); ok {
+				updateCalled = true
+			}
+			return client.SubResource(subResourceName).Update(ctx, obj, opts...)
+		},
+	}
+
+	cl2 := fake.NewClientBuilder().WithScheme(scheme).WithObjects(svc, updatedApp).WithStatusSubresource(updatedApp, svc).WithInterceptorFuncs(interceptorFuncs).Build()
+	r2 := NewBrokerAppReconciler(cl2, scheme, nil, logr.New(log.NullLogSink{}))
+	_, err = r2.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	// Assert that status update was not called
+	assert.False(t, updateCalled, "Status update should not be called on second reconcile if status is unchanged")
 }

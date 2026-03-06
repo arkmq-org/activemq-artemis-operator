@@ -17,6 +17,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -345,7 +346,7 @@ func TestReconcileDeployedConditionTransition(t *testing.T) {
 	deployedCond := meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta1.DeployedConditionType)
 	assert.NotNil(t, deployedCond)
 	assert.Equal(t, metav1.ConditionFalse, deployedCond.Status)
-	assert.Equal(t, v1beta1.DeployedConditionNotReadyReason, deployedCond.Reason)
+	assert.Equal(t, "NotReady", deployedCond.Reason)
 	creationTime := deployedCond.LastTransitionTime
 
 	// Wait a bit to ensure time difference
@@ -360,7 +361,10 @@ func TestReconcileDeployedConditionTransition(t *testing.T) {
 	meta.SetStatusCondition(&brokerCR.Status.Conditions, metav1.Condition{
 		Type:   v1beta1.ReadyConditionType,
 		Status: metav1.ConditionTrue,
-		Reason: "Ready",
+	})
+	meta.SetStatusCondition(&brokerCR.Status.Conditions, metav1.Condition{
+		Type:   v1beta1.DeployedConditionType,
+		Status: metav1.ConditionTrue,
 	})
 	err = cl.Status().Update(context.TODO(), brokerCR)
 	assert.NoError(t, err)
@@ -378,4 +382,392 @@ func TestReconcileDeployedConditionTransition(t *testing.T) {
 	assert.Equal(t, metav1.ConditionTrue, deployedCond.Status)
 	assert.Equal(t, v1beta1.ReadyConditionReason, deployedCond.Reason)
 	assert.True(t, deployedCond.LastTransitionTime.After(creationTime.Time))
+}
+
+func TestBrokerServiceReconcileStatusAppliedApps(t *testing.T) {
+	// Setup scheme
+	scheme := runtime.NewScheme()
+	_ = v1beta1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	// Data
+	ns := "default"
+	svcName := "my-service"
+	appName := "my-app"
+
+	common.SetOperatorCASecretName("op_ca")
+	t.Cleanup(common.UnsetOperatorCASecretName)
+
+	common.SetOperatorNameSpace(ns)
+	t.Cleanup(common.UnsetOperatorNameSpace)
+
+	oc := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "op_ca",
+			Namespace: ns,
+		},
+		Data: map[string][]byte{"ca.pem": []byte("bla")},
+	}
+
+	// BrokerService
+	svc := &v1beta1.BrokerService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      svcName,
+			Namespace: ns,
+		},
+		Spec: v1beta1.BrokerServiceSpec{
+			Image: StringToPtr("placeholder"),
+		},
+	}
+
+	// BrokerApp
+	app := &v1beta1.BrokerApp{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      appName,
+			Namespace: ns,
+			Annotations: map[string]string{
+				common.AppServiceAnnotation: fmt.Sprintf("%s:%s", ns, svcName),
+			},
+		},
+		Spec: v1beta1.BrokerAppSpec{
+			Acceptor: v1beta1.AppAcceptorType{Port: 61616},
+		},
+	}
+
+	// Setup fake client
+	cl := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(oc, svc, app).
+		WithStatusSubresource(svc, &v1beta1.ActiveMQArtemis{}).
+		WithIndex(&v1beta1.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
+			app := rawObj.(*v1beta1.BrokerApp)
+			val, ok := app.Annotations[common.AppServiceAnnotation]
+			if !ok {
+				return nil
+			}
+			return []string{val}
+		}).Build()
+
+	// Create Reconciler
+	r := NewBrokerServiceReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: svcName, Namespace: ns}}
+
+	// 1. First Reconcile: Creates resources
+	_, err := r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	// Verify BrokerService status is not yet populated with AppliedApps
+	updatedSvc := &v1beta1.BrokerService{}
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+	assert.NoError(t, err)
+	assert.Empty(t, updatedSvc.Status.ProvisionedApps)
+
+	// 2. Get generated Secret and its ResourceVersion
+	secretName := AppPropertiesSecretName(svcName)
+	secret := &corev1.Secret{}
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: ns}, secret)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, secret.ResourceVersion)
+	// Verify annotation is present on the secret
+	assert.Equal(t, fmt.Sprintf("%s-%s", ns, appName), secret.Annotations[common.ProvisionedAppsAnnotation])
+
+	// 3. Update ActiveMQArtemis status to simulate broker picking up the config
+	brokerCR := &v1beta1.ActiveMQArtemis{}
+	err = cl.Get(context.TODO(), req.NamespacedName, brokerCR)
+	assert.NoError(t, err)
+
+	brokerCR.Status.Conditions = []metav1.Condition{
+		{
+			Type:   v1beta1.ReadyConditionType,
+			Status: metav1.ConditionTrue,
+			Reason: "Ready",
+		},
+	}
+	brokerCR.Status.ExternalConfigs = []v1beta1.ExternalConfigStatus{
+		{
+			Name:            secretName,
+			ResourceVersion: secret.ResourceVersion,
+		},
+	}
+	err = cl.Status().Update(context.TODO(), brokerCR)
+	assert.NoError(t, err)
+
+	// 4. Second Reconcile: Should update AppliedApps
+	_, err = r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	// Verify BrokerService status
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{fmt.Sprintf("%s-%s", ns, appName)}, updatedSvc.Status.ProvisionedApps)
+}
+
+func TestBrokerServiceReconcileStatusAppliedAppsIncremental(t *testing.T) {
+	// Setup scheme
+	scheme := runtime.NewScheme()
+	_ = v1beta1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	// Data
+	ns := "default"
+	svcName := "my-service"
+	app1Name := "my-app-1"
+	app2Name := "my-app-2"
+
+	common.SetOperatorCASecretName("op_ca")
+	t.Cleanup(common.UnsetOperatorCASecretName)
+
+	common.SetOperatorNameSpace(ns)
+	t.Cleanup(common.UnsetOperatorNameSpace)
+
+	oc := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "op_ca",
+			Namespace: ns,
+		},
+		Data: map[string][]byte{"ca.pem": []byte("bla")},
+	}
+
+	// BrokerService
+	svc := &v1beta1.BrokerService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      svcName,
+			Namespace: ns,
+		},
+		Spec: v1beta1.BrokerServiceSpec{
+			Image: StringToPtr("placeholder"),
+		},
+	}
+
+	// BrokerApp 1
+	app1 := &v1beta1.BrokerApp{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      app1Name,
+			Namespace: ns,
+			Annotations: map[string]string{
+				common.AppServiceAnnotation: fmt.Sprintf("%s:%s", ns, svcName),
+			},
+		},
+		Spec: v1beta1.BrokerAppSpec{
+			Acceptor: v1beta1.AppAcceptorType{Port: 61616},
+		},
+	}
+
+	// Setup fake client
+	cl := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(oc, svc, app1).
+		WithStatusSubresource(svc, &v1beta1.ActiveMQArtemis{}).
+		WithIndex(&v1beta1.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
+			app := rawObj.(*v1beta1.BrokerApp)
+			val, ok := app.Annotations[common.AppServiceAnnotation]
+			if !ok {
+				return nil
+			}
+			return []string{val}
+		}).Build()
+
+	// Create Reconciler
+	r := NewBrokerServiceReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: svcName, Namespace: ns}}
+
+	// 1. Reconcile with App1
+	_, err := r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	// Get generated Secret (v1)
+	secretName := AppPropertiesSecretName(svcName)
+	secret := &corev1.Secret{}
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: ns}, secret)
+	assert.NoError(t, err)
+	secretV1 := secret.ResourceVersion
+
+	// Update Broker Status to point to Secret v1
+	brokerCR := &v1beta1.ActiveMQArtemis{}
+	err = cl.Get(context.TODO(), req.NamespacedName, brokerCR)
+	assert.NoError(t, err)
+	brokerCR.Status.Conditions = []metav1.Condition{
+		{
+			Type:   v1beta1.ReadyConditionType,
+			Status: metav1.ConditionTrue,
+			Reason: "Ready",
+		},
+	}
+	brokerCR.Status.ExternalConfigs = []v1beta1.ExternalConfigStatus{
+		{
+			Name:            secretName,
+			ResourceVersion: secretV1,
+		},
+	}
+	err = cl.Status().Update(context.TODO(), brokerCR)
+	assert.NoError(t, err)
+
+	// Reconcile again to update AppliedApps
+	_, err = r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	// Verify AppliedApps has App1
+	updatedSvc := &v1beta1.BrokerService{}
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{fmt.Sprintf("%s-%s", ns, app1Name)}, updatedSvc.Status.ProvisionedApps)
+
+	// 2. Add App2
+	app2 := &v1beta1.BrokerApp{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      app2Name,
+			Namespace: ns,
+			Annotations: map[string]string{
+				common.AppServiceAnnotation: fmt.Sprintf("%s:%s", ns, svcName),
+			},
+		},
+		Spec: v1beta1.BrokerAppSpec{
+			Acceptor: v1beta1.AppAcceptorType{Port: 61617},
+		},
+	}
+	err = cl.Create(context.TODO(), app2)
+	assert.NoError(t, err)
+
+	// Reconcile to pick up App2. This updates the Secret to v2.
+	_, err = r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	// Verify Secret is updated
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: ns}, secret)
+	assert.NoError(t, err)
+	assert.NotEqual(t, secretV1, secret.ResourceVersion)
+	secretV2 := secret.ResourceVersion
+
+	// Verify AppliedApps STILL has App1 (and not App2 yet, because Broker Status still points to v1)
+	// IMPORTANT: It should NOT be empty.
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{fmt.Sprintf("%s-%s", ns, app1Name)}, updatedSvc.Status.ProvisionedApps)
+
+	// 3. Update Broker Status to point to Secret v2
+	err = cl.Get(context.TODO(), req.NamespacedName, brokerCR)
+	assert.NoError(t, err)
+	brokerCR.Status.ExternalConfigs = []v1beta1.ExternalConfigStatus{
+		{
+			Name:            secretName,
+			ResourceVersion: secretV2,
+		},
+	}
+	err = cl.Status().Update(context.TODO(), brokerCR)
+	assert.NoError(t, err)
+
+	// Reconcile again
+	_, err = r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	// Verify AppliedApps has App1 and App2
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+	assert.NoError(t, err)
+	expectedApps := []string{fmt.Sprintf("%s-%s", ns, app1Name), fmt.Sprintf("%s-%s", ns, app2Name)}
+	sort.Strings(expectedApps)
+	sort.Strings(updatedSvc.Status.ProvisionedApps)
+	assert.Equal(t, expectedApps, updatedSvc.Status.ProvisionedApps)
+}
+
+func TestBrokerServiceReconcileAppsProvisionedCondition(t *testing.T) {
+	// Setup scheme
+	scheme := runtime.NewScheme()
+	_ = v1beta1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	// Data
+	ns := "default"
+	svcName := "my-service"
+
+	// BrokerService
+	svc := &v1beta1.BrokerService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      svcName,
+			Namespace: ns,
+		},
+		Spec: v1beta1.BrokerServiceSpec{
+			Image: StringToPtr("placeholder"),
+		},
+	}
+
+	// Setup fake client
+	cl := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(svc).
+		WithStatusSubresource(svc, &v1beta1.ActiveMQArtemis{}).
+		WithIndex(&v1beta1.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
+			app := rawObj.(*v1beta1.BrokerApp)
+			val, ok := app.Annotations[common.AppServiceAnnotation]
+			if !ok {
+				return nil
+			}
+			return []string{val}
+		}).
+		Build()
+
+	// Create Reconciler
+	r := NewBrokerServiceReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: svcName, Namespace: ns}}
+
+	// 1. First Reconcile: Creates resources
+	_, err := r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	// Verify AppsProvisioned condition is False (WaitingForBroker)
+	updatedSvc := &v1beta1.BrokerService{}
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+	assert.NoError(t, err)
+
+	cond := meta.FindStatusCondition(updatedSvc.Status.Conditions, "AppsProvisioned")
+	assert.NotNil(t, cond)
+	assert.Equal(t, metav1.ConditionFalse, cond.Status)
+	assert.Equal(t, "WaitingForBroker", cond.Reason)
+
+	// 2. Get generated Secret and its ResourceVersion
+	secretName := AppPropertiesSecretName(svcName)
+	secret := &corev1.Secret{}
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: ns}, secret)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, secret.ResourceVersion)
+
+	// 3. Update ActiveMQArtemis status to simulate broker picking up the config
+	brokerCR := &v1beta1.ActiveMQArtemis{}
+	err = cl.Get(context.TODO(), req.NamespacedName, brokerCR)
+	assert.NoError(t, err)
+
+	brokerCR.Status.Conditions = []metav1.Condition{
+		{
+			Type:   v1beta1.ReadyConditionType,
+			Status: metav1.ConditionTrue,
+			Reason: "Ready",
+		},
+	}
+	brokerCR.Status.ExternalConfigs = []v1beta1.ExternalConfigStatus{
+		{
+			Name:            secretName,
+			ResourceVersion: secret.ResourceVersion,
+		},
+	}
+	err = cl.Status().Update(context.TODO(), brokerCR)
+	assert.NoError(t, err)
+
+	currentSecretResourceVersion := secret.ResourceVersion
+
+	// 4. Second Reconcile: Should update AppsProvisioned
+	_, err = r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	// verify no resource version change, still no apps
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: ns}, secret)
+	assert.NoError(t, err)
+	assert.Equal(t, currentSecretResourceVersion, secret.ResourceVersion)
+
+	// Verify AppsProvisioned condition is True
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+	assert.NoError(t, err)
+
+	cond = meta.FindStatusCondition(updatedSvc.Status.Conditions, "AppsProvisioned")
+	assert.NotNil(t, cond)
+	assert.Equal(t, metav1.ConditionTrue, cond.Status)
+	assert.Equal(t, "Synced", cond.Reason)
 }

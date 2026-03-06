@@ -76,7 +76,12 @@ const (
 	JaasRealm                       = "activemq"
 	HttpAuthenticatorRealm          = "http_server_authenticator"
 	AppServiceAnnotation            = "arkmq.org/app-service"
+	ProvisionedAppsAnnotation       = "arkmq.org/provisioned-apps"
 	BlockReconcileAnnotation        = "arkmq.org/block-reconcile"
+
+	// BrokerService and BrokerApp controller constants
+	BrokerPropsSuffix = "-bp"
+	SecretPathBase    = "/amq/extra/secrets/"
 )
 
 var lastStatusMap map[types.NamespacedName]olm.DeploymentStatus = make(map[types.NamespacedName]olm.DeploymentStatus)
@@ -1069,4 +1074,32 @@ func GenerateArtemis(name string, namespace string) *brokerv1beta1.ActiveMQArtem
 		},
 		Spec: brokerv1beta1.ActiveMQArtemisSpec{},
 	}
+}
+
+// ValidateResourceName checks if a name is safe to use in file paths.
+// While Kubernetes already enforces RFC 1123 DNS subdomain rules,
+// this provides an additional safety check against path traversal.
+// Returns error if the name contains path separators or parent directory references.
+func ValidateResourceName(name string) error {
+	if strings.Contains(name, "/") {
+		return fmt.Errorf("resource name contains illegal path separator: %s", name)
+	}
+	if strings.Contains(name, "..") {
+		return fmt.Errorf("resource name contains parent directory reference: %s", name)
+	}
+	if strings.HasPrefix(name, ".") {
+		return fmt.Errorf("resource name starts with dot: %s", name)
+	}
+	return nil
+}
+
+// EscapeForRegex escapes special regex characters in a string so it can be safely used in a regex pattern.
+// This is particularly important when using resource names in JAAS config regex patterns.
+func EscapeForRegex(s string) string {
+	// Escape common regex metacharacters that might appear in Kubernetes names
+	// Kubernetes names can contain: alphanumeric, hyphens, and dots
+	// Of these, only dots are regex metacharacters
+	s = strings.ReplaceAll(s, ".", "\\.")
+	s = strings.ReplaceAll(s, "-", "\\-")
+	return s
 }

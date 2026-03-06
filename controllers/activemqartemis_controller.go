@@ -641,7 +641,7 @@ func validateExtraMounts(customResource *brokerv1beta1.ActiveMQArtemis, client r
 				Condition = AssertSyntaxOkOnLoginConfigData(secret.Data[JaasConfigKey], s, ContextMessage)
 			}
 			instanceCounts[jaasConfigSuffix]++
-		} else if strings.HasSuffix(s, BrokerPropsSuffix) {
+		} else if strings.HasSuffix(s, common.BrokerPropsSuffix) {
 			Condition = AssertNoDupKeyInProperties(secret, ContextMessage)
 		}
 		if Condition != nil {

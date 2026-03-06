@@ -201,7 +201,15 @@ func (reconciler *ReconcilerLoop) CompareSecret(deployed, requested client.Objec
 		deployedSecret := deployed.(*corev1.Secret)
 		requestedSecret := requested.(*corev1.Secret)
 		var pairs [][2]interface{}
-		pairs = append(pairs, [2]interface{}{deployedSecret.Data, requestedSecret.Data})
+		deployedData := deployedSecret.Data
+		if len(deployedData) == 0 {
+			deployedData = nil
+		}
+		requestedData := requestedSecret.Data
+		if len(requestedData) == 0 {
+			requestedData = nil
+		}
+		pairs = append(pairs, [2]interface{}{deployedData, requestedData})
 		isEqual = compare.EqualPairs(pairs)
 	}
 
