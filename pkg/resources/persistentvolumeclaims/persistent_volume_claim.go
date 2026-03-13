@@ -1,13 +1,13 @@
 package persistentvolumeclaims
 
 import (
-	"github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
+	v1beta2 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func PersistentVolumeClaim(namespace string, existing *corev1.PersistentVolumeClaim, templateFromCr *v1beta1.VolumeClaimTemplate) *corev1.PersistentVolumeClaim {
+func PersistentVolumeClaim(namespace string, existing *corev1.PersistentVolumeClaim, templateFromCr *v1beta2.VolumeClaimTemplate) *corev1.PersistentVolumeClaim {
 
 	var desired *corev1.PersistentVolumeClaim = existing
 	if desired == nil {

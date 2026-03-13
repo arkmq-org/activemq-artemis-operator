@@ -205,7 +205,7 @@ var _ = Describe("BrokerProperties Address tests", func() {
 
 				By("Checking all addresses are created on all pods")
 
-				deploymentSize := common.GetDeploymentSize(&brokerCrd)
+				deploymentSize := *brokerCrd.Spec.DeploymentPlan.Size
 				for ipod := deploymentSize - 1; ipod >= 0; ipod-- {
 					podOrdinal := strconv.FormatInt(int64(ipod), 10)
 					podName := namer.CrToSS(brokerCrd.Name) + "-" + podOrdinal

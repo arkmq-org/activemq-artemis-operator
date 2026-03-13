@@ -20,7 +20,7 @@ import (
 
 	"github.com/RHsyseng/operator-utils/pkg/olm"
 	"github.com/RHsyseng/operator-utils/pkg/resource/read"
-	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
+	v1beta2 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/channels"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/namer"
@@ -287,7 +287,7 @@ func GetClusterDomain() string {
 	return *ClusterDomain
 }
 
-func DetermineCompactVersionToUse(customResource *brokerv1beta1.ActiveMQArtemis) (string, error) {
+func DetermineCompactVersionToUse(customResource *v1beta2.Broker) (string, error) {
 	log := ctrl.Log.WithName("util_common")
 	resolvedFullVersion, err := ResolveBrokerVersionFromCR(customResource)
 	if err != nil {
@@ -299,7 +299,7 @@ func DetermineCompactVersionToUse(customResource *brokerv1beta1.ActiveMQArtemis)
 	return compactVersionToUse, nil
 }
 
-func ResolveBrokerVersionFromCR(cr *brokerv1beta1.ActiveMQArtemis) (string, error) {
+func ResolveBrokerVersionFromCR(cr *v1beta2.Broker) (string, error) {
 
 	if cr.Spec.Version != "" {
 		_, verr := semver.ParseTolerant(cr.Spec.Version)
@@ -315,7 +315,7 @@ func ResolveBrokerVersionFromCR(cr *brokerv1beta1.ActiveMQArtemis) (string, erro
 	return result.String(), nil
 }
 
-func DetermineImageToUse(customResource *brokerv1beta1.ActiveMQArtemis, imageTypeKey string) string {
+func DetermineImageToUse(customResource *v1beta2.Broker, imageTypeKey string) string {
 
 	log := ctrl.Log.WithName("util_common")
 	found := false
@@ -346,12 +346,12 @@ func DetermineImageToUse(customResource *brokerv1beta1.ActiveMQArtemis, imageTyp
 	return imageName
 }
 
-func SetStatusConditionWithGeneration(cr *brokerv1beta1.ActiveMQArtemis, condition metav1.Condition) {
+func SetStatusConditionWithGeneration(cr *v1beta2.Broker, condition metav1.Condition) {
 	condition.ObservedGeneration = cr.Generation
 	meta.SetStatusCondition(&cr.Status.Conditions, condition)
 }
 
-func ProcessStatus(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, namespacedName types.NamespacedName, namer Namers, reconcileError error) {
+func ProcessStatus(cr *v1beta2.Broker, client rtclient.Client, namespacedName types.NamespacedName, namer Namers, reconcileError error) {
 
 	reqLogger := ctrl.Log.WithName("util_process_status").WithValues("ActiveMQArtemis Name", cr.Name)
 
@@ -368,20 +368,20 @@ func ProcessStatus(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, na
 	meta.SetStatusCondition(&cr.Status.Conditions, getDeploymentCondition(cr, client, ValidCondition.Status != metav1.ConditionFalse, reconcileError))
 }
 
-func UpdateBlockedStatus(cr *brokerv1beta1.ActiveMQArtemis, blocked bool) {
+func UpdateBlockedStatus(cr *v1beta2.Broker, blocked bool) {
 	if blocked {
 		SetStatusConditionWithGeneration(cr, metav1.Condition{
-			Type:    brokerv1beta1.ReconcileBlockedType,
+			Type:    v1beta2.ReconcileBlockedType,
 			Status:  metav1.ConditionTrue,
-			Reason:  brokerv1beta1.ReconcileBlockedReason,
+			Reason:  v1beta2.ReconcileBlockedReason,
 			Message: "Reconcile blocked by presence of annotation " + BlockReconcileAnnotation,
 		})
 	} else {
-		meta.RemoveStatusCondition(&cr.Status.Conditions, brokerv1beta1.ReconcileBlockedType)
+		meta.RemoveStatusCondition(&cr.Status.Conditions, v1beta2.ReconcileBlockedType)
 	}
 }
 
-func updateVersionStatus(cr *brokerv1beta1.ActiveMQArtemis) {
+func updateVersionStatus(cr *v1beta2.Broker) {
 	cr.Status.Version.Image = ResolveImage(cr, BrokerImageKey)
 	cr.Status.Version.InitImage = ResolveImage(cr, InitImageKey)
 	cr.Status.Version.BrokerVersion, _ = ResolveBrokerVersionFromCR(cr)
@@ -417,7 +417,7 @@ func updateVersionStatus(cr *brokerv1beta1.ActiveMQArtemis) {
 	}
 }
 
-func ResolveImage(customResource *brokerv1beta1.ActiveMQArtemis, key string) string {
+func ResolveImage(customResource *v1beta2.Broker, key string) string {
 	var imageName string
 
 	if key == InitImageKey && isLockedDown(customResource.Spec.DeploymentPlan.InitImage) {
@@ -434,41 +434,41 @@ func isLockedDown(imageAttribute string) bool {
 	return imageAttribute != "placeholder" && imageAttribute != ""
 }
 
-func ValidateBrokerImageVersion(customResource *brokerv1beta1.ActiveMQArtemis) *metav1.Condition {
+func ValidateBrokerImageVersion(customResource *v1beta2.Broker) *metav1.Condition {
 	var result *metav1.Condition = nil
 
 	_, err := ResolveBrokerVersionFromCR(customResource)
 	if err != nil {
 		result = &metav1.Condition{
-			Type:    brokerv1beta1.ValidConditionType,
+			Type:    v1beta2.ValidConditionType,
 			Status:  metav1.ConditionFalse,
-			Reason:  brokerv1beta1.ValidConditionInvalidVersionReason,
+			Reason:  v1beta2.ValidConditionInvalidVersionReason,
 			Message: fmt.Sprintf(".Spec.Version does not resolve to a supported broker version, reason %v", err),
 		}
 	} else {
 		if isLockedDown(customResource.Spec.DeploymentPlan.Image) || isLockedDown(customResource.Spec.DeploymentPlan.InitImage) {
 			if !isLockedDown(customResource.Spec.DeploymentPlan.InitImage) || !isLockedDown(customResource.Spec.DeploymentPlan.Image) {
 				result = &metav1.Condition{
-					Type:    brokerv1beta1.ValidConditionType,
+					Type:    v1beta2.ValidConditionType,
 					Status:  metav1.ConditionUnknown,
-					Reason:  brokerv1beta1.ValidConditionUnknownReason,
+					Reason:  v1beta2.ValidConditionUnknownReason,
 					Message: ImageDependentPairMessage,
 				}
 			} else {
 				if customResource.Spec.Version != "" {
 					if !version.IsSupportedActiveMQArtemisVersion(customResource.Spec.Version) {
 						result = &metav1.Condition{
-							Type:    brokerv1beta1.ValidConditionType,
+							Type:    v1beta2.ValidConditionType,
 							Status:  metav1.ConditionUnknown,
-							Reason:  brokerv1beta1.ValidConditionUnknownReason,
+							Reason:  v1beta2.ValidConditionUnknownReason,
 							Message: NotSupportedImageVersionMessage,
 						}
 					}
 				} else {
 					result = &metav1.Condition{
-						Type:    brokerv1beta1.ValidConditionType,
+						Type:    v1beta2.ValidConditionType,
 						Status:  metav1.ConditionUnknown,
-						Reason:  brokerv1beta1.ValidConditionUnknownReason,
+						Reason:  v1beta2.ValidConditionUnknownReason,
 						Message: UnkonwonImageVersionMessage,
 					}
 				}
@@ -479,7 +479,7 @@ func ValidateBrokerImageVersion(customResource *brokerv1beta1.ActiveMQArtemis) *
 	return result
 }
 
-func updateScaleStatus(cr *brokerv1beta1.ActiveMQArtemis, namer Namers) {
+func updateScaleStatus(cr *v1beta2.Broker, namer Namers) {
 	labels := make([]string, 0, len(namer.LabelBuilder.Labels())+len(cr.Spec.DeploymentPlan.Labels))
 	for k, v := range namer.LabelBuilder.Labels() {
 		labels = append(labels, fmt.Sprintf("%s=%s", k, v))
@@ -491,7 +491,7 @@ func updateScaleStatus(cr *brokerv1beta1.ActiveMQArtemis, namer Namers) {
 	cr.Status.ScaleLabelSelector = strings.Join(labels[:], ",")
 }
 
-func updatePodStatus(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, namespacedName types.NamespacedName) olm.DeploymentStatus {
+func updatePodStatus(cr *v1beta2.Broker, client rtclient.Client, namespacedName types.NamespacedName) olm.DeploymentStatus {
 
 	reqLogger := ctrl.Log.WithName("util_update_pod_status").WithValues("ActiveMQArtemis Name", namespacedName.Name)
 	reqLogger.V(1).Info("Getting status for pods")
@@ -526,21 +526,21 @@ func updatePodStatus(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, 
 	return status
 }
 
-func getValidCondition(cr *brokerv1beta1.ActiveMQArtemis) metav1.Condition {
+func getValidCondition(cr *v1beta2.Broker) metav1.Condition {
 	// add valid true if none exists
 	for _, c := range cr.Status.Conditions {
-		if c.Type == brokerv1beta1.ValidConditionType {
+		if c.Type == v1beta2.ValidConditionType {
 			return c
 		}
 	}
 	return metav1.Condition{
-		Type:   brokerv1beta1.ValidConditionType,
-		Reason: brokerv1beta1.ValidConditionSuccessReason,
+		Type:   v1beta2.ValidConditionType,
+		Reason: v1beta2.ValidConditionSuccessReason,
 		Status: metav1.ConditionTrue,
 	}
 }
 
-func GetSingleStatefulSetStatus(ss *appsv1.StatefulSet, cr *brokerv1beta1.ActiveMQArtemis) olm.DeploymentStatus {
+func GetSingleStatefulSetStatus(ss *appsv1.StatefulSet, cr *v1beta2.Broker) olm.DeploymentStatus {
 	var ready, starting, stopped []string
 	var requestedCount = int32(0)
 	if ss.Spec.Replicas != nil {
@@ -572,21 +572,21 @@ func GetSingleStatefulSetStatus(ss *appsv1.StatefulSet, cr *brokerv1beta1.Active
 	}
 }
 
-func getDeploymentCondition(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, valid bool, reconcileError error) metav1.Condition {
+func getDeploymentCondition(cr *v1beta2.Broker, client rtclient.Client, valid bool, reconcileError error) metav1.Condition {
 
 	if !valid {
 		return metav1.Condition{
-			Type:   brokerv1beta1.DeployedConditionType,
+			Type:   v1beta2.DeployedConditionType,
 			Status: metav1.ConditionFalse,
-			Reason: brokerv1beta1.DeployedConditionValidationFailedReason,
+			Reason: v1beta2.DeployedConditionValidationFailedReason,
 		}
 	}
 
 	if reconcileError != nil {
 		return metav1.Condition{
-			Type:    brokerv1beta1.DeployedConditionType,
+			Type:    v1beta2.DeployedConditionType,
 			Status:  metav1.ConditionFalse,
-			Reason:  brokerv1beta1.DeployedConditionCrudKindErrorReason,
+			Reason:  v1beta2.DeployedConditionCrudKindErrorReason,
 			Message: reconcileError.Error(),
 		}
 	}
@@ -594,17 +594,17 @@ func getDeploymentCondition(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.C
 	deploymentSize := GetDeploymentSize(cr)
 	if deploymentSize == 0 {
 		return metav1.Condition{
-			Type:    brokerv1beta1.DeployedConditionType,
+			Type:    v1beta2.DeployedConditionType,
 			Status:  metav1.ConditionFalse,
-			Reason:  brokerv1beta1.DeployedConditionZeroSizeReason,
+			Reason:  v1beta2.DeployedConditionZeroSizeReason,
 			Message: DeployedConditionZeroSizeMessage,
 		}
 	}
 	if len(cr.Status.PodStatus.Ready) < int(deploymentSize) {
 		crDeployedCondition := metav1.Condition{
-			Type:    brokerv1beta1.DeployedConditionType,
+			Type:    v1beta2.DeployedConditionType,
 			Status:  metav1.ConditionFalse,
-			Reason:  brokerv1beta1.DeployedConditionNotReadyReason,
+			Reason:  v1beta2.DeployedConditionNotReadyReason,
 			Message: fmt.Sprintf("%d/%d pods ready", len(cr.Status.PodStatus.Ready), deploymentSize),
 		}
 		for _, startingPodName := range cr.Status.PodStatus.Starting {
@@ -618,8 +618,8 @@ func getDeploymentCondition(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.C
 		return crDeployedCondition
 	}
 	return metav1.Condition{
-		Type:   brokerv1beta1.DeployedConditionType,
-		Reason: brokerv1beta1.DeployedConditionReadyReason,
+		Type:   v1beta2.DeployedConditionType,
+		Reason: v1beta2.DeployedConditionReadyReason,
 		Status: metav1.ConditionTrue,
 	}
 }
@@ -657,18 +657,18 @@ func PodStartingStatusDigestMessage(podName string, status corev1.PodStatus) str
 	return buf.String()
 }
 
-func IsRestricted(customResource *brokerv1beta1.ActiveMQArtemis) bool {
+func IsRestricted(customResource *v1beta2.Broker) bool {
 	return customResource.Spec.Restricted != nil && *customResource.Spec.Restricted
 }
 
-func GetDeploymentSize(cr *brokerv1beta1.ActiveMQArtemis) int32 {
+func GetDeploymentSize(cr *v1beta2.Broker) int32 {
 	if cr.Spec.DeploymentPlan.Size == nil || IsRestricted(cr) {
 		return DefaultDeploymentSize
 	}
 	return *cr.Spec.DeploymentPlan.Size
 }
 
-func GetDeployedResources(instance *brokerv1beta1.ActiveMQArtemis, client rtclient.Client, onOpenShift bool) (map[reflect.Type][]rtclient.Object, error) {
+func GetDeployedResources(instance *v1beta2.Broker, client rtclient.Client, onOpenShift bool) (map[reflect.Type][]rtclient.Object, error) {
 	log := ctrl.Log.WithName("util_common")
 	reader := read.New(client).WithNamespace(instance.Namespace).WithOwnerObject(instance)
 	var resourceMap map[reflect.Type][]rtclient.Object
@@ -740,7 +740,7 @@ func DetectOpenshiftWith(config *rest.Config) (bool, error) {
 	return *isOpenshift, nil
 }
 
-func GetOperandCertSecretName(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client) string {
+func GetOperandCertSecretName(cr *v1beta2.Broker, client rtclient.Client) string {
 
 	secret, _ := ResolveSecret(cr.Name, cr.Namespace, DefaultOperandCertSecretName, client)
 
@@ -764,7 +764,7 @@ func GetOperatorCASecretName() string {
 	return *operatorCASecretName
 }
 
-func GetPrometheusCertSecretName(cr *brokerv1beta1.ActiveMQArtemis, client rtclient.Client) string {
+func GetPrometheusCertSecretName(cr *v1beta2.Broker, client rtclient.Client) string {
 	// Determine the base secret name (from env or default)
 	if prometheusCertSecretName == nil {
 		prometheusCertSecretName = fromEnv("BASE_PROMETHEUS_CERT_SECRET_NAME", DefaultPrometheusCertSecretName)
@@ -1023,16 +1023,16 @@ func HasVolumeMount(container *corev1.Container, mountName string) bool {
 	return false
 }
 
-func GenerateArtemis(name string, namespace string) *brokerv1beta1.ActiveMQArtemis {
-	return &brokerv1beta1.ActiveMQArtemis{
+func GenerateArtemis(name string, namespace string) *v1beta2.Broker {
+	return &v1beta2.Broker{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ActiveMQArtemis",
-			APIVersion: brokerv1beta1.GroupVersion.Identifier(),
+			APIVersion: v1beta2.GroupVersion.Identifier(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: brokerv1beta1.ActiveMQArtemisSpec{},
+		Spec: v1beta2.BrokerSpec{},
 	}
 }
