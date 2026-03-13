@@ -318,7 +318,7 @@ func main() {
 
 func getSupportedBrokerVersions() string {
 	allSupportVersions := make([]string, 0, 10)
-	relatedImageEnvVarPrefix := "RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_"
+	relatedImageEnvVarPrefix := "RELATED_IMAGE_BROKER_KUBERNETES_"
 	// The full env var name should be relatedImageEnvVarPrefix + compactVersion
 	for _, envLine := range os.Environ() {
 		envPair := strings.Split(envLine, "=")

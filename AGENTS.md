@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This is a Kubernetes operator for Apache Artemis, written in Go using
+This is a Kubernetes operator for ArkMQ Broker, written in Go using
 the controller-runtime framework.
 
 ## When Writing Code

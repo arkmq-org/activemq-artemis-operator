@@ -20,7 +20,7 @@ Docs to Follow
 ### The basic Container Image
 
 The Basic Broker Container Image is the simplest of images to get started with, it uses environment variables to configure the broker and then starts it. 
-You can find the basic Broker Container Image at [quay.io](https://quay.io/repository/arkmq-org/activemq-artemis-broker)
+You can find the basic Broker Container Image at [quay.io](https://quay.io/repository/arkmq-org/arkmq-org-broker)
 
 ### The Kubernetes Image
 

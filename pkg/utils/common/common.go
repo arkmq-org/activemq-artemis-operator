@@ -48,9 +48,9 @@ import (
 
 // extra kinds
 const (
-	ImageNamePrefix        = "RELATED_IMAGE_ActiveMQ_Artemis_Broker_"
-	BrokerImageKey         = "Kubernetes"
-	InitImageKey           = "Init"
+	ImageNamePrefix        = "RELATED_IMAGE_BROKER_"
+	BrokerImageKey         = "KUBERNETES"
+	InitImageKey           = "INIT"
 	DefaultDeploymentSize  = int32(1)
 	RouteKind              = "Route"
 	OpenShiftAPIServerKind = "OpenShiftAPIServer"

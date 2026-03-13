@@ -600,7 +600,7 @@ spec:
 #### The Readiness Probe
 
 As with the Liveness Probe the Readiness probe has a default probe if not configured. Unlike the Readiness probe this is 
-a script that is shipped in the Kubernetes Image, this can be found [here](https://github.com/arkmq-org/activemq-artemis-broker-kubernetes-image/blob/main/modules/activemq-artemis-launch/added/readinessProbe.sh)
+a script that is shipped in the Kubernetes Image, this can be found [here](https://github.com/arkmq-org/arkmq-org-broker-kubernetes-image/blob/main/modules/activemq-artemis-launch/added/readinessProbe.sh)
 
 The script will try to establish a tcp connection to each port configured in the broker.xml.  
 
@@ -1003,7 +1003,7 @@ The ActiveMQArtemisAddress and ActiveMQArtemisSecurity CRDs are deprecated in fa
 ## Configuring Logging for Brokers
 
 By default the operator deploys a broker with a default logging configuration that comes with the [Artemis container image]
-(https://github.com/arkmq-org/activemq-artemis-broker-kubernetes-image). Broker logs its messages to console only.
+(https://github.com/arkmq-org/arkmq-org-broker-kubernetes-image). Broker logs its messages to console only.
 
 Users can change the broker logging configuration by providing their own in a configmap or secret. The name of the configmap
 or secret must have the suffix **-logging-config**. There must be a key **logging.properties** and the value must've the full content of the logging configuration. (The broker is using slf4j with
@@ -1777,7 +1777,7 @@ kubectl create secret generic artemis-ssl-secret --namespace test \
 --from-literal=trustStorePassword=artemis
 ```
 
-The Apache ActiveMQ Artemis with the secured internal acceptor and connector can be created by using the following command:
+The ArkMQ Broker with the secured internal acceptor and connector can be created by using the following command:
 ```
 kubectl apply -f - <<EOF
 apiVersion: broker.amq.io/v1beta1

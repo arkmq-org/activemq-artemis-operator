@@ -8,7 +8,7 @@ draft: false
 
 # Debugging Go
 
-This tutorial walks you through setting up a debugging session for the ActiveMQ Artemis Operator. We use [Delve](https://github.com/go-delve/delve), the standard debugger for Go.
+This tutorial walks you through setting up a debugging session for the ArkMQ Broker Operator. We use [Delve](https://github.com/go-delve/delve), the standard debugger for Go.
 
 ## Prerequisites
 
