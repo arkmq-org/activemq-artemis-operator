@@ -84,7 +84,6 @@ func GetHelmCmd() string {
 }
 
 func randStringWithPrefix(prefix string) string {
-	rand.Seed(time.Now().UnixNano())
 	length := 6
 	var b strings.Builder
 	b.WriteString(prefix)
@@ -101,7 +100,16 @@ func randString() string {
 func CleanResourceWithTimeouts(res client.Object, name string, namespace string, cleanTimeout time.Duration, cleanInterval time.Duration) {
 	//batch.kubernetes.io/job-name: consumer
 
-	err := k8sClient.Delete(ctx, res)
+	// Use foreground propagation for Jobs to ensure dependent Pods are deleted first
+	resType := reflect.ValueOf(res).Elem().Type()
+	jobType := reflect.TypeOf(batchv1.Job{})
+	var err error
+	if resType == jobType {
+		cascade_foreground_policy := metav1.DeletePropagationForeground
+		err = k8sClient.Delete(ctx, res, &client.DeleteOptions{PropagationPolicy: &cascade_foreground_policy})
+	} else {
+		err = k8sClient.Delete(ctx, res)
+	}
 	if errors.IsNotFound(err) {
 		return
 	}
@@ -115,9 +123,8 @@ func CleanResourceWithTimeouts(res client.Object, name string, namespace string,
 		g.Expect(errors.IsNotFound(err)).To(BeTrue())
 	}, cleanTimeout, cleanInterval).Should(Succeed())
 
-	resType := reflect.ValueOf(res).Elem().Type()
-	jobType := reflect.TypeOf(batchv1.Job{})
-
+	// With foreground propagation, dependent pods should be deleted automatically,
+	// but verify cleanup as a safety measure
 	if resType == jobType {
 		cfg, err := config.GetConfig()
 		Expect(err).To(BeNil())
@@ -227,20 +234,9 @@ func newArtemisSpecWithFastProbes() brokerv1beta1.ActiveMQArtemisSpec {
 }
 
 func generateArtemisSpec(namespace string) brokerv1beta1.ActiveMQArtemis {
-
-	toCreate := brokerv1beta1.ActiveMQArtemis{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ActiveMQArtemis",
-			APIVersion: brokerv1beta1.GroupVersion.Identifier(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      NextSpecResourceName(),
-			Namespace: namespace,
-		},
-		Spec: newArtemisSpecWithFastProbes(),
-	}
-
-	return toCreate
+	toCreate := common.GenerateArtemis(NextSpecResourceName(), namespace)
+	toCreate.Spec = newArtemisSpecWithFastProbes()
+	return *toCreate
 }
 
 func DeployCustomBroker(targetNamespace string, customFunc func(candidate *brokerv1beta1.ActiveMQArtemis)) (*brokerv1beta1.ActiveMQArtemis, *brokerv1beta1.ActiveMQArtemis) {

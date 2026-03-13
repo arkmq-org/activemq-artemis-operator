@@ -1,0 +1,18 @@
+apiVersion: broker.amq.io/v1beta1
+kind: BrokerService
+metadata:
+  name: ex-as-wq
+  labels:
+    forWorkQueue: 'true'
+spec:
+  env: [
+    {
+      name: JAVA_ARGS_APPEND,
+      value: '-Dlog4j2.level=INFO'
+    }
+  ]
+  resources:
+    limits:
+      memory: '1Gi'
+status:
+  conditions: []

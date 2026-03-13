@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -109,6 +110,9 @@ var _ = Describe("artemis controller", Label("do"), func() {
 					g.Expect(rrr).To(BeNil())
 					getPersistedVersionedCrd(brokerCr.ObjectMeta.Name, defaultNamespace, createdBrokerCr)
 					g.Expect(len(createdBrokerCr.Status.PodStatus.Ready)).Should(BeEquivalentTo(2))
+					if verbose {
+						fmt.Printf("STATUS:%v\n", createdBrokerCr.Status)
+					}
 					g.Expect(meta.IsStatusConditionTrue(createdBrokerCr.Status.Conditions, brokerv1beta1.ConfigAppliedConditionType)).Should(BeTrue(), *oprLog)
 				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 

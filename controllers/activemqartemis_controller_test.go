@@ -1185,19 +1185,20 @@ var _ = Describe("artemis controller", func() {
 				clusterUserFound := false
 				clusterPasswordFound := false
 				for _, envVar := range initContainer.Env {
-					if envVar.Name == "AMQ_USER" {
+					switch envVar.Name {
+					case "AMQ_USER":
 						userFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(credSecretKey.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_USER"))
-					} else if envVar.Name == "AMQ_PASSWORD" {
+					case "AMQ_PASSWORD":
 						passwordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(credSecretKey.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_PASSWORD"))
-					} else if envVar.Name == "AMQ_CLUSTER_USER" {
+					case "AMQ_CLUSTER_USER":
 						clusterUserFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(credSecretKey.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_USER"))
-					} else if envVar.Name == "AMQ_CLUSTER_PASSWORD" {
+					case "AMQ_CLUSTER_PASSWORD":
 						clusterPasswordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(credSecretKey.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_PASSWORD"))
@@ -1342,19 +1343,20 @@ var _ = Describe("artemis controller", func() {
 				clusterUserFound := false
 				clusterPasswordFound := false
 				for _, envVar := range initContainer.Env {
-					if envVar.Name == "AMQ_USER" {
+					switch envVar.Name {
+					case "AMQ_USER":
 						userFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_USER"))
-					} else if envVar.Name == "AMQ_PASSWORD" {
+					case "AMQ_PASSWORD":
 						passwordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_PASSWORD"))
-					} else if envVar.Name == "AMQ_CLUSTER_USER" {
+					case "AMQ_CLUSTER_USER":
 						clusterUserFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_USER"))
-					} else if envVar.Name == "AMQ_CLUSTER_PASSWORD" {
+					case "AMQ_CLUSTER_PASSWORD":
 						clusterPasswordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_PASSWORD"))
@@ -1413,19 +1415,20 @@ var _ = Describe("artemis controller", func() {
 				clusterUserFound := false
 				clusterPasswordFound := false
 				for _, envVar := range initContainer.Env {
-					if envVar.Name == "AMQ_USER" {
+					switch envVar.Name {
+					case "AMQ_USER":
 						userFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_USER"))
-					} else if envVar.Name == "AMQ_PASSWORD" {
+					case "AMQ_PASSWORD":
 						passwordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_PASSWORD"))
-					} else if envVar.Name == "AMQ_CLUSTER_USER" {
+					case "AMQ_CLUSTER_USER":
 						clusterUserFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_USER"))
-					} else if envVar.Name == "AMQ_CLUSTER_PASSWORD" {
+					case "AMQ_CLUSTER_PASSWORD":
 						clusterPasswordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_PASSWORD"))
@@ -1507,19 +1510,20 @@ var _ = Describe("artemis controller", func() {
 				clusterUserFound := false
 				clusterPasswordFound := false
 				for _, envVar := range initContainer.Env {
-					if envVar.Name == "AMQ_USER" {
+					switch envVar.Name {
+					case "AMQ_USER":
 						userFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_USER"))
-					} else if envVar.Name == "AMQ_PASSWORD" {
+					case "AMQ_PASSWORD":
 						passwordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_PASSWORD"))
-					} else if envVar.Name == "AMQ_CLUSTER_USER" {
+					case "AMQ_CLUSTER_USER":
 						clusterUserFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_USER"))
-					} else if envVar.Name == "AMQ_CLUSTER_PASSWORD" {
+					case "AMQ_CLUSTER_PASSWORD":
 						clusterPasswordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_PASSWORD"))
@@ -1575,19 +1579,20 @@ var _ = Describe("artemis controller", func() {
 				clusterUserFound := false
 				clusterPasswordFound := false
 				for _, envVar := range initContainer.Env {
-					if envVar.Name == "AMQ_USER" {
+					switch envVar.Name {
+					case "AMQ_USER":
 						userFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_USER"))
-					} else if envVar.Name == "AMQ_PASSWORD" {
+					case "AMQ_PASSWORD":
 						passwordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_PASSWORD"))
-					} else if envVar.Name == "AMQ_CLUSTER_USER" {
+					case "AMQ_CLUSTER_USER":
 						clusterUserFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_USER"))
-					} else if envVar.Name == "AMQ_CLUSTER_PASSWORD" {
+					case "AMQ_CLUSTER_PASSWORD":
 						clusterPasswordFound = true
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Name).To(Equal(secret.Name))
 						g.Expect(envVar.ValueFrom.SecretKeyRef.Key).To(Equal("AMQ_CLUSTER_PASSWORD"))
@@ -2541,7 +2546,7 @@ var _ = Describe("artemis controller", func() {
 				host := ingress.Name + "-" + defaultNamespace + "." + deployedCrd.Spec.IngressDomain
 
 				By("check console is reachable")
-				httpClient := http.Client{Timeout: timeout, Transport: &http.Transport{
+				httpClient := http.Client{Timeout: 3 * time.Second, Transport: &http.Transport{
 					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 						return (&net.Dialer{}).DialContext(ctx, network, clusterIngressHost+":80")
 					}}}
@@ -4280,7 +4285,9 @@ var _ = Describe("artemis controller", func() {
 			labelSelector.MatchLabels = make(map[string]string)
 			labelSelector.MatchLabels["key"] = "value"
 
-			podAffinityTerm := corev1.PodAffinityTerm{}
+			podAffinityTerm := corev1.PodAffinityTerm{
+				TopologyKey: "aa",
+			}
 			podAffinityTerm.LabelSelector = &labelSelector
 			podAffinityTerm.TopologyKey = "kubernetes.io/hostname"
 
@@ -4328,7 +4335,9 @@ var _ = Describe("artemis controller", func() {
 				labelSelector.MatchLabels = make(map[string]string)
 				labelSelector.MatchLabels["key"] = "differentvalue"
 
-				podAffinityTerm = corev1.PodAffinityTerm{}
+				podAffinityTerm = corev1.PodAffinityTerm{
+					TopologyKey: "bb",
+				}
 				podAffinityTerm.LabelSelector = &labelSelector
 				podAffinityTerm.TopologyKey = "kubernetes.io/hostname"
 				podAffinity = corev1.PodAffinity{
@@ -4364,7 +4373,9 @@ var _ = Describe("artemis controller", func() {
 			labelSelector.MatchLabels = make(map[string]string)
 			labelSelector.MatchLabels["key"] = "value"
 
-			podAffinityTerm := corev1.PodAffinityTerm{}
+			podAffinityTerm := corev1.PodAffinityTerm{
+				TopologyKey: "cc",
+			}
 			podAffinityTerm.LabelSelector = &labelSelector
 			podAffinityTerm.TopologyKey = "kubernetes.io/hostname"
 			podAntiAffinity := corev1.PodAntiAffinity{
@@ -4410,7 +4421,9 @@ var _ = Describe("artemis controller", func() {
 				labelSelector.MatchLabels = make(map[string]string)
 				labelSelector.MatchLabels["key"] = "differentvalue"
 
-				podAffinityTerm = corev1.PodAffinityTerm{}
+				podAffinityTerm = corev1.PodAffinityTerm{
+					TopologyKey: "dd",
+				}
 				podAffinityTerm.LabelSelector = &labelSelector
 				podAffinityTerm.TopologyKey = "kubernetes.io/hostname"
 				podAntiAffinity = corev1.PodAntiAffinity{

@@ -25,6 +25,7 @@ require (
 
 require (
 	github.com/blang/semver/v4 v4.0.0
+	github.com/prometheus/client_golang v1.16.0
 	golang.org/x/crypto v0.47.0
 	k8s.io/apiextensions-apiserver v0.29.7
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
@@ -64,7 +65,6 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_golang v1.16.0 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect
 	github.com/prometheus/common v0.44.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
