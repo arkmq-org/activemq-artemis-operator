@@ -818,7 +818,7 @@ spec:
     - "acceptorConfigurations.\"amqps\".params.trustStoreType=PEMCA"
     - "acceptorConfigurations.\"amqps\".params.trustStorePath=/amq/extra/secrets/activemq-artemis-manager-ca/ca.pem"
   deploymentPlan:
-    image: quay.io/arkmq-org/activemq-artemis-broker-kubernetes:snapshot
+    image: quay.io/arkmq-org/arkmq-org-broker-kubernetes:snapshot
     extraMounts:
       secrets: [artemis-broker-jaas-config-bp, amqps-pem]
 EOF
@@ -1619,7 +1619,7 @@ spec:
       - name: producer
 EOT
 cat <<EOT >> deploy.yml
-        image: quay.io/arkmq-org/activemq-artemis-broker-kubernetes:artemis.${BROKER_VERSION}
+        image: quay.io/arkmq-org/arkmq-org-broker-kubernetes:artemis.${BROKER_VERSION}
 EOT
 cat <<'EOT' >> deploy.yml
         command:
@@ -1660,7 +1660,7 @@ spec:
       - name: consumer
 EOT
 cat <<EOT >> deploy.yml
-        image: quay.io/arkmq-org/activemq-artemis-broker-kubernetes:artemis.${BROKER_VERSION}
+        image: quay.io/arkmq-org/arkmq-org-broker-kubernetes:artemis.${BROKER_VERSION}
 EOT
 cat <<'EOT' >> deploy.yml
         command:
