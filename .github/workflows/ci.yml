@@ -207,15 +207,18 @@ jobs:
         run: podman build --file bundle.Dockerfile --label git-sha=$GITHUB_SHA --tag $IMAGE_NAME-bundle:dev.latest .
 
       - name: Push the bundle image
-        if: ${{ github.event_name == 'push' }}
         run: |
-          podman login --username=${{ secrets.QUAY_USERNAME }} --password=${{ secrets.QUAY_PASSWORD }} quay.io
-          podman tag $IMAGE_NAME-bundle:dev.latest quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-bundle:dev.latest
-          podman push quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-bundle:dev.latest
+          podman tag $IMAGE_NAME-bundle:dev.latest ${HOSTNAME}:5000/$IMAGE_NAME-bundle:dev.latest
+          podman push --tls-verify=false ${HOSTNAME}:5000/$IMAGE_NAME-bundle:dev.latest
+          if [ "${{ github.event_name }}" = "push" ]; then
+            podman login --username=${{ secrets.QUAY_USERNAME }} --password=${{ secrets.QUAY_PASSWORD }} quay.io
+            podman tag $IMAGE_NAME-bundle:dev.latest quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-bundle:dev.latest
+            podman push quay.io/${{ secrets.QUAY_NAMESPACE }}/$IMAGE_NAME-bundle:dev.latest
+          fi
 
       - name: Build and push catalog image
         run: |
-          make CATALOG_IMG=${HOSTNAME}:5000/arkmq-org-broker-operator-catalog:dev.latest catalog-build catalog-push
+          make BUNDLE_IMG=${HOSTNAME}:5000/$IMAGE_NAME-bundle:dev.latest CATALOG_IMG=${HOSTNAME}:5000/arkmq-org-broker-operator-catalog:dev.latest catalog-build catalog-push
 
       - name: Create and verify catalog source
         run: |
