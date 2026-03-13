@@ -11,7 +11,7 @@ if [[ -z "$BUNDLE_IMGS" ]]; then
     exit 1
 fi
 
-if ! [[ "$BUNDLE_IMGS" =~ ^[^:]+:[^:,]+([,][^:]+:[^:,]+)*$ ]]; then
+if ! [[ "$BUNDLE_IMGS" =~ ^[^,]+:[^:,]+([,][^,]+:[^:,]+)*$ ]]; then
     echo "Error: Invalid BUNDLE_IMGS format. Expected format: 'image:tag' or 'image:tag,image:tag,...'" >&2
     echo "Got: $BUNDLE_IMGS" >&2
     exit 1
@@ -29,7 +29,7 @@ function add_bundle() {
     local package_name=$1 img=$2 prev_version=$3
     local version bundle_name
     
-    version=$(echo "$img" | cut -d':' -f2)
+    version=${img##*:}
     bundle_name="${package_name}.v${version}"
 
     $YQ -i e "
