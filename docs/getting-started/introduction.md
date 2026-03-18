@@ -1,7 +1,7 @@
 ---
 title: Introduction
-description: arkmq-org.io is a collection of container images that provide a way to deploy the Apache ActiveMQ Artemis Broker on Kubernetes.
-lead: arkmq-org.io is a collection of container images that provide a way to deploy the Apache ActiveMQ Artemis Broker on Kubernetes.
+description: arkmq-org.io is a collection of container images that provide a way to deploy the Apache Artemis Broker on Kubernetes.
+lead: arkmq-org.io is a collection of container images that provide a way to deploy the Apache Artemis Broker on Kubernetes.
 date: 2020-10-06T08:48:57.000Z
 lastmod: 2020-10-06T08:48:57.000Z
 draft: false

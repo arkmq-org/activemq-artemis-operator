@@ -30,11 +30,11 @@ $ minikube kubectl -- patch deployment -n ingress-nginx ingress-nginx-controller
 First you need to deploy the Arkmq-org operator.
 If you are not sure how to deploy the operator take a look at [this blog](using_operator.md).
 
-# Download the test certficates from Apache ActiveMQ Artemis
+# Download the test certficates from Apache Artemis
 ```shell script
-$ wget -O server-keystore.jks https://github.com/apache/activemq-artemis/raw/main/tests/security-resources/server-keystore.jks
-$ wget -O client-ca-truststore.jks https://github.com/apache/activemq-artemis/raw/main/tests/security-resources/client-ca-truststore.jks
-$ wget -O server-ca-keystore.p12 https://github.com/apache/activemq-artemis/raw/main/tests/security-resources/server-ca-keystore.p12
+$ wget -O server-keystore.jks https://github.com/apache/artemis/raw/main/tests/security-resources/server-keystore.jks
+$ wget -O client-ca-truststore.jks https://github.com/apache/artemis/raw/main/tests/security-resources/client-ca-truststore.jks
+$ wget -O server-ca-keystore.p12 https://github.com/apache/artemis/raw/main/tests/security-resources/server-ca-keystore.p12
 $ keytool -storetype pkcs12 -keystore server-ca-keystore.p12 -storepass securepass -alias server-ca -exportcert -rfc > server-ca.crt
 ```
 

@@ -20,7 +20,7 @@ other kubernetes or OpenShift environments may require minor adjustment.
 
 One important note about operators in general is that to get the operator
 installed requires cluster-admin level privileges. Once installed, a regular
-user should be able to install Apache ActiveMQ Artemis via the provided custom
+user should be able to deploy the Apache Artemis Broker via the provided custom
 resource.
 
 ## General environment requirements
@@ -166,7 +166,7 @@ You can scale down the deployment in similar manner by reducing the size and app
 ### Clustering
 
 By default if broker pods are scaled to more than one then the broker pods form a broker
-[cluster](https://activemq.apache.org/components/artemis/documentation/latest/clusters.html), meaning connect to each other and redistribute messages using default 'ON_DEMAND' policy. 
+[cluster](https://artemis.apache.org/components/artemis/documentation/latest/clusters.html), meaning connect to each other and redistribute messages using default 'ON_DEMAND' policy. 
 
 ## Undeploying the broker
 
@@ -410,10 +410,10 @@ You can see the queue TEST has 200 messages now.
 
 ActiveMQArtemis custom resource allows you to define extraMounts which will mount secrets and/or configmaps with 
 configuration information as files to be used in the artemis configuration. One usage of extraMounts is to 
-redefine the log4j file used by artemis to log information. [Here](https://activemq.apache.org/components/artemis/documentation/latest/logging.html#logging) you can find details about artemis logging configuration.
+redefine the log4j file used by artemis to log information. [Here](https://artemis.apache.org/components/artemis/documentation/latest/logging.html#logging) you can find details about artemis logging configuration.
 
 To use a custom logging you will need a log4j configuration file. The default log4j configuration file can be used as
-an initial example and can be downloaded from [here](https://raw.githubusercontent.com/arkmq-org/activemq-artemis-broker-kubernetes-image/main/modules/activemq-artemis-launch/added/log4j2.properties)
+an initial example and can be downloaded from [here](https://raw.githubusercontent.com/arkmq-org/arkmq-org-broker-kubernetes-image/main/modules/activemq-artemis-launch/added/log4j2.properties)
 
 Assuming you already have the operator deployed, in our example we are going to modify the default logging file and enable the audit logging. You will need to modify the log4j2.properties file and change the lines as below:
 

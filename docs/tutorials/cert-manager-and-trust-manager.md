@@ -24,7 +24,7 @@ Installation guides for cert-manager and trust-manager you can find on the [cert
 
 ## SSL
 
-There are various scenarios how SSL can be achieved for your Apache ActiveMQ Artemis brokers, to list some:
+There are various scenarios how SSL can be achieved for your Apache Artemis brokers, to list some:
 
 - brokers handling SSL termination
   - you need to provide keystore with certificate and truststore
@@ -34,7 +34,7 @@ There are various scenarios how SSL can be achieved for your Apache ActiveMQ Art
   - you need to configure acceptor with no ssl
   - you need to setup Istio resources accordingly (Istio knowledge required)
 
-In this tutorial we will cover the first scenario "Apache ActiveMQ Artemis brokers handling SSL termination" with no assumption it is the best for your cluster, please consider the best setup yourself.
+In this tutorial we will cover the first scenario "Apache Artemis brokers handling SSL termination" with no assumption it is the best for your cluster, please consider the best setup yourself.
 
 Let's start!
 
@@ -111,7 +111,7 @@ You can create a secret directly using command line:
 kubectl create secret generic -n myproject jks-password-secret --from-literal=password=dummy_password
 ```
 
-### Create certificate for Apache ActiveMQ Artemis brokers
+### Create certificate for Apache Artemis brokers
 
 Create certificate resource using kubectl apply.
 
@@ -185,7 +185,7 @@ spec:
 
 This will produce configmap in all namespaces with truststore.jks and trust-bundle.pem which you can use internally for any services inside your cluster (java based or others).
 
-### Create a secret with the details of your ssl setup for the Apache ActiveMQ Artemis broker
+### Create a secret with the details of your ssl setup for the Apache Artemis broker
 
 Replace **dummy_password** with the password you have used in section **Create secret for keystore password**.
 

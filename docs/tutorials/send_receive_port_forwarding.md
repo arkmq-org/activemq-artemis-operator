@@ -86,7 +86,7 @@ Waiting for deployment "activemq-artemis-controller-manager" rollout to finish: 
 deployment "activemq-artemis-controller-manager" successfully rolled out
 ```
 
-### Deploying the Apache ActiveMQ Artemis Broker
+### Deploying the Apache Artemis Broker
 
 For this tutorial we need to:
 

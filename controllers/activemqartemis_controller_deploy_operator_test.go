@@ -190,8 +190,8 @@ var _ = Describe("artemis controller", Label("do"), func() {
 
 				By("install the operator again with custom related images")
 				setupEnvs := make(map[string]string)
-				setupEnvs["RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_"+version.GetDefaultCompactVersion()] = "quay.io/arkmq-org/fake-broker:latest"
-				setupEnvs["RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_"+version.GetDefaultCompactVersion()] = "quay.io/arkmq-org/fake-broker-init:latest"
+				setupEnvs["RELATED_IMAGE_BROKER_KUBERNETES_"+version.GetDefaultCompactVersion()] = "quay.io/arkmq-org/fake-broker:latest"
+				setupEnvs["RELATED_IMAGE_BROKER_INIT_"+version.GetDefaultCompactVersion()] = "quay.io/arkmq-org/fake-broker-init:latest"
 				installOperator(setupEnvs, defaultNamespace)
 
 				By("deploy a broker")

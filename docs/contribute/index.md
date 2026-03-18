@@ -2,7 +2,7 @@
 title: "Community"
 subtitle: ""
 # meta description
-description: "ArkMQ is a collection of container images that provide a way to deploy the Apache ActiveMQ Artemis Broker on Kubernetes."
+description: "ArkMQ is a collection of container images that provide a way to deploy the Apache Artemis Broker on Kubernetes."
 draft: false
 ---
 

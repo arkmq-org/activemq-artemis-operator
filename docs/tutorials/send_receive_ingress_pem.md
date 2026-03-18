@@ -287,7 +287,7 @@ Store the output in the `/tmp/IssuerCA.pem` file:
 kubectl get secrets send-receive-issuer-cert-secret -o json | jq -r '.data."tls.crt"' | base64 -d > /tmp/IssuerCA.pem
 ```
 
-### Deploy the Apache ActiveMQ Artemis Broker
+### Deploy the Apache Artemis Broker
 
 #### Ingress and ssl configuration
 
@@ -485,7 +485,7 @@ NOTE: Picked up JDK_JAVA_OPTIONS: -Djavax.net.ssl.trustStore=/etc/pki/java/cacer
 #### MULTICAST
 
 For this use case, run first the consumer(s), then the producer.
-[More details there](https://activemq.apache.org/components/artemis/documentation/2.0.0/address-model.html).
+[More details there](https://artemis.apache.org/components/artemis/documentation/latest/address-model.html).
 
 1. in `n` other terminal(s) connect `n` consumer(s):
 

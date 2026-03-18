@@ -11,7 +11,7 @@ toc: true
 ---
 
 The [ArkMQ](https://github.com/arkmq-org) Broker Operator is a powerful tool that allows you to configure and
-manage Apache ActiveMQ Artemis broker resources in a cloud environment. You can get the Operator running in just a few steps.
+manage Apache Artemis broker resources in a cloud environment. You can get the Operator running in just a few steps.
 
 ### Prerequisite
 Before you start, you need to have access to a running Kubernetes cluster environment. A [Minikube](https://minikube.sigs.k8s.io/docs/start/)
@@ -66,7 +66,7 @@ Make sure that the **STATUS** is **Running**.
 
 By default the operator watches the namespace where it is deployed (i.e. **myproject**) for any custome resources it supports.
 
-### Step 3 - Deploying Apache ActiveMQ Artemis broker in the cloud
+### Step 3 - Deploying Apache Artemis broker in the cloud
 Now, with a running Operator, it's time to deploy the broker via a Custom Resource (CR) instance:
 ```shell script
 kubectl create -f examples/artemis-basic-deployment.yaml -n myproject

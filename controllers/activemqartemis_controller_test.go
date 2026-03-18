@@ -861,11 +861,11 @@ var _ = Describe("artemis controller", func() {
 		})
 
 		It("specify only major version", func() {
-			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_"+version.GetDefaultCompactVersion(), "quay.io/arkmq-org/fake-broker:latest")
-			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_"+version.GetDefaultCompactVersion(), "quay.io/arkmq-org/fake-broker-init:latest")
+			os.Setenv("RELATED_IMAGE_BROKER_KUBERNETES_"+version.GetDefaultCompactVersion(), "quay.io/arkmq-org/fake-broker:latest")
+			os.Setenv("RELATED_IMAGE_BROKER_INIT_"+version.GetDefaultCompactVersion(), "quay.io/arkmq-org/fake-broker-init:latest")
 			defer func() {
-				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_" + version.GetDefaultCompactVersion())
-				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_" + version.GetDefaultCompactVersion())
+				os.Unsetenv("RELATED_IMAGE_BROKER_KUBERNETES_" + version.GetDefaultCompactVersion())
+				os.Unsetenv("RELATED_IMAGE_BROKER_INIT_" + version.GetDefaultCompactVersion())
 			}()
 			By("deploy a broker")
 			verFields := strings.Split(version.GetDefaultVersion(), ".")
@@ -909,11 +909,11 @@ var _ = Describe("artemis controller", func() {
 		})
 
 		It("specify only major.minor version", func() {
-			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_"+version.GetDefaultCompactVersion(), "quay.io/arkmq-org/fake-broker:latest")
-			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_"+version.GetDefaultCompactVersion(), "quay.io/arkmq-org/fake-broker-init:latest")
+			os.Setenv("RELATED_IMAGE_BROKER_KUBERNETES_"+version.GetDefaultCompactVersion(), "quay.io/arkmq-org/fake-broker:latest")
+			os.Setenv("RELATED_IMAGE_BROKER_INIT_"+version.GetDefaultCompactVersion(), "quay.io/arkmq-org/fake-broker-init:latest")
 			defer func() {
-				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_" + version.GetDefaultCompactVersion())
-				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_" + version.GetDefaultCompactVersion())
+				os.Unsetenv("RELATED_IMAGE_BROKER_KUBERNETES_" + version.GetDefaultCompactVersion())
+				os.Unsetenv("RELATED_IMAGE_BROKER_INIT_" + version.GetDefaultCompactVersion())
 			}()
 			By("deploy a broker")
 			verFields := strings.Split(version.GetDefaultVersion(), ".")
@@ -958,11 +958,11 @@ var _ = Describe("artemis controller", func() {
 		})
 
 		It("default broker versions", func() {
-			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_"+version.GetDefaultCompactVersion(), "quay.io/arkmq-org/fake-broker:latest")
-			os.Setenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_"+version.GetDefaultCompactVersion(), "quay.io/arkmq-org/fake-broker-init:latest")
+			os.Setenv("RELATED_IMAGE_BROKER_KUBERNETES_"+version.GetDefaultCompactVersion(), "quay.io/arkmq-org/fake-broker:latest")
+			os.Setenv("RELATED_IMAGE_BROKER_INIT_"+version.GetDefaultCompactVersion(), "quay.io/arkmq-org/fake-broker-init:latest")
 			defer func() {
-				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Kubernetes_" + version.GetDefaultCompactVersion())
-				os.Unsetenv("RELATED_IMAGE_ActiveMQ_Artemis_Broker_Init_" + version.GetDefaultCompactVersion())
+				os.Unsetenv("RELATED_IMAGE_BROKER_KUBERNETES_" + version.GetDefaultCompactVersion())
+				os.Unsetenv("RELATED_IMAGE_BROKER_INIT_" + version.GetDefaultCompactVersion())
 			}()
 			By("deploy a broker")
 			brokerCr, createdBrokerCr := DeployCustomBroker(defaultNamespace, func(candidate *brokerv1beta1.ActiveMQArtemis) {
@@ -1701,10 +1701,10 @@ var _ = Describe("artemis controller", func() {
 	Context("Versions Test", func() {
 		It("default image to use latest", func() {
 			crd := generateArtemisSpec(defaultNamespace)
-			imageToUse := common.DetermineImageToUse(&crd, "Kubernetes")
+			imageToUse := common.DetermineImageToUse(&crd, "KUBERNETES")
 			Expect(imageToUse).To(Equal(version.GetDefaultKubeImage()), "actual", imageToUse)
 
-			imageToUse = common.DetermineImageToUse(&crd, "Init")
+			imageToUse = common.DetermineImageToUse(&crd, "INIT")
 			Expect(imageToUse).To(Equal(version.GetDefaultInitImage()), "actual", imageToUse)
 			brokerCr := generateArtemisSpec(defaultNamespace)
 			compactVersionToUse, verr := common.DetermineCompactVersionToUse(&brokerCr)

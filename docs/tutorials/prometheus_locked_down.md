@@ -10,7 +10,7 @@ weight: 120
 ---
 
 This tutorial shows how to deploy a "locked-down" [ActiveMQ
-Artemis](https://activemq.apache.org/components/artemis/) broker and securely
+Artemis](https://artemis.apache.org/components/artemis/) broker and securely
 access its Prometheus metrics endpoint from within the same Kubernetes cluster
 using mutual TLS (mTLS).
 
@@ -37,7 +37,7 @@ A locked-down broker (`spec.restricted=true`) enhances security by disabling
 anonymous access, enabling client certificate authentication, and relying on
 `cert-manager` for certificate lifecycle management.
 
-This tutorial results in a fully secured Apache ActiveMQ Artemis
+This tutorial results in a fully secured Apache Artemis
 broker with comprehensive monitoring, where all communication uses mutual TLS
 authentication and real-time messaging metrics are observable through a
 Grafana dashboard.
@@ -111,7 +111,7 @@ operation:
 graph TD
     subgraph app_monitoring ["Application & Monitoring (locked-down-broker ns)"]
         Operator["ArkMQ Broker Operator"]
-        ArtemisBroker["Apache ActiveMQ Artemis Broker"]
+        ArtemisBroker["Apache Artemis Broker"]
 
         subgraph messaging_clients ["Messaging Clients"]
             Producer["Producer Job"]
@@ -818,7 +818,7 @@ spec:
     - "acceptorConfigurations.\"amqps\".params.trustStoreType=PEMCA"
     - "acceptorConfigurations.\"amqps\".params.trustStorePath=/amq/extra/secrets/activemq-artemis-manager-ca/ca.pem"
   deploymentPlan:
-    image: quay.io/arkmq-org/activemq-artemis-broker-kubernetes:snapshot
+    image: quay.io/arkmq-org/arkmq-org-broker-kubernetes:snapshot
     extraMounts:
       secrets: [artemis-broker-jaas-config-bp, amqps-pem]
 EOF
@@ -1619,7 +1619,7 @@ spec:
       - name: producer
 EOT
 cat <<EOT >> deploy.yml
-        image: quay.io/arkmq-org/activemq-artemis-broker-kubernetes:artemis.${BROKER_VERSION}
+        image: quay.io/arkmq-org/arkmq-org-broker-kubernetes:artemis.${BROKER_VERSION}
 EOT
 cat <<'EOT' >> deploy.yml
         command:
@@ -1660,7 +1660,7 @@ spec:
       - name: consumer
 EOT
 cat <<EOT >> deploy.yml
-        image: quay.io/arkmq-org/activemq-artemis-broker-kubernetes:artemis.${BROKER_VERSION}
+        image: quay.io/arkmq-org/arkmq-org-broker-kubernetes:artemis.${BROKER_VERSION}
 EOT
 cat <<'EOT' >> deploy.yml
         command:
@@ -1912,7 +1912,7 @@ minikube delete --profile tutorialtester
 ## Conclusion
 
 This tutorial demonstrated how to deploy a production-ready, security-first
-Apache ActiveMQ Artemis broker with comprehensive monitoring on Kubernetes.
+Apache Artemis broker with comprehensive monitoring on Kubernetes.
 You now understand how to:
 
 * **Implement Zero-Trust Messaging:** All broker communication requires mutual

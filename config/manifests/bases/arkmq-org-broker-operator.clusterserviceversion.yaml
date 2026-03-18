@@ -7,7 +7,7 @@ metadata:
     categories: Streaming & Messaging
     containerImage: ""
     createdAt: "2025-04-04 14:35:00"
-    description: An operator for managing the Apache ActiveMQ Artemis message broker
+    description: An operator for managing the Apache Artemis message broker
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
     features.operators.openshift.io/csi: "false"

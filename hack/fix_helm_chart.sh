@@ -19,12 +19,12 @@ sed -i -z 's~WATCH_NAMESPACE\n          valueFrom:\n            fieldRef:\n     
 ${dir}/templates/deployment.yaml
 
 # related image prefix
-$YQ -i '.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository="quay.io/arkmq-org/activemq-artemis-broker-init"' ${dir}/values.yaml
-$YQ -i '.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository="quay.io/arkmq-org/activemq-artemis-broker-kubernetes"' ${dir}/values.yaml
-$YQ -i '.controllerManager.manager.relatedImages += (.controllerManager.manager.env | with_entries(select(.key | test("^relatedImageA.+"))) | with_entries(.key |= sub("relatedImageA","a")) | with_entries(.value |= {"digest": sub("quay.io.*@","")}))' ${dir}/values.yaml
+$YQ -i '.controllerManager.manager.relatedImages.brokerInitRepository="quay.io/arkmq-org/arkmq-org-broker-init"' ${dir}/values.yaml
+$YQ -i '.controllerManager.manager.relatedImages.brokerKubernetesRepository="quay.io/arkmq-org/arkmq-org-broker-kubernetes"' ${dir}/values.yaml
+$YQ -i '.controllerManager.manager.relatedImages += (.controllerManager.manager.env | with_entries(select(.key | test("^relatedImageBroker.+"))) | with_entries(.key |= sub("relatedImageBroker","broker")) | with_entries(.value |= {"digest": sub("quay.io.*@","")}))' ${dir}/values.yaml
 $YQ -i 'del(.controllerManager.manager.env)' ${dir}/values.yaml
-sed -i -E 's~\.Values\.controllerManager\.manager\.env\.relatedImageA(ctivemqArtemisBrokerInit.+)~(printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerInitRepository .Values.controllerManager.manager.relatedImages.a\1.digest)~' ${dir}/templates/deployment.yaml
-sed -i -E 's~\.Values\.controllerManager\.manager\.env\.relatedImageA(ctivemqArtemisBrokerKubernetes.+)~(printf "%s@%s" .Values.controllerManager.manager.relatedImages.activemqArtemisBrokerKubernetesRepository .Values.controllerManager.manager.relatedImages.a\1.digest)~' ${dir}/templates/deployment.yaml
+sed -i -E 's~\.Values\.controllerManager\.manager\.env\.relatedImageBroker(Init.+)~(printf "%s@%s" .Values.controllerManager.manager.relatedImages.brokerInitRepository .Values.controllerManager.manager.relatedImages.broker\1.digest)~' ${dir}/templates/deployment.yaml
+sed -i -E 's~\.Values\.controllerManager\.manager\.env\.relatedImageBroker(Kubernetes.+)~(printf "%s@%s" .Values.controllerManager.manager.relatedImages.brokerKubernetesRepository .Values.controllerManager.manager.relatedImages.broker\1.digest)~' ${dir}/templates/deployment.yaml
 
 # pack CRDs as template
 crds="${dir}/templates/crds.yaml"

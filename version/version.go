@@ -19,8 +19,8 @@ const (
 	LatestVersion        = "2.52.0"
 	CompactLatestVersion = "2520"
 
-	LatestKubeImage = "quay.io/arkmq-org/activemq-artemis-broker-kubernetes:artemis." + LatestVersion
-	LatestInitImage = "quay.io/arkmq-org/activemq-artemis-broker-init:artemis." + LatestVersion
+	LatestKubeImage = "quay.io/arkmq-org/arkmq-org-broker-kubernetes:artemis." + LatestVersion
+	LatestInitImage = "quay.io/arkmq-org/arkmq-org-broker-init:artemis." + LatestVersion
 )
 
 var (
@@ -72,7 +72,7 @@ func GetDefaultInitImage() string {
 }
 
 func DefaultImageName(archSpecificRelatedImageEnvVarName string) string {
-	if strings.Contains(archSpecificRelatedImageEnvVarName, "_Init_") {
+	if strings.Contains(archSpecificRelatedImageEnvVarName, "_INIT_") {
 		return GetDefaultInitImage()
 	} else {
 		return GetDefaultKubeImage()
@@ -144,7 +144,7 @@ var YacfgProfileVersionFromFullVersion map[string]string = map[string]string{
 
 var YacfgProfileName string = "artemis"
 
-// Sorted array of supported Apache ActiveMQ Artemis versions
+// Sorted array of supported Apache Artemis versions
 var SupportedActiveMQArtemisVersions = []string{
 	"2.21.0",
 	"2.22.0",

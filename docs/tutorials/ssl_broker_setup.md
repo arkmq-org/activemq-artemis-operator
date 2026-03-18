@@ -13,7 +13,7 @@ toc: true
 Security is always a concern in a production environment. With arkmq-org Operator
 You can easily configure and set up a broker with ssl-enabled acceptors. The blog explains how to do it.
 
-The [Apache ActiveMQ Artemis](https://activemq.apache.org/components/artemis/) broker supports a variety of network protocols(tcp, http, etc) including [SSL(TLS)](https://en.wikipedia.org/wiki/Transport_Layer_Security) secure connections. Underneath it uses [Netty](https://netty.io/) as the base transport layer.
+The [Apache Artemis](https://artemis.apache.org/components/artemis/) broker supports a variety of network protocols(tcp, http, etc) including [SSL(TLS)](https://en.wikipedia.org/wiki/Transport_Layer_Security) secure connections. Underneath it uses [Netty](https://netty.io/) as the base transport layer.
 
 This article guides you through the steps to set up a broker to run in kubernetes (Minikube). The broker will listen on a secure port 61617 (ssl over tcp). It also demonstrates sending and receiving messages over secure connections using one-way authentication.
 

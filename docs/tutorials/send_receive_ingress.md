@@ -116,7 +116,7 @@ kubectl wait pod --all --for=condition=Ready --namespace=send-receive-project --
 pod/activemq-artemis-controller-manager-fdd64476f-km8ml condition met
 ```
 
-### Deploy the Apache ActiveMQ Artemis Broker
+### Deploy the Apache Artemis Broker
 
 For this tutorial we need to:
 
@@ -349,7 +349,7 @@ NOTE: Picked up JDK_JAVA_OPTIONS: -Djavax.net.ssl.trustStore=/etc/pki/java/cacer
 #### MULTICAST
 
 For this use case, run first the consumer(s), then the producer.
-[More details there](https://activemq.apache.org/components/artemis/documentation/2.0.0/address-model.html).
+[More details there](https://artemis.apache.org/components/artemis/documentation/latest/address-model.html).
 
 1. in `n` other terminal(s) connect `n` consumer(s):
 

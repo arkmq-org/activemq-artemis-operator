@@ -5,7 +5,7 @@ generatorOptions:
   disableNameSuffixHash: true
 
 patches:
-- path: activemq_artemis_manager_related_images.yaml
+- path: manager_related_images.yaml
   target:
     kind: Deployment
 

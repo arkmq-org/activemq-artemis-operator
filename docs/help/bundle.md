@@ -94,9 +94,9 @@ activemq-artemis-controller-manager-54c99b9df6-6xdzh              1/1     Runnin
 activemq-artemis-operator-source-g94fd                            1/1     Running     0          58m
 ```
 
-## Deploy a single Apache ActiveMQ Artemis
+## Deploy a single Apache Artemis Broker
 
-The following command line deployes a single Apache ActiveMQ Artemis broker instance by applying the ActiveMQArtemis custom resource (CR) defined in artemis_single.yaml file:
+The following command line deploys a single Apache Artemis Broker instance by applying the ActiveMQArtemis custom resource (CR) defined in artemis_single.yaml file:
 
 ```$xslt
 $ kubectl apply -f examples/artemis/artemis_single.yaml

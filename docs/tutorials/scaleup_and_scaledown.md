@@ -103,7 +103,7 @@ kubectl get pod -n myproject
 No resources found in myproject namespace.
 ```
 
-### Step 2 - Deploy Apache ActiveMQ Artemis broker
+### Step 2 - Deploy Apache Artemis broker
 In this step we'll setup a one-node broker in kubernetes. First we need create a broker custom resource file.
 
 Create it using kubectl:

@@ -600,7 +600,7 @@ spec:
 #### The Readiness Probe
 
 As with the Liveness Probe the Readiness probe has a default probe if not configured. Unlike the Readiness probe this is 
-a script that is shipped in the Kubernetes Image, this can be found [here](https://github.com/arkmq-org/activemq-artemis-broker-kubernetes-image/blob/main/modules/activemq-artemis-launch/added/readinessProbe.sh)
+a script that is shipped in the Kubernetes Image, this can be found [here](https://github.com/arkmq-org/arkmq-org-broker-kubernetes-image/blob/main/modules/activemq-artemis-launch/added/readinessProbe.sh)
 
 The script will try to establish a tcp connection to each port configured in the broker.xml.  
 
@@ -867,7 +867,7 @@ Reference: [define-interdependent-environment-variables](https://kubernetes.io/d
 
 ## Configuring brokerProperties
 
-The CRD brokerProperties attribute allows the direct configuration of the Artemis internal configuration Bean of a broker via key value pairs. It is useful to override or augment elements of the CR, or to configure broker features that are not exposed via CRD attributes. In cases where the init container is used to augment xml configuration, broker properties can provide an in CR alternative. As a general 'bag of configuration' it is very powerful but it must be treated with due respect to all other sources of configuration. For details of what can be configured see the [Artemis configuraton documentation](https://activemq.apache.org/components/artemis/documentation/latest/configuration-index.html#broker-properties).
+The CRD brokerProperties attribute allows the direct configuration of the Artemis internal configuration Bean of a broker via key value pairs. It is useful to override or augment elements of the CR, or to configure broker features that are not exposed via CRD attributes. In cases where the init container is used to augment xml configuration, broker properties can provide an in CR alternative. As a general 'bag of configuration' it is very powerful but it must be treated with due respect to all other sources of configuration. For details of what can be configured see the [Artemis configuraton documentation](https://artemis.apache.org/components/artemis/documentation/latest/configuration-index.html#broker-properties).
 
 The format is an array of strings of the form `key=value` where the key identifies a (potentially nested) property of the configuration bean.
 Note: the array of strings ends up in a java properties file, where the following list of characters are significant: (space)`' '`, (colon)`':'`, (equals)`'='`. If these need to be present in your keys or values, they need to be escaped with a leading backslash `'\'`.
@@ -1003,7 +1003,7 @@ The ActiveMQArtemisAddress and ActiveMQArtemisSecurity CRDs are deprecated in fa
 ## Configuring Logging for Brokers
 
 By default the operator deploys a broker with a default logging configuration that comes with the [Artemis container image]
-(https://github.com/arkmq-org/activemq-artemis-broker-kubernetes-image). Broker logs its messages to console only.
+(https://github.com/arkmq-org/arkmq-org-broker-kubernetes-image). Broker logs its messages to console only.
 
 Users can change the broker logging configuration by providing their own in a configmap or secret. The name of the configmap
 or secret must have the suffix **-logging-config**. There must be a key **logging.properties** and the value must've the full content of the logging configuration. (The broker is using slf4j with
@@ -1045,7 +1045,7 @@ spec:
 ## Configuring JAAS for Brokers
 
 An entire JAAS configuration file (login.config) can be supplied via a secret with a `-jaas-config` postfix in the spec.deploymentPlan.extraMounts.secrets field. This file will be referenced from
-the jaas config system property (`java.security.auth.login.config`) and it will override anything configured via artemis create or via the ArtemisSecurityCR. For full details of how to configure JAAS for the broker refer to the [JAAS Security manager documentation](https://activemq.apache.org/components/artemis/documentation/latest/security.html#JAAS_Security_Manager).
+the jaas config system property (`java.security.auth.login.config`) and it will override anything configured via artemis create or via the ArtemisSecurityCR. For full details of how to configure JAAS for the broker refer to the [JAAS Security manager documentation](https://artemis.apache.org/components/artemis/documentation/latest/security.html#JAAS_Security_Manager).
 Alternatively, newer broker images support configuring JAAS directly via broker properties using `jaasConfigs.*` entries. This is useful when you want to keep JAAS settings alongside other broker properties (see `docs/tutorials/prometheus_locked_down.md` for a full example).
 Note: care must be taken to respect the any configured admin user such that the operator can still access the jolokia endpoint of the broker. The simplest way to do that is to reference the existing PropertiesLoginModule configuration files in your login.config.
 For example, here we have two instances of the PropertiesLoginModule, one that references the default credentials from `/home/jboss/amq-broker/etc` and one that has user suplied values from the secret. `reload=true` will ensure that the properties are reloaded if the secret changes. The `login.config` key in your secret called `<...>-jaas-config`, would have the following as the value:
@@ -1135,7 +1135,7 @@ In cases where a rollout of the stateful set is necessitated via a new feature o
 
 ## Enable broker's metrics plugin
 
-The ArkMQ ActiveMQ Artemis Broker container image comes with a metrics plugin to expose metrics data. The metrics data can be collected by tools such as Prometheus and visualized by tools such as Grafana.
+The ArkMQ Apache Artemis Broker container image comes with a metrics plugin to expose metrics data. The metrics data can be collected by tools such as Prometheus and visualized by tools such as Grafana.
 By default, the metrics plugin is disabled.
 To instruct the Operator to enable metrics for each broker Pod in a deployment, you must set the value of the `deploymentPlan.enableMetricsPlugin` property to true in the Custom Resource (CR) instance used to create the deployment.
 In addition, you need to expose the console, for example
@@ -1777,7 +1777,7 @@ kubectl create secret generic artemis-ssl-secret --namespace test \
 --from-literal=trustStorePassword=artemis
 ```
 
-The Apache ActiveMQ Artemis with the secured internal acceptor and connector can be created by using the following command:
+An Apache Artemis Broker instance with a secured internal acceptor and connector can be deployed by using the following command:
 ```
 kubectl apply -f - <<EOF
 apiVersion: broker.amq.io/v1beta1
