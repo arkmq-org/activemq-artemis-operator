@@ -34,7 +34,7 @@ There are multiple methods of installing the operator: [from releases](#install-
 ### Install the operator from releases
 In order to install the operator from the latest release is by running the following command:
 ```shell
-kubectl apply -f https://github.com/arkmq-org/activemq-artemis-operator/releases/latest/download/activemq-artemis-operator.yaml
+kubectl apply -f https://github.com/arkmq-org/activemq-artemis-operator/releases/latest/download/arkmq-org-broker-operator.yaml
 ```
 You can also install a specific operator version, i.e. to install the version `2.0.5`
 ```shell
@@ -69,13 +69,13 @@ In order to install the operator from sources, first clone the git repository wi
 git clone https://github.com/arkmq-org/activemq-artemis-operator.git
 ```
 
-Create the namespace activemq-artemis-operator and save it for all subsequent kubectl commands
+Create the namespace arkmq-org-broker-operator and save it for all subsequent kubectl commands
 ```shell
-$ kubectl create namespace activemq-artemis-operator
-$ kubectl config set-context --current --namespace activemq-artemis-operator
+$ kubectl create namespace arkmq-org-broker-operator
+$ kubectl config set-context --current --namespace arkmq-org-broker-operator
 ```
 
-To deploy the operator in the current namespace activemq-artemis-operator simply run:
+To deploy the operator in the current namespace arkmq-org-broker-operator simply run:
 
 ```shell
 $ ./deploy/install_opr.sh
@@ -90,13 +90,13 @@ To watch specific namespaces or all namespaces, run the command below and it wil
 $ ./deploy/cluster_wide_install_opr.sh
 ```
 
-At this point you should see the activemq-artemis-operator starting up and if you check the
+At this point you should see the arkmq-org-broker-operator starting up and if you check the
 pods you should see something like
 
 ```$shell
-$ kubectl get pod -n activemq-artemis-operator
+$ kubectl get pod -n arkmq-org-broker-operator
 NAME                                                   READY   STATUS    RESTARTS   AGE
-activemq-artemis-controller-manager-5ff459cd95-kn22m   1/1     Running   0          70m
+arkmq-org-broker-controller-manager-5ff459cd95-kn22m   1/1     Running   0          70m
 ```
 
 ## Deploying the broker
@@ -116,15 +116,15 @@ Note in particular the **spec.image** which identifies the container image to us
 To deploy the broker simply execute
 
 ```$shell
-$ kubectl create -f examples/artemis/artemis_single.yaml -n activemq-artemis-operator
+$ kubectl create -f examples/artemis/artemis_single.yaml -n arkmq-org-broker-operator
 activemqartemis.broker.amq.io/artemis-broker created
 ```
 In a moment you should see one broker pod is created alongside the operator pod:
 
 ```$shell
-$ kubectl get pod -n activemq-artemis-operator
+$ kubectl get pod -n arkmq-org-broker-operator
 NAME                                                   READY   STATUS    RESTARTS   AGE
-activemq-artemis-controller-manager-5ff459cd95-kn22m   1/1     Running   0          128m
+arkmq-org-broker-controller-manager-5ff459cd95-kn22m   1/1     Running   0          128m
 artemis-broker-ss-0                                    1/1     Running   0          23m
 ```
 
@@ -147,16 +147,16 @@ spec:
 and apply it:
 
 ```$shell
-$ kubectl apply -f examples/artemis/artemis_single.yaml -n activemq-artemis-operator
+$ kubectl apply -f examples/artemis/artemis_single.yaml -n arkmq-org-broker-operator
 activemqartemis.broker.amq.io/artemis-broker configured
 ```
 
 and you will get 2 broker pods in the cluster
 
 ```$shell
-$ kubectl get pod -n activemq-artemis-operator
+$ kubectl get pod -n arkmq-org-broker-operator
 NAME                                                   READY   STATUS    RESTARTS   AGE
-activemq-artemis-controller-manager-5ff459cd95-kn22m   1/1     Running   0          140m
+arkmq-org-broker-controller-manager-5ff459cd95-kn22m   1/1     Running   0          140m
 artemis-broker-ss-0                                    1/1     Running   0          35m
 artemis-broker-ss-1                                    1/1     Running   0          69s
 ```
@@ -173,7 +173,7 @@ By default if broker pods are scaled to more than one then the broker pods form 
 To undeploy the broker we simply execute
 
 ```$shell
-$ kubectl delete -f examples/artemis/artemis_single.yaml -n activemq-artemis-operator
+$ kubectl delete -f examples/artemis/artemis_single.yaml -n arkmq-org-broker-operator
 activemqartemis.broker.amq.io "artemis-broker" deleted
 ```
 
@@ -203,7 +203,7 @@ spec:
 and the deploy command:
 
 ```$shell
-$ kubectl create -f examples/address/address_queue.yaml -n activemq-artemis-operator
+$ kubectl create -f examples/address/address_queue.yaml -n arkmq-org-broker-operator
 activemqartemisaddress.broker.amq.io/artemis-address-queue created
 ```
 
@@ -211,7 +211,7 @@ When it is deployed it will create a queue named **myQueue0** on an address **my
 
 ```$shell
 $ kubectl exec artemis-broker-ss-0 --container artemis-broker-container -- amq-broker/bin/artemis queue stat
-Connection brokerURL = tcp://artemis-broker-ss-0.artemis-broker-hdls-svc.activemq-artemis-operator.svc.cluster.local:61616
+Connection brokerURL = tcp://artemis-broker-ss-0.artemis-broker-hdls-svc.arkmq-org-broker-operator.svc.cluster.local:61616
 |NAME                     |ADDRESS                  |CONSUMER_COUNT|MESSAGE_COUNT|MESSAGES_ADDED|DELIVERING_COUNT|MESSAGES_ACKED|SCHEDULED_COUNT|ROUTING_TYPE|
 |DLQ                      |DLQ                      |0             |0            |0             |0               |0             |0              |ANYCAST     |
 |ExpiryQueue              |ExpiryQueue              |0             |0            |0             |0               |0             |0              |ANYCAST     |
@@ -222,7 +222,7 @@ Connection brokerURL = tcp://artemis-broker-ss-0.artemis-broker-hdls-svc.activem
 The **spec.removeFromBrokerOnDelete** controls how to deal with the created queue/address resources when you delete the above custom resource:
 
 ```$shell
-$ kubectl delete -f examples/address/address_queue.yaml -n activemq-artemis-operator
+$ kubectl delete -f examples/address/address_queue.yaml -n arkmq-org-broker-operator
 activemqartemisaddress.broker.amq.io "artemis-address-queue" deleted
 ```
 
@@ -232,7 +232,7 @@ If it is false, the queue/address created by this custome resource will be kept 
 You can check if the queue was removed using the command below:
 ```$shell
 $ kubectl exec artemis-broker-ss-0 --container artemis-broker-container -- amq-broker/bin/artemis queue stat
-Connection brokerURL = tcp://artemis-broker-ss-0.artemis-broker-hdls-svc.activemq-artemis-operator.svc.cluster.local:61616
+Connection brokerURL = tcp://artemis-broker-ss-0.artemis-broker-hdls-svc.arkmq-org-broker-operator.svc.cluster.local:61616
 |NAME                     |ADDRESS                  |CONSUMER_COUNT|MESSAGE_COUNT|MESSAGES_ADDED|DELIVERING_COUNT|MESSAGES_ACKED|SCHEDULED_COUNT|ROUTING_TYPE|
 |DLQ                      |DLQ                      |0             |0            |0             |0               |0             |0              |ANYCAST     |
 |ExpiryQueue              |ExpiryQueue              |0             |0            |0             |0               |0             |0              |ANYCAST     |
@@ -298,16 +298,16 @@ spec:
 To demonstrate the message draining first deploy the above custom resource (assuming the operator is running):
 
 ```$shell
-$ kubectl create -f ./examples/artemis/artemis_cluster_persistence.yaml -n activemq-artemis-operator
+$ kubectl create -f ./examples/artemis/artemis_cluster_persistence.yaml -n arkmq-org-broker-operator
 activemqartemis.broker.amq.io/artemis-broker created
 ```
 
 You shall see 2 broker pods are created.
 
 ```$shell
-$ kubectl get pod -n activemq-artemis-operator
+$ kubectl get pod -n arkmq-org-broker-operator
 NAME                                                   READY   STATUS    RESTARTS   AGE
-activemq-artemis-controller-manager-5ff459cd95-kn22m   1/1     Running   0          3h19m
+arkmq-org-broker-controller-manager-5ff459cd95-kn22m   1/1     Running   0          3h19m
 artemis-broker-ss-0                                    1/1     Running   0          89s
 artemis-broker-ss-1                                    1/1     Running   0          53s
 ```
@@ -344,7 +344,7 @@ Now each of the 2 brokers has 100 messages.
 
 ```$shell
 $ kubectl exec artemis-broker-ss-0 --container artemis-broker-container -- amq-broker/bin/artemis queue stat
-Connection brokerURL = tcp://artemis-broker-ss-0.artemis-broker-hdls-svc.activemq-artemis-operator.svc.cluster.local:61616
+Connection brokerURL = tcp://artemis-broker-ss-0.artemis-broker-hdls-svc.arkmq-org-broker-operator.svc.cluster.local:61616
 |NAME                     |ADDRESS                  |CONSUMER_COUNT|MESSAGE_COUNT|MESSAGES_ADDED|DELIVERING_COUNT|MESSAGES_ACKED|SCHEDULED_COUNT|ROUTING_TYPE|
 |DLQ                      |DLQ                      |0             |0            |0             |0               |0             |0              |ANYCAST     |
 |ExpiryQueue              |ExpiryQueue              |0             |0            |0             |0               |0             |0              |ANYCAST     |
@@ -354,7 +354,7 @@ Connection brokerURL = tcp://artemis-broker-ss-0.artemis-broker-hdls-svc.activem
 
 ```$shell
 $ kubectl exec artemis-broker-ss-1 --container artemis-broker-container -- amq-broker/bin/artemis queue stat
-Connection brokerURL = tcp://artemis-broker-ss-1.artemis-broker-hdls-svc.activemq-artemis-operator.svc.cluster.local:61616
+Connection brokerURL = tcp://artemis-broker-ss-1.artemis-broker-hdls-svc.arkmq-org-broker-operator.svc.cluster.local:61616
 |NAME                     |ADDRESS                  |CONSUMER_COUNT|MESSAGE_COUNT|MESSAGES_ADDED|DELIVERING_COUNT|MESSAGES_ACKED|SCHEDULED_COUNT|ROUTING_TYPE|
 |DLQ                      |DLQ                      |0             |0            |0             |0               |0             |0              |ANYCAST     |
 |ExpiryQueue              |ExpiryQueue              |0             |0            |0             |0               |0             |0              |ANYCAST     |
@@ -377,16 +377,16 @@ spec:
 ```
 and re-apply it:
 ```$shell
-$ kubectl apply -f ./examples/artemis/artemis_cluster_persistence.yaml -n activemq-artemis-operator
+$ kubectl apply -f ./examples/artemis/artemis_cluster_persistence.yaml -n arkmq-org-broker-operator
 activemqartemis.broker.amq.io/artemis-broker configured
 ```
 
 The broker pods will be reduced to only one
 
 ```$shell
-$ kubectl get pod -n activemq-artemis-operator
+$ kubectl get pod -n arkmq-org-broker-operator
 NAME                                                   READY   STATUS    RESTARTS   AGE
-activemq-artemis-controller-manager-5ff459cd95-kn22m   1/1     Running   0          3h57m
+arkmq-org-broker-controller-manager-5ff459cd95-kn22m   1/1     Running   0          3h57m
 artemis-broker-ss-0                                    1/1     Running   0          39m
 ```
 
@@ -426,15 +426,15 @@ $ sed -i 's/logger.audit_message.level = OFF/logger.audit_message.level = INFO/'
 Then you will need to create configMap or a secret in your namespace. The configMap or secret name must have a suffix of `-logging-config` and the key must be `logging.properties`
 
 ```$shell
-$ kubectl create secret generic newlog4j-logging-config --from-file=logging.properties=log4j2.properties -n activemq-artemis-operator
+$ kubectl create secret generic newlog4j-logging-config --from-file=logging.properties=log4j2.properties -n arkmq-org-broker-operator
 secret/newlog4j-logging-config created
 ```
 
 After the secret creation it should be like this:
 ```$shell
-$ kubectl describe secret newlog4j-logging-config -n activemq-artemis-operator
+$ kubectl describe secret newlog4j-logging-config -n arkmq-org-broker-operator
 Name:         newlog4j-logging-config
-Namespace:    activemq-artemis-operator
+Namespace:    arkmq-org-broker-operator
 Labels:       <none>
 Annotations:  <none>
 
@@ -448,14 +448,14 @@ logging.properties:  2687 bytes
 The next step is to define the extraMount in the ActiveMQArtemis custom resource like in our [example](../../examples/artemis/artemis_custom_logging_secret.yaml) and deploy it.
 
 ```$shell
-$ kubectl create -f ./examples/artemis/artemis_custom_logging_secret.yaml -n activemq-artemis-operator
+$ kubectl create -f ./examples/artemis/artemis_custom_logging_secret.yaml -n arkmq-org-broker-operator
 activemqartemis.broker.amq.io/artemis-broker-logging created
 ```
 
 Then you should be able to see some audit log entries after the artemis start:
 
 ```$shell
-$ kubectl logs artemis-broker-logging-ss-0 -n activemq-artemis-operator |grep audit
+$ kubectl logs artemis-broker-logging-ss-0 -n arkmq-org-broker-operator |grep audit
 Defaulted container "artemis-broker-logging-container" out of: artemis-broker-logging-container, artemis-broker-logging-container-init (init)
 2023-11-08 20:02:46,914 INFO  [org.apache.activemq.audit.base] AMQ601019: User anonymous@internal is getting mbean info on target resource: org.apache.activemq.artemis.core.server.management.impl.HawtioSecurityControlImpl@7a26928a
 2023-11-08 20:02:47,115 INFO  [org.apache.activemq.audit.base] AMQ601019: User anonymous@internal is getting mbean info on target resource: org.apache.activemq.artemis.core.management.impl.JGroupsFileBroadcastGroupControlImpl@72725ee1
@@ -467,7 +467,7 @@ Defaulted container "artemis-broker-logging-container" out of: artemis-broker-lo
 You can also do the same using configMaps instead of secrets. Just create a configMap like:
 
 ```$shell
-$ kubectl create configmap newlog4j-logging-config --from-file=logging.properties=log4j2.properties -n activemq-artemis-operator
+$ kubectl create configmap newlog4j-logging-config --from-file=logging.properties=log4j2.properties -n arkmq-org-broker-operator
 secret/newlog4j-logging-config created
 ```
 

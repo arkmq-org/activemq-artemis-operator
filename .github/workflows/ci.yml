@@ -1,7 +1,7 @@
 name: CI
 
 env:
-  IMAGE_NAME: activemq-artemis-operator
+  IMAGE_NAME: arkmq-org-broker-operator
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 on:
@@ -233,8 +233,8 @@ jobs:
           (minikube kubectl -- get subscription arkmq-org-broker-operator-subscription --namespace=operators -o yaml && exit 1)
           minikube kubectl -- wait installplan -l operators.coreos.com/arkmq-org-broker-operator.operators='' --for=condition=Installed --namespace=operators --timeout=3m ||
           (minikube kubectl -- get installplan -l operators.coreos.com/arkmq-org-broker-operator.operators='' --namespace=operators -o yaml && exit 1)
-          minikube kubectl -- wait pod -l name=activemq-artemis-operator --for=condition=Ready --namespace=operators --timeout=3m ||
-          (minikube kubectl -- get pod -l name=activemq-artemis-operator --namespace=operators -o yaml && exit 1)
+          minikube kubectl -- wait pod -l name=arkmq-org-broker-operator --for=condition=Ready --namespace=operators --timeout=3m ||
+          (minikube kubectl -- get pod -l name=arkmq-org-broker-operator --namespace=operators -o yaml && exit 1)
 
       - name: Push the bundle image
         if: ${{ github.event_name == 'push' }}
@@ -259,7 +259,7 @@ jobs:
         run: |
           minikube delete
           find docs/tutorials -type f -exec sed -i "s|^minikube start|minikube start  --cpus 2 --memory 8000 --insecure-registry=$HOSTNAME:5000|" {} +
-          sed -i "s|image: quay.io/arkmq-org/activemq-artemis-operator:.*|image: ${HOSTNAME}:5000/$IMAGE_NAME:dev.latest|" deploy/operator.yaml
+          sed -i "s|image: quay.io/arkmq-org/arkmq-org-broker-operator:.*|image: ${HOSTNAME}:5000/$IMAGE_NAME:dev.latest|" deploy/operator.yaml
           markdown-runner docs/tutorials --view ci
 
       - name: Trigger release

@@ -74,12 +74,12 @@ customresourcedefinition.apiextensions.k8s.io/activemqartemises.broker.amq.io cr
 customresourcedefinition.apiextensions.k8s.io/activemqartemisaddresses.broker.amq.io created
 customresourcedefinition.apiextensions.k8s.io/activemqartemisscaledowns.broker.amq.io created
 customresourcedefinition.apiextensions.k8s.io/activemqartemissecurities.broker.amq.io created
-serviceaccount/activemq-artemis-controller-manager created
-role.rbac.authorization.k8s.io/activemq-artemis-operator-role created
-rolebinding.rbac.authorization.k8s.io/activemq-artemis-operator-rolebinding created
+serviceaccount/arkmq-org-broker-controller-manager created
+role.rbac.authorization.k8s.io/arkmq-org-broker-operator-role created
+rolebinding.rbac.authorization.k8s.io/arkmq-org-broker-operator-rolebinding created
 role.rbac.authorization.k8s.io/activemq-artemis-leader-election-role created
 rolebinding.rbac.authorization.k8s.io/activemq-artemis-leader-election-rolebinding created
-deployment.apps/activemq-artemis-controller-manager created
+deployment.apps/arkmq-org-broker-controller-manager created
 ./deploy/install_opr.sh: line 7: oc: command not found
 Warning: unrecognized format "int32"
 Warning: unrecognized format "int64"
@@ -88,10 +88,10 @@ Warning: unrecognized format "int64"
 Wait for the operator to be ready:
 
 ```{"stage":"init","id":"wait_operator"}
-kubectl wait deployment activemq-artemis-controller-manager --namespace=myproject --for=condition=Available --timeout=300s
+kubectl wait deployment arkmq-org-broker-controller-manager --namespace=myproject --for=condition=Available --timeout=300s
 ```
 ```shell markdown_runner
-deployment.apps/activemq-artemis-controller-manager condition met
+deployment.apps/arkmq-org-broker-controller-manager condition met
 ```
 
 Verify the operator is running:
@@ -152,7 +152,7 @@ kubectl get pod -n myproject
 ```
 ```shell markdown_runner
 NAME                                                  READY   STATUS    RESTARTS   AGE
-activemq-artemis-controller-manager-5d969499b-rpxg4   1/1     Running   0          74s
+arkmq-org-broker-controller-manager-5d969499b-rpxg4   1/1     Running   0          74s
 ex-aao-ss-0                                           1/1     Running   0          62s
 ```
 
@@ -183,7 +183,7 @@ kubectl get pod -n myproject
 ```
 ```shell markdown_runner
 NAME                                                  READY   STATUS     RESTARTS   AGE
-activemq-artemis-controller-manager-5d969499b-rpxg4   1/1     Running    0          75s
+arkmq-org-broker-controller-manager-5d969499b-rpxg4   1/1     Running    0          75s
 ex-aao-ss-0                                           1/1     Running    0          63s
 ex-aao-ss-1                                           0/1     Init:0/1   0          1s
 ```
@@ -253,7 +253,7 @@ kubectl get pod -n myproject
 ```
 ```shell markdown_runner
 NAME                                                  READY   STATUS    RESTARTS   AGE
-activemq-artemis-controller-manager-5d969499b-rpxg4   1/1     Running   0          80s
+arkmq-org-broker-controller-manager-5d969499b-rpxg4   1/1     Running   0          80s
 ex-aao-ss-0                                           1/1     Running   0          68s
 ex-aao-ss-1                                           0/1     Running   0          6s
 ```

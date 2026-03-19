@@ -8,7 +8,7 @@ draft: false
 
 # Debugging Go
 
-This tutorial walks you through setting up a debugging session for the ActiveMQ Artemis Operator. We use [Delve](https://github.com/go-delve/delve), the standard debugger for Go.
+This tutorial walks you through setting up a debugging session for the ArkMQ Broker Operator. We use [Delve](https://github.com/go-delve/delve), the standard debugger for Go.
 
 ## Prerequisites
 
@@ -112,10 +112,10 @@ Create a `.vscode/launch.json` with these configurations:
             "mode": "debug",
             "program": "${workspaceFolder}",
             "env": {
-                "DEFAULT_OPERATOR_NAMESPACE": "activemq-artemis-operator",
+                "DEFAULT_OPERATOR_NAMESPACE": "arkmq-org-broker-operator",
                 "WATCH_NAMESPACE": "",
                 "POD_NAME": "local-operator-debug",
-                "OPERATOR_NAME": "activemq-artemis-operator"
+                "OPERATOR_NAME": "arkmq-org-broker-operator"
             },
             "args": [
                 "--leader-elect=false"
@@ -273,7 +273,7 @@ Add this object to your `launch.json` file:
     "program": "${fileDirname}",
     "env": {
         "USE_EXISTING_CLUSTER": "true",
-        "DEFAULT_OPERATOR_NAMESPACE": "activemq-artemis-operator",
+        "DEFAULT_OPERATOR_NAMESPACE": "arkmq-org-broker-operator",
         "WATCH_NAMESPACE": "",
         "KUBECONFIG": "${env:HOME}/.kube/config"
     },
@@ -396,7 +396,7 @@ For simple `func TestXxx(t *testing.T)` tests (non-Ginkgo):
 make install
 
 # Debug (uses DEFAULT_OPERATOR_NAMESPACE Makefile variable, sets DEFAULT_OPERATOR_NAMESPACE env)
-make debug DEFAULT_OPERATOR_NAMESPACE=activemq-artemis-operator
+make debug DEFAULT_OPERATOR_NAMESPACE=arkmq-org-broker-operator
 
 # Debug watching a single namespace
 make debug DEFAULT_OPERATOR_NAMESPACE=my-ns WATCH_NAMESPACE=my-ns

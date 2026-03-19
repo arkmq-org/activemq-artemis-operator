@@ -14,7 +14,7 @@ annotations:
   operators.operatorframework.io.test.mediatype.v1: scorecard+v1
   operators.operatorframework.io.test.config.v1: tests/scorecard/
 
-  name: "arkmq-org/activemq-artemis-operator-bundle"
+  name: "arkmq-org/arkmq-org-broker-operator-bundle"
   description: "ArkMQ Broker Operator Bundle"
   maintainer: "ArkMQ <info@arkmq.org>"
   version: "2.1.5"

@@ -84,25 +84,25 @@ customresourcedefinition.apiextensions.k8s.io/activemqartemisaddresses.broker.am
 customresourcedefinition.apiextensions.k8s.io/activemqartemisscaledowns.broker.amq.io created
 customresourcedefinition.apiextensions.k8s.io/activemqartemissecurities.broker.amq.io created
 customresourcedefinition.apiextensions.k8s.io/brokers.arkmq.org created
-serviceaccount/activemq-artemis-controller-manager created
-role.rbac.authorization.k8s.io/activemq-artemis-operator-role created
-rolebinding.rbac.authorization.k8s.io/activemq-artemis-operator-rolebinding created
+serviceaccount/arkmq-org-broker-controller-manager created
+role.rbac.authorization.k8s.io/arkmq-org-broker-operator-role created
+rolebinding.rbac.authorization.k8s.io/arkmq-org-broker-operator-rolebinding created
 role.rbac.authorization.k8s.io/activemq-artemis-leader-election-role created
 rolebinding.rbac.authorization.k8s.io/activemq-artemis-leader-election-rolebinding created
-deployment.apps/activemq-artemis-controller-manager created
+deployment.apps/arkmq-org-broker-controller-manager created
 ```
 
 Wait for the Operator to start (status: `running`):
 
 ```{"stage":"operator-setup", "label":"wait for operator"}
-kubectl rollout status deployment/activemq-artemis-controller-manager --timeout=600s
+kubectl rollout status deployment/arkmq-org-broker-controller-manager --timeout=600s
 ```
 ```shell markdown_runner
 Waiting for deployment spec update to be observed...
 Waiting for deployment spec update to be observed...
-Waiting for deployment "activemq-artemis-controller-manager" rollout to finish: 0 out of 1 new replicas have been updated...
-Waiting for deployment "activemq-artemis-controller-manager" rollout to finish: 0 of 1 updated replicas are available...
-deployment "activemq-artemis-controller-manager" successfully rolled out
+Waiting for deployment "arkmq-org-broker-controller-manager" rollout to finish: 0 out of 1 new replicas have been updated...
+Waiting for deployment "arkmq-org-broker-controller-manager" rollout to finish: 0 of 1 updated replicas are available...
+deployment "arkmq-org-broker-controller-manager" successfully rolled out
 ```
 
 ### Install HashiCorp Vault

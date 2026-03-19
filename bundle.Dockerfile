@@ -20,7 +20,7 @@ COPY bundle/manifests /manifests/
 COPY bundle/metadata /metadata/
 COPY bundle/tests/scorecard /tests/scorecard/
 
-LABEL name="arkmq-org/activemq-artemis-operator-bundle"
+LABEL name="arkmq-org/arkmq-org-broker-operator-bundle"
 LABEL description="ArkMQ Broker Operator Bundle"
 LABEL maintainer="ArkMQ <info@arkmq.org>"
 LABEL version="2.1.5"

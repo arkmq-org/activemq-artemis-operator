@@ -68,7 +68,7 @@ helm upgrade trust-manager jetstack/trust-manager --install --namespace cert-man
 Wait for the operator pod to become ready.
 
 ```bash {"stage":"init", "label":"wait for the operator to be running", "runtime":"bash"}
-kubectl wait deployment activemq-artemis-controller-manager --for=create --timeout=240s
+kubectl wait deployment arkmq-org-broker-controller-manager --for=create --timeout=240s
 kubectl wait pod --all --for=condition=Ready --namespace=service-app-project --timeout=600s
 ```
 

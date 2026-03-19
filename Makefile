@@ -7,10 +7,10 @@ VERSION ?= 2.1.5
 
 KUBE_CLI=kubectl
 OPERATOR_VERSION := $(VERSION)
-OPERATOR_ACCOUNT_NAME := activemq-artemis-operator
+OPERATOR_ACCOUNT_NAME := arkmq-org-broker-operator
 OPERATOR_CLUSTER_ROLE_NAME := operator-role
-OPERATOR_IMAGE_REPO := quay.io/arkmq-org/activemq-artemis-operator
-OPERATOR_NAMESPACE := activemq-artemis-operator
+OPERATOR_IMAGE_REPO := quay.io/arkmq-org/arkmq-org-broker-operator
+OPERATOR_NAMESPACE := arkmq-org-broker-operator
 BUNDLE_VERSION := $(VERSION)
 BUNDLE_PACKAGE := arkmq-org-broker-operator
 BUNDLE_ANNOTATION_PACKAGE := $(BUNDLE_PACKAGE)
@@ -63,8 +63,8 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 # This variable is used to construct full image tags for bundle and catalog images.
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
-# quay.io/arkmq-org/activemq-artemis-operator-bundle:$VERSION and quay.io/arkmq-org/activemq-artemis-operator-catalog:$VERSION.
-IMAGE_TAG_BASE ?= quay.io/arkmq-org/activemq-artemis-operator
+# quay.io/arkmq-org/arkmq-org-broker-operator-bundle:$VERSION and quay.io/arkmq-org/arkmq-org-broker-operator-catalog:$VERSION.
+IMAGE_TAG_BASE ?= quay.io/arkmq-org/arkmq-org-broker-operator
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
@@ -177,7 +177,7 @@ debug: manifests generate ## Run the operator with Delve in interactive mode
 	DEFAULT_OPERATOR_NAMESPACE="$(OPERATOR_NAMESPACE)" \
 	WATCH_NAMESPACE="$(WATCH_NAMESPACE)" \
 	POD_NAME="local-debug" \
-	OPERATOR_NAME="activemq-artemis-operator" \
+	OPERATOR_NAME="arkmq-org-broker-operator" \
 	dlv debug ./main.go -- --leader-elect=false
 
 .PHONY: debug-remote
@@ -189,7 +189,7 @@ debug-remote: manifests generate ## Run the operator with Delve exposing a socke
 	DEFAULT_OPERATOR_NAMESPACE="$(OPERATOR_NAMESPACE)" \
 	WATCH_NAMESPACE="$(WATCH_NAMESPACE)" \
 	POD_NAME="local-debug" \
-	OPERATOR_NAME="activemq-artemis-operator" \
+	OPERATOR_NAME="arkmq-org-broker-operator" \
 	dlv debug ./main.go --headless --listen=:2345 --api-version=2 --accept-multiclient -- --leader-elect=false
 
 ##@ Build

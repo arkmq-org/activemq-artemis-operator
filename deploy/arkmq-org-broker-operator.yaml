@@ -3,7 +3,7 @@ kind: Namespace
 metadata:
   labels:
     control-plane: controller-manager
-  name: activemq-artemis-operator
+  name: arkmq-org-broker-operator
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -14203,14 +14203,14 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: activemq-artemis-controller-manager
-  namespace: activemq-artemis-operator
+  name: arkmq-org-broker-controller-manager
+  namespace: arkmq-org-broker-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: activemq-artemis-leader-election-role
-  namespace: activemq-artemis-operator
+  name: arkmq-org-broker-leader-election-role
+  namespace: arkmq-org-broker-operator
 rules:
 - apiGroups:
   - ""
@@ -14247,8 +14247,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: activemq-artemis-operator-role
-  namespace: activemq-artemis-operator
+  name: arkmq-org-broker-operator-role
+  namespace: arkmq-org-broker-operator
 rules:
 - apiGroups:
   - ""
@@ -14424,44 +14424,44 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: activemq-artemis-leader-election-rolebinding
-  namespace: activemq-artemis-operator
+  name: arkmq-org-broker-leader-election-rolebinding
+  namespace: arkmq-org-broker-operator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: activemq-artemis-leader-election-role
+  name: arkmq-org-broker-leader-election-role
 subjects:
 - kind: ServiceAccount
-  name: activemq-artemis-controller-manager
-  namespace: activemq-artemis-operator
+  name: arkmq-org-broker-controller-manager
+  namespace: arkmq-org-broker-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: activemq-artemis-operator-rolebinding
-  namespace: activemq-artemis-operator
+  name: arkmq-org-broker-operator-rolebinding
+  namespace: arkmq-org-broker-operator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: activemq-artemis-operator-role
+  name: arkmq-org-broker-operator-role
 subjects:
 - kind: ServiceAccount
-  name: activemq-artemis-controller-manager
-  namespace: activemq-artemis-operator
+  name: arkmq-org-broker-controller-manager
+  namespace: arkmq-org-broker-operator
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
     control-plane: controller-manager
-  name: activemq-artemis-controller-manager
-  namespace: activemq-artemis-operator
+  name: arkmq-org-broker-controller-manager
+  namespace: arkmq-org-broker-operator
 spec:
   replicas: 1
   selector:
     matchLabels:
       control-plane: controller-manager
-      name: activemq-artemis-operator
+      name: arkmq-org-broker-operator
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -14471,7 +14471,7 @@ spec:
     metadata:
       labels:
         control-plane: controller-manager
-        name: activemq-artemis-operator
+        name: arkmq-org-broker-operator
     spec:
       containers:
       - args:
@@ -14480,7 +14480,7 @@ spec:
         - --zap-time-encoding=iso8601
         - --leader-elect
         command:
-        - /home/activemq-artemis-operator/bin/entrypoint
+        - /home/arkmq-org-broker-operator/bin/entrypoint
         env:
         - name: RELATED_IMAGE_BROKER_INIT_2150
           value: quay.io/arkmq-org/arkmq-org-broker-init@sha256:edbec2276270c2f890572daf9141390bc33b5cf75621eca6e10f11bb144944f3
@@ -14626,7 +14626,7 @@ spec:
           value: ''
         - name: ENABLE_WEBHOOKS
           value: "false"
-        image: quay.io/arkmq-org/activemq-artemis-operator:2.1.5
+        image: quay.io/arkmq-org/arkmq-org-broker-operator:2.1.5
         livenessProbe:
           httpGet:
             path: /healthz
@@ -14664,5 +14664,5 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-      serviceAccountName: activemq-artemis-controller-manager
+      serviceAccountName: arkmq-org-broker-controller-manager
       terminationGracePeriodSeconds: 10

@@ -1,5 +1,5 @@
 annotations:
-  name: "arkmq-org/activemq-artemis-operator-bundle"
+  name: "arkmq-org/arkmq-org-broker-operator-bundle"
   description: "ArkMQ Broker Operator Bundle"
   maintainer: "ArkMQ <info@arkmq.org>"
   version: "2.1.5"

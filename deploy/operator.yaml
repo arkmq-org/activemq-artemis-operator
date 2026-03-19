@@ -3,13 +3,13 @@ kind: Deployment
 metadata:
   labels:
     control-plane: controller-manager
-  name: activemq-artemis-controller-manager
+  name: arkmq-org-broker-controller-manager
 spec:
   replicas: 1
   selector:
     matchLabels:
       control-plane: controller-manager
-      name: activemq-artemis-operator
+      name: arkmq-org-broker-operator
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -19,7 +19,7 @@ spec:
     metadata:
       labels:
         control-plane: controller-manager
-        name: activemq-artemis-operator
+        name: arkmq-org-broker-operator
     spec:
       containers:
       - args:
@@ -28,7 +28,7 @@ spec:
         - --zap-time-encoding=iso8601
         - --leader-elect
         command:
-        - /home/activemq-artemis-operator/bin/entrypoint
+        - /home/arkmq-org-broker-operator/bin/entrypoint
         env:
         - name: RELATED_IMAGE_BROKER_INIT_2150
           value: quay.io/arkmq-org/arkmq-org-broker-init@sha256:edbec2276270c2f890572daf9141390bc33b5cf75621eca6e10f11bb144944f3
@@ -176,7 +176,7 @@ spec:
               fieldPath: metadata.namespace
         - name: ENABLE_WEBHOOKS
           value: "false"
-        image: quay.io/arkmq-org/activemq-artemis-operator:2.1.5
+        image: quay.io/arkmq-org/arkmq-org-broker-operator:2.1.5
         livenessProbe:
           httpGet:
             path: /healthz
@@ -214,5 +214,5 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-      serviceAccountName: activemq-artemis-controller-manager
+      serviceAccountName: arkmq-org-broker-controller-manager
       terminationGracePeriodSeconds: 10

@@ -11,7 +11,7 @@ file=()
 resource_kind=""
 resource_name=""
 
-SINGLE_INSTALL_YML="${destdir}/activemq-artemis-operator.yaml"
+SINGLE_INSTALL_YML="${destdir}/arkmq-org-broker-operator.yaml"
 
 OPERATOR_NAMESPACE=${2}
 echo "OPERATOR_NAMESPACE:${OPERATOR_NAMESPACE}"

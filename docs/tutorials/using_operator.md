@@ -53,13 +53,13 @@ Deploy the Operator:
 
 ```shell script
 $ kubectl create -f deploy/operator.yaml --namespace myproject
-deployment.apps/activemq-artemis-operator created
+deployment.apps/arkmq-org-broker-operator created
 ```
 You might need to wait a few moments for the Operator to fully start. You can verify the Operator status by running the command and looking at the output:
 ```shell script
 $ kubectl get pod --namespace myproject
 NAME                                         READY   STATUS    RESTARTS   AGE
-activemq-artemis-operator-58bb658f4c-gthwb   1/1     Running   0          12s
+arkmq-org-broker-operator-58bb658f4c-gthwb   1/1     Running   0          12s
 
 ```
 Make sure that the **STATUS** is **Running**.
@@ -75,7 +75,7 @@ Watch the broker Pod start up:
 ```shell script
 $ kubectl get pod -n myproject
 NAME                                         READY   STATUS    RESTARTS   AGE
-activemq-artemis-operator-58bb658f4c-gthwb   1/1     Running   0          14m
+arkmq-org-broker-operator-58bb658f4c-gthwb   1/1     Running   0          14m
 artemis-broker-ss-0                          1/1     Running   0          61s
 
 ```

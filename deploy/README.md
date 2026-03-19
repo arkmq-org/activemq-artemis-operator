@@ -52,10 +52,10 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: activemq-artemis-activemq-artemis-operator
+  name: arkmq-org-broker-operator
 subjects:
 - kind: ServiceAccount
-  name: activemq-artemis-controller-manager
+  name: arkmq-org-broker-controller-manager
   namespace: <<This must match your operator's target namespace>>
 ```
 

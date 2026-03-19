@@ -205,15 +205,15 @@ Operator will create ActiveMQ resources based on custom resources definitions (C
 
 If you are not sure how to deploy the operator take a look at [here](using_operator.md).
 
-In this tutorial we assume you deployed the operator to a namespace called **activemq-artemis-operator**.
+In this tutorial we assume you deployed the operator to a namespace called **arkmq-org-broker-operator**.
 
 Make sure the operator is in "Runing" status before going to the next step.
 You can run this command and observe the output:
 
 ```shell script
-$ kubectl get pod -n activemq-artemis-operator
+$ kubectl get pod -n arkmq-org-broker-operator
 NAME                                         READY   STATUS    RESTARTS   AGE
-activemq-artemis-operator-58bb658f4c-zcqmw   1/1     Running   0          7m32s
+arkmq-org-broker-operator-58bb658f4c-zcqmw   1/1     Running   0          7m32s
 ```
 
 ## Deploy a broker

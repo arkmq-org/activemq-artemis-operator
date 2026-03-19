@@ -69,9 +69,9 @@ func (r *BrokerReconciler) toArtemisParent() *ActiveMQArtemisReconciler {
 	}
 }
 
-//+kubebuilder:rbac:groups=arkmq.org,namespace=activemq-artemis-operator,resources=brokers,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=arkmq.org,namespace=activemq-artemis-operator,resources=brokers/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=arkmq.org,namespace=activemq-artemis-operator,resources=brokers/finalizers,verbs=update
+//+kubebuilder:rbac:groups=arkmq.org,namespace=arkmq-org-broker-operator,resources=brokers,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=arkmq.org,namespace=arkmq-org-broker-operator,resources=brokers/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=arkmq.org,namespace=arkmq-org-broker-operator,resources=brokers/finalizers,verbs=update
 
 func (r *BrokerReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	reqLogger := r.log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name, "Reconciling", "Broker")

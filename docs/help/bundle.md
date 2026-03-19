@@ -27,13 +27,13 @@ Create a repository that Kubernetes will uses to pull your catalog image. You ca
 ## Build a catalog image
 Set your repository in CATALOG_IMG and execute the following command:
 ```
-make CATALOG_IMG=quay.io/my-org/activemq-artemis-operator-catalog:latest catalog-build
+make CATALOG_IMG=quay.io/my-org/arkmq-org-broker-operator-catalog:latest catalog-build
 ```
 
 ## Push a catalog image
 Set your repository in CATALOG_IMG and execute the following command:
 ```
-make CATALOG_IMG=quay.io/my-org/activemq-artemis-operator-catalog:latest catalog-push
+make CATALOG_IMG=quay.io/my-org/arkmq-org-broker-operator-catalog:latest catalog-push
 ```
 
 ## Create a catalog source (e.g. catalog-source.yaml):
@@ -48,7 +48,7 @@ metadata:
   namespace: operators
 spec:
   displayName: ArkMQ Broker Operator Catalog Source
-  image: quay.io/my-org/activemq-artemis-operator-catalog:latest
+  image: quay.io/my-org/arkmq-org-broker-operator-catalog:latest
   sourceType: grpc
 ```
 
@@ -62,7 +62,7 @@ In a moment you will see the catalog image is up and running in namespace **oper
 ```$xslt
 $ kubectl get pod -n operators
 NAME                                      READY   STATUS    RESTARTS   AGE
-activemq-artemis-operator-source-g94fd    1/1     Running   0          42s
+arkmq-org-broker-operator-source-g94fd    1/1     Running   0          42s
 ```
 
 ## Create a subscription (e.g. subscription.yaml)
@@ -71,12 +71,12 @@ activemq-artemis-operator-source-g94fd    1/1     Running   0          42s
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: activemq-artemis-operator-subscription
+  name: arkmq-org-broker-operator-subscription
   namespace: operators
 spec:
   channel: stable
-  name: activemq-artemis-operator
-  source: activemq-artemis-operator-source
+  name: arkmq-org-broker-operator
+  source: arkmq-org-broker-operator-source
   sourceNamespace: operators
 ```
 
@@ -90,8 +90,8 @@ An operator will be installed into **operators** namespace.
 $ kubectl get pod -n operators
 NAME                                                              READY   STATUS      RESTARTS   AGE
 069c5d363d51fc04d639086da1c5180883a6cea8ec9d9f9eedde1a55f6v7jsq   0/1     Completed   0          9m55s
-activemq-artemis-controller-manager-54c99b9df6-6xdzh              1/1     Running     0          9m28s
-activemq-artemis-operator-source-g94fd                            1/1     Running     0          58m
+arkmq-org-broker-controller-manager-54c99b9df6-6xdzh              1/1     Running     0          9m28s
+arkmq-org-broker-operator-source-g94fd                            1/1     Running     0          58m
 ```
 
 ## Deploy a single Apache Artemis Broker

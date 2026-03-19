@@ -96,7 +96,7 @@ kind: Deployment
 metadata:
   labels:
     control-plane: controller-manager
-  name: activemq-artemis-controller-manager
+  name: arkmq-org-broker-controller-manager
   spec:
       containers:
       - args:
@@ -181,7 +181,7 @@ In the deploy directory of the Operator archive that you extracted, open the ser
 
 Ensure that the kind element is set to ServiceAccount.
 
-In the metadata section, assign a custom name to the service account, or use the default name. The default name is activemq-artemis-operator.
+In the metadata section, assign a custom name to the service account, or use the default name. The default name is arkmq-org-broker-operator.
 
 Create the service account in your project.
 
@@ -195,7 +195,7 @@ Open the role.yaml file. This file specifies the resources that the Operator can
 
 Ensure that the kind element is set to Role.
 
-In the metadata section, assign a custom name to the role, or use the default name. The default name is activemq-artemis-operator.
+In the metadata section, assign a custom name to the role, or use the default name. The default name is arkmq-org-broker-operator.
 
 Create the role in your project.
 
@@ -210,13 +210,13 @@ Open the role_binding.yaml file. Ensure that the name values for ServiceAccount 
 service_account.yaml and role.yaml files. For example:
 ```yaml
 metadata:
-    name: activemq-artemis-operator
+    name: arkmq-org-broker-operator
 subjects:
     kind: ServiceAccount
-    name: activemq-artemis-operator
+    name: arkmq-org-broker-operator
 roleRef:
     kind: Role
-    name: activemq-artemis-operator
+    name: arkmq-org-broker-operator
 ````
 
 Create the role binding in your project.
@@ -261,7 +261,7 @@ spec:
     template:
         spec:
             containers:
-                image: quay.io/arkmq-org/activemq-artemis-operator:latest
+                image: quay.io/arkmq-org/arkmq-org-broker-operator:latest
 ```
 
 Deploy the Operator.
@@ -583,7 +583,7 @@ apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemisAddress
 metadata:
   name: livenessqueue
-  namespace: activemq-artemis-operator
+  namespace: arkmq-org-broker-operator
 spec:
   addressName: livenessqueue
   queueConfiguration:
@@ -635,7 +635,7 @@ apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   name: broker
-  namespace: activemq-artemis-operator
+  namespace: arkmq-org-broker-operator
 spec:
   deploymentPlan:
     size: 1
@@ -656,7 +656,7 @@ apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   name: broker
-  namespace: activemq-artemis-operator
+  namespace: arkmq-org-broker-operator
 spec:
   deploymentPlan:
     affinity:
@@ -681,7 +681,7 @@ apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   name: broker
-  namespace: activemq-artemis-operator
+  namespace: arkmq-org-broker-operator
 spec:
   deploymentPlan:
     nodeSelector:
@@ -699,7 +699,7 @@ apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   name: broker
-  namespace: activemq-artemis-operator
+  namespace: arkmq-org-broker-operator
 spec:
   resourceTemplates:
     - selector:
@@ -724,7 +724,7 @@ apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   name: broker
-  namespace: activemq-artemis-operator
+  namespace: arkmq-org-broker-operator
 spec:
   deploymentPlan:
     labels:
@@ -743,7 +743,7 @@ apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   name: broker
-  namespace: activemq-artemis-operator
+  namespace: arkmq-org-broker-operator
 spec:
   deploymentPlan:
     annotations:
@@ -764,7 +764,7 @@ apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   name: broker
-  namespace: activemq-artemis-operator
+  namespace: arkmq-org-broker-operator
 spec:
   resourceTemplates:
    - selector:
@@ -826,7 +826,7 @@ apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   name: broker
-  namespace: activemq-artemis-operator
+  namespace: arkmq-org-broker-operator
 spec:
   deploymentPlan:
     size: 1
@@ -1017,7 +1017,7 @@ apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   name: broker
-  namespace: activemq-artemis-operator
+  namespace: arkmq-org-broker-operator
 spec:
   deploymentPlan:
     size: 1
@@ -1032,7 +1032,7 @@ apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   name: broker
-  namespace: activemq-artemis-operator
+  namespace: arkmq-org-broker-operator
 spec:
   deploymentPlan:
     size: 1
@@ -1099,7 +1099,7 @@ stringData:
   _cert-users: |
     # Certificate DN to user mapping
     hawtio=/CN = hawtio-online\.hawtio\.svc.*/
-    operator=/.*activemq-artemis-operator.*/
+    operator=/.\*arkmq-org-broker-operator.\*/
     probe=/.*activemq-artemis-operand.*/
     new-user=/.*new-user.*/
   _cert-roles: |
@@ -1202,7 +1202,7 @@ The following is a sample Prometheus PodMonitor resource
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
-  name: activemq-artemis-controller-manager
+  name: arkmq-org-broker-controller-manager
 spec:
   selector:
     matchLabels:
@@ -1263,7 +1263,7 @@ When deploying the operator using the deployment manifests directly, edit the `d
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: activemq-artemis-controller-manager
+  name: arkmq-org-broker-controller-manager
 spec:
   template:
     spec:
@@ -1288,11 +1288,11 @@ The Subscription spec has a `config` option that allows you to specify resource 
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: activemq-artemis-operator
+  name: arkmq-org-broker-operator
   namespace: operators
 spec:
   channel: stable
-  name: activemq-artemis-operator
+  name: arkmq-org-broker-operator
   source: operatorhubio-catalog
   sourceNamespace: olm
   config:
@@ -1331,7 +1331,7 @@ apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   name: broker
-  namespace: activemq-artemis-operator
+  namespace: arkmq-org-broker-operator
 spec:
   deploymentPlan:
     size: 2
@@ -1357,7 +1357,7 @@ apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   name: broker
-  namespace: activemq-artemis-operator
+  namespace: arkmq-org-broker-operator
 spec:
   deploymentPlan:
     topologySpreadConstraints:
@@ -1383,7 +1383,7 @@ apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   name: broker
-  namespace: activemq-artemis-operator
+  namespace: arkmq-org-broker-operator
 spec:
   deploymentPlan:
     containerSecurityContext:
@@ -1408,7 +1408,7 @@ apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   name: broker
-  namespace: activemq-artemis-operator
+  namespace: arkmq-org-broker-operator
 spec:
   deploymentPlan:
     jolokiaAgentEnabled: true

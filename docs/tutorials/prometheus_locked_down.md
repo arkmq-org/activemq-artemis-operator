@@ -161,7 +161,7 @@ The locked-down broker uses certificate-based authentication. This tutorial uses
   * The operator reads the actual CN values from the certificate secrets and
     configures access accordingly
   * In this tutorial we use:
-    * `CN=activemq-artemis-operator` for operator privileges (management)
+    * `CN=arkmq-org-broker-operator` for operator privileges (management)
     * `CN=prometheus` for metrics access (Prometheus scraping)
     * `CN=activemq-artemis-operand` for health probes
   * You can use different CN values - the operator will extract them from your
@@ -181,7 +181,7 @@ The locked-down broker uses certificate-based authentication. This tutorial uses
   * **Operator client certificate** - Default: `activemq-artemis-manager-cert`
     * Operator certificate for authenticating with the broker
     * Override via env: `ACTIVEMQ_ARTEMIS_MANAGER_CERT_SECRET_NAME`
-    * CN in this tutorial: `activemq-artemis-operator` (gets operator
+    * CN in this tutorial: `arkmq-org-broker-operator` (gets operator
       privileges)
   * **CA trust bundle** - Default: `activemq-artemis-manager-ca`
     * Root certificate that validates all others (key must be `ca.pem`)
@@ -317,23 +317,23 @@ customresourcedefinition.apiextensions.k8s.io/activemqartemises.broker.amq.io cr
 customresourcedefinition.apiextensions.k8s.io/activemqartemisaddresses.broker.amq.io created
 customresourcedefinition.apiextensions.k8s.io/activemqartemisscaledowns.broker.amq.io created
 customresourcedefinition.apiextensions.k8s.io/activemqartemissecurities.broker.amq.io created
-serviceaccount/activemq-artemis-controller-manager created
-role.rbac.authorization.k8s.io/activemq-artemis-operator-role created
-rolebinding.rbac.authorization.k8s.io/activemq-artemis-operator-rolebinding created
+serviceaccount/arkmq-org-broker-controller-manager created
+role.rbac.authorization.k8s.io/arkmq-org-broker-operator-role created
+rolebinding.rbac.authorization.k8s.io/arkmq-org-broker-operator-rolebinding created
 role.rbac.authorization.k8s.io/activemq-artemis-leader-election-role created
 rolebinding.rbac.authorization.k8s.io/activemq-artemis-leader-election-rolebinding created
-deployment.apps/activemq-artemis-controller-manager created
+deployment.apps/arkmq-org-broker-controller-manager created
 ```
 
 Wait for the Operator to start (status: `running`).
 
 ```{"stage":"init", "label":"wait for the operator to be running"}
-kubectl wait deployment activemq-artemis-controller-manager --for=create --timeout=240s
+kubectl wait deployment arkmq-org-broker-controller-manager --for=create --timeout=240s
 kubectl wait pod --all --for=condition=Ready --namespace=locked-down-broker --timeout=600s
 ```
 ```shell markdown_runner
-deployment.apps/activemq-artemis-controller-manager condition met
-pod/activemq-artemis-controller-manager-54fbb4f7df-k2kd9 condition met
+deployment.apps/arkmq-org-broker-controller-manager condition met
+pod/arkmq-org-broker-controller-manager-54fbb4f7df-k2kd9 condition met
 ```
 
 ## Install the dependencies
@@ -675,7 +675,7 @@ metadata:
   namespace: locked-down-broker
 spec:
   secretName: activemq-artemis-manager-cert
-  commonName: activemq-artemis-operator
+  commonName: arkmq-org-broker-operator
   issuerRef:
     name: ca-issuer
     kind: ClusterIssuer

@@ -15,7 +15,7 @@ controllerManager:
       seccompProfile:
         type: RuntimeDefault
     image:
-      repository: quay.io/arkmq-org/activemq-artemis-operator
+      repository: quay.io/arkmq-org/arkmq-org-broker-operator
       tag: 2.1.5
       pullPolicy: null
     resources:

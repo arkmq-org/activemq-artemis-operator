@@ -43,7 +43,7 @@ RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldfl
 
 FROM registry.access.redhat.com/ubi9-minimal:9.7-1773939694 AS base-env
 
-ENV BROKER_NAME=activemq-artemis
+ENV BROKER_NAME=arkmq-org-broker
 ENV USER_UID=1000
 ENV USER_NAME=${BROKER_NAME}-operator
 ENV USER_HOME=/home/${USER_NAME}
@@ -69,7 +69,7 @@ RUN microdnf update -y --setopt=install_weak_deps=0 && rm -rf /var/cache/yum
 USER ${USER_UID}
 ENTRYPOINT ["${USER_HOME}/bin/entrypoint"]
 
-LABEL name="arkmq-org/activemq-artemis-operator"
+LABEL name="arkmq-org/arkmq-org-broker-operator"
 LABEL description="ArkMQ Broker Operator"
 LABEL maintainer="ArkMQ <info@arkmq.org>"
 LABEL version="2.1.5"

@@ -99,12 +99,12 @@ customresourcedefinition.apiextensions.k8s.io/activemqartemises.broker.amq.io cr
 customresourcedefinition.apiextensions.k8s.io/activemqartemisaddresses.broker.amq.io created
 customresourcedefinition.apiextensions.k8s.io/activemqartemisscaledowns.broker.amq.io created
 customresourcedefinition.apiextensions.k8s.io/activemqartemissecurities.broker.amq.io created
-serviceaccount/activemq-artemis-controller-manager created
-role.rbac.authorization.k8s.io/activemq-artemis-operator-role created
-rolebinding.rbac.authorization.k8s.io/activemq-artemis-operator-rolebinding created
+serviceaccount/arkmq-org-broker-controller-manager created
+role.rbac.authorization.k8s.io/arkmq-org-broker-operator-role created
+rolebinding.rbac.authorization.k8s.io/arkmq-org-broker-operator-rolebinding created
 role.rbac.authorization.k8s.io/activemq-artemis-leader-election-role created
 rolebinding.rbac.authorization.k8s.io/activemq-artemis-leader-election-rolebinding created
-deployment.apps/activemq-artemis-controller-manager created
+deployment.apps/arkmq-org-broker-controller-manager created
 ```
 
 Wait for the Operator to start (status: `running`).
@@ -113,7 +113,7 @@ Wait for the Operator to start (status: `running`).
 kubectl wait pod --all --for=condition=Ready --namespace=send-receive-project --timeout=600s
 ```
 ```shell markdown_runner
-pod/activemq-artemis-controller-manager-fdd64476f-km8ml condition met
+pod/arkmq-org-broker-controller-manager-fdd64476f-km8ml condition met
 ```
 
 ### Deploy the Apache Artemis Broker
