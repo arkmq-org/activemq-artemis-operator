@@ -57,7 +57,7 @@ helm install my-arkmq-org-broker-operator oci://quay.io/arkmq-org/helm-charts/ar
 ```
 
 ### Install the operator from OperatorHub.io
-In order to install the operator from OperatorHub.io, first be sure that you have a Kubernetes cluster with [OLM](https://olm.operatorframework.io/) then run the following command:
+In order to install the operator from OperatorHub.io, first be sure that you have a Kubernetes cluster with [OLM](https://olm.operatorframework.io/) v0.32.0 or later (on OpenShift, version 4.20 or later). The operator bundle includes a NetworkPolicy manifest that requires OLM NetworkPolicy support. Then run the following command:
 ```shell
 kubectl create -f https://operatorhub.io/install/arkmq-org-broker-operator.yaml
 ```

@@ -19,7 +19,7 @@ GO_MODULE := github.com/arkmq-org/activemq-artemis-operator
 OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 OPM_VERSION := v1.55.0
-OPERATOR_SDK_VERSION := v1.28.0
+OPERATOR_SDK_VERSION := v1.42.2
 YQ_VERSION := v4.46.1
 
 HELM_CHART_NAME := $(BUNDLE_PACKAGE)

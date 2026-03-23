@@ -16,4 +16,5 @@ $KUBE_CLI create -f $DEPLOY_PATH/role.yaml
 $KUBE_CLI create -f $DEPLOY_PATH/role_binding.yaml
 $KUBE_CLI create -f $DEPLOY_PATH/election_role.yaml
 $KUBE_CLI create -f $DEPLOY_PATH/election_role_binding.yaml
+$KUBE_CLI create -f $DEPLOY_PATH/network_policy.yaml
 $KUBE_CLI create -f $DEPLOY_PATH/operator.yaml

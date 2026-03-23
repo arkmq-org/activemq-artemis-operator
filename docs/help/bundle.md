@@ -21,6 +21,8 @@ The [Operator Lifecycle Manager](https://olm.operatorframework.io/) can help use
 ### Install OLM
 Check out the latest [releases on github](https://github.com/operator-framework/operator-lifecycle-manager/releases) for release-specific install instructions.
 
+Minimum OLM version: 0.32.0 — The operator bundle includes a NetworkPolicy manifest. OLM versions prior to 0.32.0 do not support NetworkPolicy as a bundle resource and will reject the InstallPlan. On OpenShift, this corresponds to version 4.20 or later.
+
 ## Create a repository
 Create a repository that Kubernetes will uses to pull your catalog image. You can create a public one for free on quay.io, see [how to create a repo](https://docs.quay.io/guides/create-repo.html).
 

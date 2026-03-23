@@ -18,4 +18,5 @@ $KUBE_CLI delete -f $DEPLOY_PATH/cluster_role.yaml
 $KUBE_CLI delete -f $DEPLOY_PATH/cluster_role_binding.yaml
 $KUBE_CLI delete -f $DEPLOY_PATH/election_role.yaml
 $KUBE_CLI delete -f $DEPLOY_PATH/election_role_binding.yaml
+$KUBE_CLI delete -f $DEPLOY_PATH/network_policy.yaml
 $KUBE_CLI delete -f $DEPLOY_PATH/operator.yaml

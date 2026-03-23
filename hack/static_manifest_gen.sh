@@ -83,6 +83,10 @@ function writeFile() {
       createFile "$destdir/service_account.yaml"
       ;;
 
+    NetworkPolicy)
+      createFile "$destdir/network_policy.yaml"
+      ;;
+
     Namespace)
       echo "Skipping ${resource_kind}:${resource_name}"
       makeSingleInstall

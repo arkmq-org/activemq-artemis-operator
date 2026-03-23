@@ -20,6 +20,8 @@ The [building.md](docs/help/building.md) describes how to build operator and how
 
 The [bundle.md](docs/help/bundle.md) contains instructions for how to build operator bundle images and integrate it into [Operator Liftcycle Manager](https://olm.operatorframework.io/) framework.
 
+Minimum OLM version: 0.32.0 — The operator bundle includes a NetworkPolicy manifest. OLM versions prior to 0.32.0 do not support NetworkPolicy as a bundle resource and will reject the InstallPlan. On OpenShift, this corresponds to version 4.20 or later.
+
 ## Debugging operator inside a container
 
 Install delve in the `builder` container, i.e. `RUN go install github.com/go-delve/delve/cmd/dlv@latest`

@@ -361,8 +361,8 @@ metadata:
     features.operators.openshift.io/token-auth-aws: "false"
     features.operators.openshift.io/token-auth-azure: "false"
     features.operators.openshift.io/token-auth-gcp: "false"
-    operators.operatorframework.io/builder: operator-sdk-v1.28.0
-    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+    operators.operatorframework.io/builder: operator-sdk-v1.42.2
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: https://github.com/arkmq-org/arkmq-org-broker-operator
     support: arkmq-org
   labels:
@@ -422,7 +422,7 @@ spec:
         path: queueConfiguration.autoDeleteMessageCount
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
-      - description: If the queue is configuration managed
+      - description: ' If the queue is configuration managed'
         displayName: Configuration Managed
         path: queueConfiguration.configurationManaged
         x-descriptors:
@@ -556,8 +556,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
       statusDescriptors:
-      - description: Current state of the resource Conditions represent the latest
-          available observations of an object's state
+      - description: |-
+          Current state of the resource
+          Conditions represent the latest available observations of an object's state
         displayName: Conditions
         path: conditions
         x-descriptors:
@@ -588,8 +589,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
       statusDescriptors:
-      - description: Current state of the resource Conditions represent the latest
-          available observations of an object's state
+      - description: |-
+          Current state of the resource
+          Conditions represent the latest available observations of an object's state
         displayName: Conditions
         path: conditions
         x-descriptors:
@@ -626,8 +628,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
       statusDescriptors:
-      - description: Current state of the resource Conditions represent the latest
-          available observations of an object's state
+      - description: |-
+          Current state of the resource
+          Conditions represent the latest available observations of an object's state
         displayName: Conditions
         path: conditions
         x-descriptors:
@@ -680,7 +683,7 @@ spec:
         path: queueConfiguration.autoDeleteMessageCount
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:number
-      - description: If the queue is configuration managed
+      - description: ' If the queue is configuration managed'
         displayName: Configuration Managed
         path: queueConfiguration.configurationManaged
         x-descriptors:
@@ -814,8 +817,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
       statusDescriptors:
-      - description: Current state of the resource Conditions represent the latest
-          available observations of an object's state
+      - description: |-
+          Current state of the resource
+          Conditions represent the latest available observations of an object's state
         displayName: Conditions
         path: conditions
         x-descriptors:
@@ -1464,7 +1468,7 @@ spec:
         path: connectors[0].sniHost
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: Whether or not to enable SSL on this port
+      - description: ' Whether or not to enable SSL on this port'
         displayName: SSL Enabled
         path: connectors[0].sslEnabled
         x-descriptors:
@@ -1615,27 +1619,33 @@ spec:
       - description: Specifies Extra Volume Claims Templates for the broker pods
         displayName: Extra Volume Claims Templates
         path: deploymentPlan.extraVolumeClaimTemplates
-      - description: 'Annotations is an unstructured key value map stored with a resource
-          that may be set by external tools to store and retrieve arbitrary metadata.
-          They are not queryable and should be preserved when modifying objects. More
-          info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations'
+      - description: |-
+          Annotations is an unstructured key value map stored with a resource that may be
+          set by external tools to store and retrieve arbitrary metadata. They are not
+          queryable and should be preserved when modifying objects.
+          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations
         displayName: Annotations
         path: deploymentPlan.extraVolumeClaimTemplates[0].annotations
-      - description: 'Map of string keys and values that can be used to organize and
-          categorize (scope and select) objects. May match selectors of replication
-          controllers and services. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels'
+      - description: |-
+          Map of string keys and values that can be used to organize and categorize
+          (scope and select) objects. May match selectors of replication controllers
+          and services.
+          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels
         displayName: Labels
         path: deploymentPlan.extraVolumeClaimTemplates[0].labels
-      - description: 'Name must be unique within a namespace. Is required when creating
-          resources, although some resources may allow a client to request the generation
-          of an appropriate name automatically. Name is primarily intended for creation
-          idempotence and configuration definition. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names#names'
+      - description: |-
+          Name must be unique within a namespace. Is required when creating resources, although
+          some resources may allow a client to request the generation of an appropriate name
+          automatically. Name is primarily intended for creation idempotence and configuration
+          definition.
+          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names#names
         displayName: Name
         path: deploymentPlan.extraVolumeClaimTemplates[0].name
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: 'Specifies the desired characteristics of a volume claim More
-          info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims'
+      - description: |-
+          Specifies the desired characteristics of a volume claim
+          More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
         displayName: Spec
         path: deploymentPlan.extraVolumeClaimTemplates[0].spec
       - description: Specifies mount options for extraVolumes
@@ -1814,8 +1824,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
       statusDescriptors:
-      - description: Current state of the resource Conditions represent the latest
-          available observations of an object's state
+      - description: |-
+          Current state of the resource
+          Conditions represent the latest available observations of an object's state
         displayName: Conditions
         path: conditions
         x-descriptors:
@@ -2029,7 +2040,7 @@ spec:
         path: connectors[0].sniHost
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: Whether or not to enable SSL on this port
+      - description: ' Whether or not to enable SSL on this port'
         displayName: SSL Enabled
         path: connectors[0].sslEnabled
         x-descriptors:
@@ -2122,8 +2133,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:podCount
       statusDescriptors:
-      - description: Current state of the resource Conditions represent the latest
-          available observations of an object's state
+      - description: |-
+          Current state of the resource
+          Conditions represent the latest available observations of an object's state
         displayName: Conditions
         path: conditions
         x-descriptors:
@@ -2285,7 +2297,7 @@ spec:
         path: connectors[0].sniHost
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: Whether or not to enable SSL on this port
+      - description: ' Whether or not to enable SSL on this port'
         displayName: SSL Enabled
         path: connectors[0].sslEnabled
         x-descriptors:
@@ -2400,8 +2412,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
       statusDescriptors:
-      - description: Current state of the resource Conditions represent the latest
-          available observations of an object's state
+      - description: |-
+          Current state of the resource
+          Conditions represent the latest available observations of an object's state
         displayName: Conditions
         path: conditions
         x-descriptors:
@@ -2926,7 +2939,7 @@ spec:
         path: connectors[0].sniHost
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: Whether or not to enable SSL on this port
+      - description: ' Whether or not to enable SSL on this port'
         displayName: SSL Enabled
         path: connectors[0].sslEnabled
         x-descriptors:
@@ -3054,8 +3067,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
       statusDescriptors:
-      - description: Current state of the resource Conditions represent the latest
-          available observations of an object's state
+      - description: |-
+          Current state of the resource
+          Conditions represent the latest available observations of an object's state
         displayName: Conditions
         path: conditions
         x-descriptors:
@@ -3585,7 +3599,7 @@ spec:
         path: connectors[0].sniHost
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: Whether or not to enable SSL on this port
+      - description: ' Whether or not to enable SSL on this port'
         displayName: SSL Enabled
         path: connectors[0].sslEnabled
         x-descriptors:
@@ -3729,8 +3743,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
       statusDescriptors:
-      - description: Current state of the resource Conditions represent the latest
-          available observations of an object's state
+      - description: |-
+          Current state of the resource
+          Conditions represent the latest available observations of an object's state
         displayName: Conditions
         path: conditions
         x-descriptors:
@@ -4289,7 +4304,7 @@ spec:
         path: connectors[0].sniHost
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: Whether or not to enable SSL on this port
+      - description: ' Whether or not to enable SSL on this port'
         displayName: SSL Enabled
         path: connectors[0].sslEnabled
         x-descriptors:
@@ -4471,8 +4486,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
       statusDescriptors:
-      - description: Current state of the resource Conditions represent the latest
-          available observations of an object's state
+      - description: |-
+          Current state of the resource
+          Conditions represent the latest available observations of an object's state
         displayName: Conditions
         path: conditions
         x-descriptors:
@@ -4503,8 +4519,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
       statusDescriptors:
-      - description: Current state of the resource Conditions represent the latest
-          available observations of an object's state
+      - description: |-
+          Current state of the resource
+          Conditions represent the latest available observations of an object's state
         displayName: Conditions
         path: conditions
         x-descriptors:
@@ -4526,8 +4543,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       statusDescriptors:
-      - description: Current state of the resource Conditions represent the latest
-          available observations of an object's state
+      - description: |-
+          Current state of the resource
+          Conditions represent the latest available observations of an object's state
         displayName: Conditions
         path: conditions
         x-descriptors:
@@ -5055,8 +5073,9 @@ spec:
         displayName: Hawtio Roles
         path: securitySettings.management.hawtioRoles
       statusDescriptors:
-      - description: Current state of the resource Conditions represent the latest
-          available observations of an object's state
+      - description: |-
+          Current state of the resource
+          Conditions represent the latest available observations of an object's state
         displayName: Conditions
         path: conditions
         x-descriptors:
@@ -5594,8 +5613,9 @@ spec:
         displayName: Hawtio Roles
         path: securitySettings.management.hawtioRoles
       statusDescriptors:
-      - description: Current state of the resource Conditions represent the latest
-          available observations of an object's state
+      - description: |-
+          Current state of the resource
+          Conditions represent the latest available observations of an object's state
         displayName: Conditions
         path: conditions
         x-descriptors:
@@ -5619,8 +5639,9 @@ spec:
       - displayName: ServiceSelector
         path: selector
       statusDescriptors:
-      - description: Current state of the resource Conditions represent the latest
-          available observations of an object's state
+      - description: |-
+          Current state of the resource
+          Conditions represent the latest available observations of an object's state
         displayName: Conditions
         path: conditions
         x-descriptors:
@@ -6269,7 +6290,7 @@ spec:
         path: connectors[0].sniHost
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: Whether or not to enable SSL on this port
+      - description: ' Whether or not to enable SSL on this port'
         displayName: SSL Enabled
         path: connectors[0].sslEnabled
         x-descriptors:
@@ -6420,27 +6441,33 @@ spec:
       - description: Specifies Extra Volume Claims Templates for the broker pods
         displayName: Extra Volume Claims Templates
         path: deploymentPlan.extraVolumeClaimTemplates
-      - description: 'Annotations is an unstructured key value map stored with a resource
-          that may be set by external tools to store and retrieve arbitrary metadata.
-          They are not queryable and should be preserved when modifying objects. More
-          info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations'
+      - description: |-
+          Annotations is an unstructured key value map stored with a resource that may be
+          set by external tools to store and retrieve arbitrary metadata. They are not
+          queryable and should be preserved when modifying objects.
+          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations
         displayName: Annotations
         path: deploymentPlan.extraVolumeClaimTemplates[0].annotations
-      - description: 'Map of string keys and values that can be used to organize and
-          categorize (scope and select) objects. May match selectors of replication
-          controllers and services. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels'
+      - description: |-
+          Map of string keys and values that can be used to organize and categorize
+          (scope and select) objects. May match selectors of replication controllers
+          and services.
+          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels
         displayName: Labels
         path: deploymentPlan.extraVolumeClaimTemplates[0].labels
-      - description: 'Name must be unique within a namespace. Is required when creating
-          resources, although some resources may allow a client to request the generation
-          of an appropriate name automatically. Name is primarily intended for creation
-          idempotence and configuration definition. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names#names'
+      - description: |-
+          Name must be unique within a namespace. Is required when creating resources, although
+          some resources may allow a client to request the generation of an appropriate name
+          automatically. Name is primarily intended for creation idempotence and configuration
+          definition.
+          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names#names
         displayName: Name
         path: deploymentPlan.extraVolumeClaimTemplates[0].name
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: 'Specifies the desired characteristics of a volume claim More
-          info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims'
+      - description: |-
+          Specifies the desired characteristics of a volume claim
+          More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
         displayName: Spec
         path: deploymentPlan.extraVolumeClaimTemplates[0].spec
       - description: Specifies mount options for extraVolumes
@@ -6619,8 +6646,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
       statusDescriptors:
-      - description: Current state of the resource Conditions represent the latest
-          available observations of an object's state
+      - description: |-
+          Current state of the resource
+          Conditions represent the latest available observations of an object's state
         displayName: Conditions
         path: conditions
         x-descriptors:
@@ -6700,8 +6728,9 @@ spec:
       - displayName: Resources
         path: resources
       statusDescriptors:
-      - description: Current state of the resource Conditions represent the latest
-          available observations of an object's state
+      - description: |-
+          Current state of the resource
+          Conditions represent the latest available observations of an object's state
         displayName: Conditions
         path: conditions
         x-descriptors:

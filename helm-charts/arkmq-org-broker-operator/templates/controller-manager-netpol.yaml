@@ -1,0 +1,39 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: arkmq-org-broker-controller-manager-netpol
+  labels:
+    control-plane: controller-manager
+  {{- include "arkmq-org-broker-operator.labels" . | nindent 4 }}
+spec:
+  egress:
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+  - ports:
+    - port: 443
+      protocol: TCP
+    - port: 6443
+      protocol: TCP
+  - ports:
+    - port: 8161
+      protocol: TCP
+  - ports:
+    - port: 8778
+      protocol: TCP
+  ingress:
+  - ports:
+    - port: 8081
+      protocol: TCP
+  - ports:
+    - port: 8383
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      control-plane: controller-manager
+      name: arkmq-org-broker-operator
+  policyTypes:
+  - Ingress
+  - Egress
