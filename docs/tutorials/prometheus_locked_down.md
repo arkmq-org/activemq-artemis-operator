@@ -399,7 +399,7 @@ Visit https://github.com/prometheus-operator/kube-prometheus for instructions on
 ### Install Cert-Manager
 
 ```{"stage":"certs"}
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.20.0/cert-manager.yaml
 ```
 ```shell markdown_runner
 namespace/cert-manager created

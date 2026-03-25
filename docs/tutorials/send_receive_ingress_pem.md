@@ -118,7 +118,7 @@ pod/activemq-artemis-controller-manager-fdd64476f-2krkz condition met
 [Follow the official documentation.](https://cert-manager.io/docs/installation/)
 
 ```{"stage":"cert-manager"}
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.15.1/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.20.0/cert-manager.yaml
 ```
 ```shell markdown_runner
 namespace/cert-manager created
