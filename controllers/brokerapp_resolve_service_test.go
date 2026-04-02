@@ -92,7 +92,7 @@ func TestResolveBrokerService(t *testing.T) {
 			expectedServiceName:    "",
 			expectedAnnotation:     "",
 			expectedError:          true,
-			expectedValidCondition: metav1.ConditionFalse,
+			expectedValidCondition: metav1.ConditionTrue, // Selector syntax is valid, runtime issue handled in Deployed
 		},
 		{
 			name: "existing annotation - service still matches",

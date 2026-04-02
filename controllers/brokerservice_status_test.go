@@ -261,14 +261,14 @@ var _ = Describe("broker-service status conditions", func() {
 			By("verifying AppsProvisioned starts as True with Synced reason (no apps)")
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, serviceKey, createdCrd)).Should(Succeed())
-				appsProvisionedCond := meta.FindStatusCondition(createdCrd.Status.Conditions, "AppsProvisioned")
+				appsProvisionedCond := meta.FindStatusCondition(createdCrd.Status.Conditions, broker.AppsProvisionedConditionType)
 				if appsProvisionedCond != nil {
 					if verbose {
 						fmt.Printf("AppsProvisioned condition (no apps): Status=%s, Reason=%s\n",
 							appsProvisionedCond.Status, appsProvisionedCond.Reason)
 					}
 					g.Expect(appsProvisionedCond.Status).Should(Equal(metav1.ConditionTrue))
-					g.Expect(appsProvisionedCond.Reason).Should(Equal("Synced"))
+					g.Expect(appsProvisionedCond.Reason).Should(Equal(broker.AppsProvisionedConditionSyncedReason))
 				}
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
@@ -323,7 +323,7 @@ var _ = Describe("broker-service status conditions", func() {
 			By("verifying AppsProvisioned eventually becomes True after broker picks up config")
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, serviceKey, createdCrd)).Should(Succeed())
-				appsProvisionedCond := meta.FindStatusCondition(createdCrd.Status.Conditions, "AppsProvisioned")
+				appsProvisionedCond := meta.FindStatusCondition(createdCrd.Status.Conditions, broker.AppsProvisionedConditionType)
 				if appsProvisionedCond != nil {
 					if verbose {
 						fmt.Printf("AppsProvisioned condition (with app): Status=%s, Reason=%s, Message=%s\n",

@@ -38,6 +38,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// setupBrokerAppIndexer adds the AppServiceAnnotation field indexer to avoid duplication in tests
+func setupBrokerAppIndexer(builder *fake.ClientBuilder) *fake.ClientBuilder {
+	return builder.WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(obj client.Object) []string {
+		app := obj.(*v1beta2.BrokerApp)
+		if val, ok := app.Annotations[common.AppServiceAnnotation]; ok {
+			return []string{val}
+		}
+		return nil
+	})
+}
+
 func TestBrokerServiceReconcileWithAppMove(t *testing.T) {
 	// Setup scheme
 	scheme := runtime.NewScheme()
@@ -205,8 +216,15 @@ func TestBrokerServiceReconcileErrorPropagation(t *testing.T) {
 	err = cl.Get(context.TODO(), reqS1.NamespacedName, s1)
 	assert.Nil(t, err)
 
+	// Verify condition states
 	assert.True(t, meta.IsStatusConditionPresentAndEqual(s1.Status.Conditions, v1beta2.DeployedConditionType, metav1.ConditionUnknown))
 	assert.True(t, meta.IsStatusConditionFalse(s1.Status.Conditions, v1beta2.ReadyConditionType))
+
+	// Valid should be True even when runtime errors occur (spec is valid)
+	validCond := meta.FindStatusCondition(s1.Status.Conditions, v1beta2.ValidConditionType)
+	assert.NotNil(t, validCond)
+	assert.Equal(t, metav1.ConditionTrue, validCond.Status)
+	assert.Equal(t, v1beta2.ValidConditionSuccessReason, validCond.Reason)
 }
 
 func TestBrokerServiceReconcileStatusUpdateFailure(t *testing.T) {
@@ -346,7 +364,7 @@ func TestReconcileDeployedConditionTransition(t *testing.T) {
 	deployedCond := meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta2.DeployedConditionType)
 	assert.NotNil(t, deployedCond)
 	assert.Equal(t, metav1.ConditionFalse, deployedCond.Status)
-	assert.Equal(t, "NotReady", deployedCond.Reason)
+	assert.Equal(t, v1beta2.DeployedConditionNotReadyReason, deployedCond.Reason)
 	creationTime := deployedCond.LastTransitionTime
 
 	// Wait a bit to ensure time difference
@@ -718,10 +736,10 @@ func TestBrokerServiceReconcileAppsProvisionedCondition(t *testing.T) {
 	err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
 	assert.NoError(t, err)
 
-	cond := meta.FindStatusCondition(updatedSvc.Status.Conditions, "AppsProvisioned")
+	cond := meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta2.AppsProvisionedConditionType)
 	assert.NotNil(t, cond)
 	assert.Equal(t, metav1.ConditionFalse, cond.Status)
-	assert.Equal(t, "WaitingForBroker", cond.Reason)
+	assert.Equal(t, v1beta2.AppsProvisionedConditionWaitingReason, cond.Reason)
 
 	// 2. Get generated Secret and its ResourceVersion
 	secretName := AppPropertiesSecretName(svcName)
@@ -766,10 +784,10 @@ func TestBrokerServiceReconcileAppsProvisionedCondition(t *testing.T) {
 	err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
 	assert.NoError(t, err)
 
-	cond = meta.FindStatusCondition(updatedSvc.Status.Conditions, "AppsProvisioned")
+	cond = meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta2.AppsProvisionedConditionType)
 	assert.NotNil(t, cond)
 	assert.Equal(t, metav1.ConditionTrue, cond.Status)
-	assert.Equal(t, "Synced", cond.Reason)
+	assert.Equal(t, v1beta2.AppsProvisionedConditionSyncedReason, cond.Reason)
 }
 
 func TestBrokerServiceReconcilePrometheusOverrideSecret(t *testing.T) {
@@ -954,4 +972,397 @@ func TestBrokerServiceReconcilePrometheusOverrideNoApps(t *testing.T) {
 
 	// Should have queue-level object names even without apps
 	assert.Contains(t, prometheusConfig, "component=addresses,address=*,subcomponent=queues")
+}
+
+func TestBrokerServiceValidCondition(t *testing.T) {
+	// Setup scheme
+	scheme := runtime.NewScheme()
+	_ = v1beta2.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	ns := "default"
+	svcName := "my-broker-service"
+
+	t.Run("sets Valid=True for valid spec", func(t *testing.T) {
+		// Create BrokerService with valid spec
+		svc := &v1beta2.BrokerService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      svcName,
+				Namespace: ns,
+			},
+		}
+
+		// Setup fake client with field indexer using helper
+		cl := setupBrokerAppIndexer(fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(svc).
+			WithStatusSubresource(svc)).
+			Build()
+
+		// Create Reconciler
+		r := NewBrokerServiceReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+
+		// Reconcile
+		req := ctrl.Request{NamespacedName: types.NamespacedName{Name: svcName, Namespace: ns}}
+		_, err := r.Reconcile(context.TODO(), req)
+		assert.NoError(t, err)
+
+		// Verify Status
+		updatedSvc := &v1beta2.BrokerService{}
+		err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+		assert.NoError(t, err)
+
+		// Check Valid condition
+		validCondition := meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta2.ValidConditionType)
+		assert.NotNil(t, validCondition)
+		assert.Equal(t, metav1.ConditionTrue, validCondition.Status)
+		assert.Equal(t, v1beta2.ValidConditionSuccessReason, validCondition.Reason)
+	})
+
+	t.Run("sets Valid=False for invalid resource name", func(t *testing.T) {
+		// Create BrokerService with invalid name (contains invalid characters)
+		invalidName := "broker/service"
+		svc := &v1beta2.BrokerService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      invalidName,
+				Namespace: ns,
+			},
+		}
+
+		// Setup fake client with field indexer using helper
+		cl := setupBrokerAppIndexer(fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(svc).
+			WithStatusSubresource(svc)).
+			Build()
+
+		// Create Reconciler
+		r := NewBrokerServiceReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+
+		// Reconcile
+		req := ctrl.Request{NamespacedName: types.NamespacedName{Name: invalidName, Namespace: ns}}
+		_, err := r.Reconcile(context.TODO(), req)
+		assert.Error(t, err)
+
+		// Verify Status
+		updatedSvc := &v1beta2.BrokerService{}
+		err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+		assert.NoError(t, err)
+
+		// Check Valid condition
+		validCondition := meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta2.ValidConditionType)
+		assert.NotNil(t, validCondition)
+		assert.Equal(t, metav1.ConditionFalse, validCondition.Status)
+		assert.Equal(t, v1beta2.ValidConditionInvalidResourceName, validCondition.Reason)
+		assert.NotEmpty(t, validCondition.Message)
+	})
+
+	t.Run("Valid condition persists across reconciles", func(t *testing.T) {
+		// Create BrokerService
+		svc := &v1beta2.BrokerService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      svcName + "-persist",
+				Namespace: ns,
+			},
+		}
+
+		// Setup fake client with field indexer using helper
+		cl := setupBrokerAppIndexer(fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(svc).
+			WithStatusSubresource(svc)).
+			Build()
+
+		// Create Reconciler
+		r := NewBrokerServiceReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+
+		// First reconcile
+		req := ctrl.Request{NamespacedName: types.NamespacedName{Name: svc.Name, Namespace: ns}}
+		_, err := r.Reconcile(context.TODO(), req)
+		assert.NoError(t, err)
+
+		// Get first Valid condition
+		updatedSvc := &v1beta2.BrokerService{}
+		err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+		assert.NoError(t, err)
+		validCondition1 := meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta2.ValidConditionType)
+		assert.NotNil(t, validCondition1)
+		assert.Equal(t, metav1.ConditionTrue, validCondition1.Status)
+
+		// Second reconcile
+		_, err = r.Reconcile(context.TODO(), req)
+		assert.NoError(t, err)
+
+		// Get second Valid condition
+		err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+		assert.NoError(t, err)
+		validCondition2 := meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta2.ValidConditionType)
+		assert.NotNil(t, validCondition2)
+		assert.Equal(t, metav1.ConditionTrue, validCondition2.Status)
+
+		// LastTransitionTime should not change when status stays the same
+		assert.Equal(t, validCondition1.LastTransitionTime, validCondition2.LastTransitionTime)
+	})
+}
+
+func TestBrokerServiceIdempotentStatus(t *testing.T) {
+	// Setup scheme
+	scheme := runtime.NewScheme()
+	_ = v1beta2.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	ns := "default"
+	svcName := "test-service"
+
+	// Create BrokerService
+	svc := &v1beta2.BrokerService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      svcName,
+			Namespace: ns,
+		},
+	}
+
+	// Setup fake client with indexer
+	cl := setupBrokerAppIndexer(fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(svc).
+		WithStatusSubresource(svc)).
+		Build()
+
+	// Create Reconciler
+	r := NewBrokerServiceReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+
+	// First reconcile
+	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: svcName, Namespace: ns}}
+	_, err := r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	// Get first status
+	updatedSvc := &v1beta2.BrokerService{}
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+	assert.NoError(t, err)
+	firstStatus := updatedSvc.Status.DeepCopy()
+
+	// Second reconcile with no changes
+	_, err = r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	// Get second status
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+	assert.NoError(t, err)
+	secondStatus := updatedSvc.Status
+
+	// Status should be identical (idempotent)
+	assert.Equal(t, firstStatus.Conditions, secondStatus.Conditions)
+
+	// Verify all expected conditions are present
+	assert.NotNil(t, meta.FindStatusCondition(secondStatus.Conditions, v1beta2.ValidConditionType))
+	assert.NotNil(t, meta.FindStatusCondition(secondStatus.Conditions, v1beta2.DeployedConditionType))
+	assert.NotNil(t, meta.FindStatusCondition(secondStatus.Conditions, v1beta2.AppsProvisionedConditionType))
+	assert.NotNil(t, meta.FindStatusCondition(secondStatus.Conditions, v1beta2.ReadyConditionType))
+}
+
+func TestBrokerServiceConditionIndependence(t *testing.T) {
+	// Setup scheme
+	scheme := runtime.NewScheme()
+	_ = v1beta2.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	ns := "default"
+	svcName := "test-service"
+
+	// Create BrokerService
+	svc := &v1beta2.BrokerService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      svcName,
+			Namespace: ns,
+		},
+	}
+
+	// Setup fake client with indexer
+	cl := setupBrokerAppIndexer(fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(svc).
+		WithStatusSubresource(svc)).
+		Build()
+
+	// Create Reconciler
+	r := NewBrokerServiceReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+
+	// Reconcile
+	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: svcName, Namespace: ns}}
+	_, err := r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	// Get status
+	updatedSvc := &v1beta2.BrokerService{}
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+	assert.NoError(t, err)
+
+	// Verify Valid is independent of other conditions
+	// Valid=True (spec is correct)
+	validCond := meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta2.ValidConditionType)
+	assert.NotNil(t, validCond)
+	assert.Equal(t, metav1.ConditionTrue, validCond.Status)
+
+	// Deployed=False (no broker pod yet)
+	deployedCond := meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta2.DeployedConditionType)
+	assert.NotNil(t, deployedCond)
+	assert.Equal(t, metav1.ConditionFalse, deployedCond.Status)
+
+	// AppsProvisioned=False (waiting for broker)
+	appsCond := meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta2.AppsProvisionedConditionType)
+	assert.NotNil(t, appsCond)
+	assert.Equal(t, metav1.ConditionFalse, appsCond.Status)
+
+	// Ready=False (not all conditions met)
+	readyCond := meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta2.ReadyConditionType)
+	assert.NotNil(t, readyCond)
+	assert.Equal(t, metav1.ConditionFalse, readyCond.Status)
+
+	// This demonstrates that Valid condition is independent:
+	// Valid can be True while Deployed, AppsProvisioned, and Ready are False
+}
+
+func TestBrokerServiceValidPersistsThroughRuntimeErrors(t *testing.T) {
+	// Setup scheme
+	scheme := runtime.NewScheme()
+	_ = v1beta2.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	ns := "default"
+	svcName := "test-service"
+
+	// Create BrokerService with valid spec
+	svc := &v1beta2.BrokerService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      svcName,
+			Namespace: ns,
+		},
+	}
+
+	// Setup fake client with interceptor to fail List operations
+	interceptorFuncs := interceptor.Funcs{
+		List: func(ctx context.Context, client client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+			if _, ok := list.(*corev1.SecretList); ok {
+				return fmt.Errorf("simulated API list error")
+			}
+			return client.List(ctx, list, opts...)
+		},
+	}
+
+	cl := setupBrokerAppIndexer(fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(svc).
+		WithStatusSubresource(svc).
+		WithInterceptorFuncs(interceptorFuncs)).
+		Build()
+
+	// Create Reconciler
+	r := NewBrokerServiceReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+
+	// Reconcile - will fail due to API error
+	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: svcName, Namespace: ns}}
+	_, err := r.Reconcile(context.TODO(), req)
+	assert.Error(t, err)
+
+	// Verify Valid=True persists even with runtime errors
+	updatedSvc := &v1beta2.BrokerService{}
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+	assert.NoError(t, err)
+
+	// Valid should be True (spec is valid)
+	validCond := meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta2.ValidConditionType)
+	assert.NotNil(t, validCond)
+	assert.Equal(t, metav1.ConditionTrue, validCond.Status)
+	assert.Equal(t, v1beta2.ValidConditionSuccessReason, validCond.Reason)
+
+	// Deployed should be Unknown (runtime error)
+	deployedCond := meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta2.DeployedConditionType)
+	assert.NotNil(t, deployedCond)
+	assert.Equal(t, metav1.ConditionUnknown, deployedCond.Status)
+	assert.Equal(t, v1beta2.DeployedConditionCrudKindErrorReason, deployedCond.Reason)
+}
+
+func TestBrokerServiceConditionTransitionsOnRecovery(t *testing.T) {
+	// Setup scheme
+	scheme := runtime.NewScheme()
+	_ = v1beta2.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+
+	ns := "default"
+	svcName := "test-service"
+
+	// Create BrokerService
+	svc := &v1beta2.BrokerService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      svcName,
+			Namespace: ns,
+		},
+	}
+
+	// Setup fake client
+	cl := setupBrokerAppIndexer(fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(svc).
+		WithStatusSubresource(svc, &v1beta2.Broker{})).
+		Build()
+
+	// Create Reconciler
+	r := NewBrokerServiceReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
+	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: svcName, Namespace: ns}}
+
+	// 1. First reconcile - broker not ready
+	_, err := r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	updatedSvc := &v1beta2.BrokerService{}
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+	assert.NoError(t, err)
+
+	// Verify initial state
+	validCond := meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta2.ValidConditionType)
+	assert.NotNil(t, validCond)
+	assert.Equal(t, metav1.ConditionTrue, validCond.Status)
+
+	deployedCond := meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta2.DeployedConditionType)
+	assert.NotNil(t, deployedCond)
+	assert.Equal(t, metav1.ConditionFalse, deployedCond.Status)
+	assert.Equal(t, v1beta2.DeployedConditionNotReadyReason, deployedCond.Reason)
+
+	// 2. Update Broker to be ready
+	brokerCR := &v1beta2.Broker{}
+	err = cl.Get(context.TODO(), req.NamespacedName, brokerCR)
+	assert.NoError(t, err)
+
+	brokerCR.Status.Conditions = []metav1.Condition{
+		{
+			Type:   v1beta2.ReadyConditionType,
+			Status: metav1.ConditionTrue,
+		},
+		{
+			Type:   v1beta2.DeployedConditionType,
+			Status: metav1.ConditionTrue,
+		},
+	}
+	err = cl.Status().Update(context.TODO(), brokerCR)
+	assert.NoError(t, err)
+
+	// 3. Reconcile again
+	_, err = r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err)
+
+	err = cl.Get(context.TODO(), req.NamespacedName, updatedSvc)
+	assert.NoError(t, err)
+
+	// Verify Valid stayed True
+	validCond = meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta2.ValidConditionType)
+	assert.NotNil(t, validCond)
+	assert.Equal(t, metav1.ConditionTrue, validCond.Status)
+
+	// Verify Deployed transitioned to True
+	deployedCond = meta.FindStatusCondition(updatedSvc.Status.Conditions, v1beta2.DeployedConditionType)
+	assert.NotNil(t, deployedCond)
+	assert.Equal(t, metav1.ConditionTrue, deployedCond.Status)
+	assert.Equal(t, v1beta2.ReadyConditionReason, deployedCond.Reason)
 }

@@ -98,9 +98,12 @@ func (reconciler *BrokerServiceReconciler) Reconcile(ctx context.Context, reques
 
 	reqLogger.V(2).Info("Reconciler Processing...", "CRD.Name", instance.Name, "CRD ver", instance.ObjectMeta.ResourceVersion, "CRD Gen", instance.ObjectMeta.Generation)
 
-	if err = processor.InitDeployed(instance, processor.getOwned()...); err == nil {
-		if err = processor.processSpec(); err == nil {
-			err = processor.SyncDesiredWithDeployed(instance)
+	// Validate spec first, before doing any work
+	if err = processor.validateSpec(); err == nil {
+		if err = processor.InitDeployed(instance, processor.getOwned()...); err == nil {
+			if err = processor.processSpec(); err == nil {
+				err = processor.SyncDesiredWithDeployed(instance)
+			}
 		}
 	}
 
@@ -130,11 +133,25 @@ func (r *BrokerServiceReconciler) getOrderedTypeList() []reflect.Type {
 		reflect.TypeOf(corev1.Service{})}
 }
 
-func (reconciler *BrokerServiceInstanceReconciler) processSpec() (err error) {
-	// Validate resource name for safe file path construction
-	if err = common.ValidateResourceName(reconciler.instance.Name); err != nil {
-		return fmt.Errorf("invalid resource name: %w", err)
+func (reconciler *BrokerServiceInstanceReconciler) validateSpec() error {
+	// Validate resource name
+	if err := ValidateResourceNameAndSetCondition(reconciler.instance.Name, &reconciler.status.Conditions); err != nil {
+		return err
 	}
+
+	// Add additional spec validations here as needed
+	// Future: validate image, resources, etc.
+
+	// All validations passed - set Valid=True
+	meta.SetStatusCondition(&reconciler.status.Conditions, metav1.Condition{
+		Type:   broker.ValidConditionType,
+		Status: metav1.ConditionTrue,
+		Reason: broker.ValidConditionSuccessReason,
+	})
+	return nil
+}
+
+func (reconciler *BrokerServiceInstanceReconciler) processSpec() (err error) {
 	if err = reconciler.processBroker(); err == nil {
 		err = reconciler.processService()
 	}
@@ -168,7 +185,6 @@ func (reconciler *BrokerServiceInstanceReconciler) processBroker() (err error) {
 		reconciler.appPropertiesSecretName(),
 	}
 
-	// a place the app controller can modify
 	err = reconciler.processAppSecrets()
 
 	reconciler.TrackDesired(desired)
@@ -266,19 +282,28 @@ func (reconciler *BrokerServiceInstanceReconciler) processStatus(reconcilerError
 	var deployedCondition metav1.Condition = metav1.Condition{
 		Type:   broker.DeployedConditionType,
 		Status: metav1.ConditionFalse,
-		Reason: "NotReady",
+		Reason: broker.DeployedConditionNotReadyReason,
 	}
 
 	var appsProvisionedCondition metav1.Condition = metav1.Condition{
-		Type:   "AppsProvisioned",
+		Type:   broker.AppsProvisionedConditionType,
 		Status: metav1.ConditionFalse,
-		Reason: "WaitingForBroker",
+		Reason: broker.AppsProvisionedConditionWaitingReason,
 	}
 
 	if reconcilerError != nil {
-		deployedCondition.Status = metav1.ConditionUnknown
-		deployedCondition.Reason = broker.DeployedConditionCrudKindErrorReason
-		deployedCondition.Message = fmt.Sprintf("error on resource crud %v", reconcilerError)
+		// Check if error is a ConditionError with a specific reason
+		if condErr, ok := AsConditionError(reconcilerError); ok {
+			deployedCondition.Status = metav1.ConditionFalse
+			deployedCondition.Reason = condErr.Reason
+			deployedCondition.Message = condErr.Message
+		} else {
+			// Generic error (API errors, update errors, etc.)
+			deployedCondition.Status = metav1.ConditionUnknown
+			deployedCondition.Reason = broker.DeployedConditionCrudKindErrorReason
+			deployedCondition.Message = fmt.Sprintf("error on resource crud %v", reconcilerError)
+		}
+		appsProvisionedCondition.Reason = broker.AppsProvisionedConditionNotReadyReason
 	} else {
 		obj := reconciler.CloneOfDeployed(reflect.TypeOf(broker.Broker{}), reconciler.instance.Name)
 		if obj != nil {
@@ -311,7 +336,7 @@ func (reconciler *BrokerServiceInstanceReconciler) processStatus(reconcilerError
 					if getErr := reconciler.Client.Get(context.TODO(), secretKey, secret); getErr == nil {
 						if secret.ResourceVersion == appliedSecretVersion {
 							appsProvisionedCondition.Status = metav1.ConditionTrue
-							appsProvisionedCondition.Reason = "Synced"
+							appsProvisionedCondition.Reason = broker.AppsProvisionedConditionSyncedReason
 							if applied, ok := secret.Annotations[common.ProvisionedAppsAnnotation]; ok && applied != "" {
 								reconciler.status.ProvisionedApps = strings.Split(applied, ",")
 							} else {

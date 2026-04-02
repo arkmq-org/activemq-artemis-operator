@@ -806,15 +806,27 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 			By("verifying app3 cannot be provisioned due to insufficient capacity")
 			Consistently(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, app3Key, createdApp3)).Should(Succeed())
-				// Should have Valid=False with NoServiceCapacity reason
+
+				// Valid should be True (spec is valid)
 				validCond := meta.FindStatusCondition(createdApp3.Status.Conditions, broker.ValidConditionType)
 				if validCond != nil {
 					if verbose {
-						fmt.Printf("App3 Valid condition: %s, Reason: %s, Message: %s\n",
-							validCond.Status, validCond.Reason, validCond.Message)
+						fmt.Printf("App3 Valid condition: %s, Reason: %s\n",
+							validCond.Status, validCond.Reason)
 					}
-					g.Expect(validCond.Status).Should(Equal(metav1.ConditionFalse))
-					g.Expect(validCond.Reason).Should(Equal("NoServiceCapacity"))
+					g.Expect(validCond.Status).Should(Equal(metav1.ConditionTrue))
+					g.Expect(validCond.Reason).Should(Equal(broker.ValidConditionSuccessReason))
+				}
+
+				// Deployed should be False with NoServiceCapacity reason
+				deployedCond := meta.FindStatusCondition(createdApp3.Status.Conditions, broker.DeployedConditionType)
+				if deployedCond != nil {
+					if verbose {
+						fmt.Printf("App3 Deployed condition: %s, Reason: %s, Message: %s\n",
+							deployedCond.Status, deployedCond.Reason, deployedCond.Message)
+					}
+					g.Expect(deployedCond.Status).Should(Equal(metav1.ConditionFalse))
+					g.Expect(deployedCond.Reason).Should(Equal(broker.DeployedConditionNoServiceCapacityReason))
 				}
 			}, "10s", "1s").Should(Succeed())
 
