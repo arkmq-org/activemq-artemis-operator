@@ -285,29 +285,54 @@ func (reconciler *BrokerAppInstanceReconciler) findServiceWithCapacity(list *bro
 		return nil, fmt.Errorf("no services in list")
 	}
 
-	// Get the app's memory request (0 if not specified)
+	// Get the app's resource requirements
 	appMemoryRequest := reconciler.instance.Spec.Resources.Requests.Memory()
+	appPort := reconciler.instance.Spec.Acceptor.Port
 
 	var bestService *broker.BrokerService
 	var maxAvailable int64 = -1
 
+	// Track why services were rejected for better error messages
+	rejectionReasons := make(map[string]string)
+
 	for i := range list.Items {
 		service := &list.Items[i]
-		available, checkErr := reconciler.getAvailableMemory(service)
 
+		// Check memory capacity
+		available, checkErr := reconciler.getAvailableMemory(service)
 		if checkErr != nil {
 			reconciler.log.V(1).Info("Failed to check capacity for service",
 				"service", service.Name,
 				"error", checkErr)
+			rejectionReasons[service.Name] = fmt.Sprintf("error checking capacity: %v", checkErr)
 			continue
 		}
 
-		// Check if this service has enough capacity
 		if appMemoryRequest != nil && available < appMemoryRequest.Value() {
 			reconciler.log.V(1).Info("Service has insufficient memory capacity",
 				"service", service.Name,
 				"available", available,
 				"required", appMemoryRequest.Value())
+			rejectionReasons[service.Name] = fmt.Sprintf("insufficient memory (available: %d, required: %d)",
+				available, appMemoryRequest.Value())
+			continue
+		}
+
+		// Check port availability
+		conflictingApp, hasConflict, portErr := reconciler.getPortConflict(service, appPort)
+		if portErr != nil {
+			// Error checking for conflicts - treat as service unavailable
+			reconciler.log.Error(portErr, "Failed to check port conflicts for service",
+				"service", service.Name)
+			rejectionReasons[service.Name] = fmt.Sprintf("error checking ports: %v", portErr)
+			continue
+		}
+		if hasConflict {
+			reconciler.log.V(1).Info("Service has port conflict",
+				"service", service.Name,
+				"port", appPort,
+				"conflicting-app", conflictingApp)
+			rejectionReasons[service.Name] = fmt.Sprintf("port %d conflict with %s", appPort, conflictingApp)
 			continue
 		}
 
@@ -319,17 +344,42 @@ func (reconciler *BrokerAppInstanceReconciler) findServiceWithCapacity(list *bro
 	}
 
 	if bestService == nil {
-		if appMemoryRequest != nil && !appMemoryRequest.IsZero() {
-			return nil, fmt.Errorf("no service with sufficient memory capacity (required: %s)", appMemoryRequest.String())
+		// Build detailed error message with reasons
+		reasons := []string{}
+		for svcName, reason := range rejectionReasons {
+			reasons = append(reasons, fmt.Sprintf("%s: %s", svcName, reason))
 		}
-		// No memory constraints, pick first
-		return &list.Items[0], nil
+
+		if len(reasons) > 0 {
+			return nil, fmt.Errorf("no service with capacity for port %d and memory %v: %s",
+				appPort, appMemoryRequest, strings.Join(reasons, "; "))
+		}
+		return nil, fmt.Errorf("no service with capacity for port %d and memory %v", appPort, appMemoryRequest)
 	}
 
 	reconciler.log.V(1).Info("Selected service with capacity",
 		"service", bestService.Name,
-		"available-memory", maxAvailable)
+		"available-memory", maxAvailable,
+		"port", appPort)
 	return bestService, nil
+}
+
+func (reconciler *BrokerAppInstanceReconciler) listOtherAppsForService(service *broker.BrokerService) ([]broker.BrokerApp, error) {
+	apps := &broker.BrokerAppList{}
+	serviceKey := annotationNameFromService(service)
+	if err := reconciler.Client.List(context.TODO(), apps, client.MatchingFields{common.AppServiceAnnotation: serviceKey}); err != nil {
+		return nil, err
+	}
+
+	// Filter out ourselves
+	result := make([]broker.BrokerApp, 0, len(apps.Items))
+	for _, app := range apps.Items {
+		if app.Namespace == reconciler.instance.Namespace && app.Name == reconciler.instance.Name {
+			continue
+		}
+		result = append(result, app)
+	}
+	return result, nil
 }
 
 func (reconciler *BrokerAppInstanceReconciler) getAvailableMemory(service *broker.BrokerService) (int64, error) {
@@ -341,21 +391,15 @@ func (reconciler *BrokerAppInstanceReconciler) getAvailableMemory(service *broke
 	}
 	totalMemory := serviceMemory.Value()
 
-	// Find all apps currently provisioned on this service
-	apps := &broker.BrokerAppList{}
-	serviceKey := annotationNameFromService(service)
-	if err := reconciler.Client.List(context.TODO(), apps, client.MatchingFields{common.AppServiceAnnotation: serviceKey}); err != nil {
+	// Find all other apps currently provisioned on this service
+	apps, err := reconciler.listOtherAppsForService(service)
+	if err != nil {
 		return 0, err
 	}
 
 	// Sum up memory requests of all provisioned apps
 	var usedMemory int64 = 0
-	for _, app := range apps.Items {
-		// Skip ourselves if we're already in the list
-		if app.Namespace == reconciler.instance.Namespace && app.Name == reconciler.instance.Name {
-			continue
-		}
-
+	for _, app := range apps {
 		appMemory := app.Spec.Resources.Requests.Memory()
 		if appMemory != nil {
 			usedMemory += appMemory.Value()
@@ -389,6 +433,23 @@ func (reconciler *BrokerAppInstanceReconciler) verifyCapabilityAddressType() (er
 		})
 	}
 	return err
+}
+
+func (reconciler *BrokerAppInstanceReconciler) getPortConflict(service *broker.BrokerService, port int32) (conflictingApp string, hasConflict bool, err error) {
+	// Query all other apps assigned to this service
+	apps, err := reconciler.listOtherAppsForService(service)
+	if err != nil {
+		return "", false, fmt.Errorf("failed to list apps for service %s: %w", annotationNameFromService(service), err)
+	}
+
+	// Check for port conflicts with other apps
+	for _, app := range apps {
+		if app.Spec.Acceptor.Port == port {
+			return fmt.Sprintf("%s/%s", app.Namespace, app.Name), true, nil
+		}
+	}
+
+	return "", false, nil
 }
 
 func (reconciler *BrokerAppInstanceReconciler) processStatus(reconcilerError error) (err error, retry bool) {

@@ -71,7 +71,11 @@ func TestSimpleReconcile(t *testing.T) {
 	}
 
 	// Setup fake client
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(svc, app).WithStatusSubresource(app, svc).Build()
+	cl := setupBrokerAppIndexer(fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(svc, app).
+		WithStatusSubresource(app, svc)).
+		Build()
 
 	// Create Reconciler
 	r := NewBrokerAppReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
@@ -143,7 +147,11 @@ func TestReconcileNoMatchingService(t *testing.T) {
 	}
 
 	// Setup fake client
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(app).WithStatusSubresource(app).Build()
+	cl := setupBrokerAppIndexer(fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(app).
+		WithStatusSubresource(app)).
+		Build()
 
 	// Create Reconciler
 	r := NewBrokerAppReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
@@ -205,7 +213,18 @@ func TestReconcileValidConditionTransition(t *testing.T) {
 	}
 
 	// Setup fake client
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(svc, app).WithStatusSubresource(app).Build()
+	cl := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(svc, app).
+		WithStatusSubresource(app).
+		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(obj client.Object) []string {
+			app := obj.(*v1beta2.BrokerApp)
+			if val, ok := app.Annotations[common.AppServiceAnnotation]; ok {
+				return []string{val}
+			}
+			return nil
+		}).
+		Build()
 
 	// Create Reconciler
 	r := NewBrokerAppReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
@@ -298,7 +317,12 @@ func TestReconcileStatusUpdateFailure(t *testing.T) {
 		},
 	}
 
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(svc, app).WithStatusSubresource(app).WithInterceptorFuncs(interceptorFuncs).Build()
+	cl := setupBrokerAppIndexer(fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(svc, app).
+		WithStatusSubresource(app).
+		WithInterceptorFuncs(interceptorFuncs)).
+		Build()
 
 	// Create Reconciler
 	r := NewBrokerAppReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
@@ -344,7 +368,11 @@ func TestReconcileAddressTypeError(t *testing.T) {
 	}
 
 	// Setup fake client
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(app).WithStatusSubresource(app).Build()
+	cl := setupBrokerAppIndexer(fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(app).
+		WithStatusSubresource(app)).
+		Build()
 
 	// Create Reconciler
 	r := NewBrokerAppReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
@@ -401,7 +429,11 @@ func TestReconcileDeployedConditionFromBrokerServiceStatus(t *testing.T) {
 	}
 
 	// Setup fake client
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(svc, app).WithStatusSubresource(app, svc).Build()
+	cl := setupBrokerAppIndexer(fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(svc, app).
+		WithStatusSubresource(app, svc)).
+		Build()
 
 	// Create Reconciler
 	r := NewBrokerAppReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
@@ -480,7 +512,7 @@ func TestReconcileIdempotentStatus(t *testing.T) {
 	}
 
 	// Setup fake client for first reconcile
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(svc, app).WithStatusSubresource(app, svc).Build()
+	cl := setupBrokerAppIndexer(fake.NewClientBuilder().WithScheme(scheme).WithObjects(svc, app).WithStatusSubresource(app, svc)).Build()
 
 	// Create Reconciler
 	r := NewBrokerAppReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
@@ -507,7 +539,12 @@ func TestReconcileIdempotentStatus(t *testing.T) {
 		},
 	}
 
-	cl2 := fake.NewClientBuilder().WithScheme(scheme).WithObjects(svc, updatedApp).WithStatusSubresource(updatedApp, svc).WithInterceptorFuncs(interceptorFuncs).Build()
+	cl2 := setupBrokerAppIndexer(fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(svc, updatedApp).
+		WithStatusSubresource(updatedApp, svc).
+		WithInterceptorFuncs(interceptorFuncs)).
+		Build()
 	r2 := NewBrokerAppReconciler(cl2, scheme, nil, logr.New(log.NullLogSink{}))
 	_, err = r2.Reconcile(context.TODO(), req)
 	assert.NoError(t, err)
@@ -540,7 +577,7 @@ func TestReconcileInvalidResourceName(t *testing.T) {
 	}
 
 	// Setup fake client
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(app).WithStatusSubresource(app).Build()
+	cl := setupBrokerAppIndexer(fake.NewClientBuilder().WithScheme(scheme).WithObjects(app).WithStatusSubresource(app)).Build()
 
 	// Create Reconciler
 	r := NewBrokerAppReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
@@ -593,7 +630,7 @@ func TestReconcileInvalidSelectorSyntax(t *testing.T) {
 	}
 
 	// Setup fake client
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(app).WithStatusSubresource(app).Build()
+	cl := setupBrokerAppIndexer(fake.NewClientBuilder().WithScheme(scheme).WithObjects(app).WithStatusSubresource(app)).Build()
 
 	// Create Reconciler
 	r := NewBrokerAppReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
@@ -653,7 +690,11 @@ func TestReconcileMatchedServiceNotFound(t *testing.T) {
 	}
 
 	// Setup fake client
-	cl := fake.NewClientBuilder().WithScheme(scheme).WithObjects(svc, app).WithStatusSubresource(app, svc).Build()
+	cl := setupBrokerAppIndexer(fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(svc, app).
+		WithStatusSubresource(app, svc)).
+		Build()
 
 	// Create Reconciler
 	r := NewBrokerAppReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))

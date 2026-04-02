@@ -1153,5 +1153,241 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 			Expect(k8sClient.Delete(ctx, createdApp)).Should(Succeed())
 			UninstallCert(appCertName, defaultNamespace)
 		})
+
+		It("should detect and reject port clash between apps", func() {
+
+			if os.Getenv("USE_EXISTING_CLUSTER") != "true" {
+				return
+			}
+
+			ctx := context.Background()
+			serviceName := NextSpecResourceName()
+			conflictingPort := int32(61620)
+
+			By("setting up certificates for service")
+			certName := serviceName + "-" + common.DefaultOperandCertSecretName
+			InstallCert(certName, defaultNamespace, func(candidate *cmv1.Certificate) {
+				candidate.Spec.SecretName = certName
+				candidate.Spec.CommonName = serviceName
+				candidate.Spec.DNSNames = []string{serviceName, fmt.Sprintf("%s.%s", serviceName, defaultNamespace), fmt.Sprintf("%s.%s.svc.%s", serviceName, defaultNamespace, common.GetClusterDomain()), common.ClusterDNSWildCard(serviceName, defaultNamespace)}
+				candidate.Spec.IssuerRef = cmmetav1.ObjectReference{
+					Name: caIssuer.Name,
+					Kind: "ClusterIssuer",
+				}
+			})
+
+			prometheusCertName := common.DefaultPrometheusCertSecretName
+			InstallCert(prometheusCertName, defaultNamespace, func(candidate *cmv1.Certificate) {
+				candidate.Spec.SecretName = prometheusCertName
+				candidate.Spec.CommonName = "prometheus"
+				candidate.Spec.IssuerRef = cmmetav1.ObjectReference{
+					Name: caIssuer.Name,
+					Kind: "ClusterIssuer",
+				}
+			})
+
+			By("creating BrokerService")
+			service := broker.BrokerService{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "BrokerService",
+					APIVersion: broker.GroupVersion.Identifier(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      serviceName,
+					Namespace: defaultNamespace,
+					Labels:    map[string]string{"portclash": "test"},
+				},
+				Spec: broker.BrokerServiceSpec{},
+			}
+			Expect(k8sClient.Create(ctx, &service)).Should(Succeed())
+
+			serviceKey := types.NamespacedName{Name: serviceName, Namespace: defaultNamespace}
+			createdService := &broker.BrokerService{}
+
+			By("waiting for service to be ready")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, serviceKey, createdService)).Should(Succeed())
+				g.Expect(meta.IsStatusConditionTrue(createdService.Status.Conditions, broker.ReadyConditionType)).Should(BeTrue())
+			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+			By("creating first app with port 61620")
+			app1Name := "app1-port-clash"
+			app1CertName := app1Name + common.AppCertSecretSuffix
+			InstallCert(app1CertName, defaultNamespace, func(candidate *cmv1.Certificate) {
+				candidate.Spec.SecretName = app1CertName
+				candidate.Spec.CommonName = app1Name
+				candidate.Spec.Subject.Organizations = nil
+				candidate.Spec.Subject.OrganizationalUnits = []string{defaultNamespace}
+				candidate.Spec.IssuerRef = cmmetav1.ObjectReference{
+					Name: caIssuer.Name,
+					Kind: "ClusterIssuer",
+				}
+			})
+
+			app1 := broker.BrokerApp{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "BrokerApp",
+					APIVersion: broker.GroupVersion.Identifier(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      app1Name,
+					Namespace: defaultNamespace,
+				},
+				Spec: broker.BrokerAppSpec{
+					ServiceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{"portclash": "test"},
+					},
+					Acceptor: broker.AppAcceptorType{Port: conflictingPort},
+					Capabilities: []broker.AppCapabilityType{
+						{
+							Role:       "workQueue",
+							ProducerOf: []broker.AppAddressType{{Address: "APP1.QUEUE"}},
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, &app1)).Should(Succeed())
+
+			app1Key := types.NamespacedName{Name: app1Name, Namespace: defaultNamespace}
+			createdApp1 := &broker.BrokerApp{}
+
+			By("waiting for first app to be ready")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, app1Key, createdApp1)).Should(Succeed())
+				g.Expect(meta.IsStatusConditionTrue(createdApp1.Status.Conditions, broker.ReadyConditionType)).Should(BeTrue())
+				if verbose {
+					fmt.Printf("App1 Ready, conditions: %v\n", createdApp1.Status.Conditions)
+				}
+			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+			By("creating second app with SAME port 61620 - should be rejected")
+			app2Name := "app2-port-clash"
+			app2CertName := app2Name + common.AppCertSecretSuffix
+			InstallCert(app2CertName, defaultNamespace, func(candidate *cmv1.Certificate) {
+				candidate.Spec.SecretName = app2CertName
+				candidate.Spec.CommonName = app2Name
+				candidate.Spec.Subject.Organizations = nil
+				candidate.Spec.Subject.OrganizationalUnits = []string{defaultNamespace}
+				candidate.Spec.IssuerRef = cmmetav1.ObjectReference{
+					Name: caIssuer.Name,
+					Kind: "ClusterIssuer",
+				}
+			})
+
+			app2 := broker.BrokerApp{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "BrokerApp",
+					APIVersion: broker.GroupVersion.Identifier(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      app2Name,
+					Namespace: defaultNamespace,
+				},
+				Spec: broker.BrokerAppSpec{
+					ServiceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{"portclash": "test"},
+					},
+					Acceptor: broker.AppAcceptorType{Port: conflictingPort}, // Same port!
+					Capabilities: []broker.AppCapabilityType{
+						{
+							Role:       "workQueue",
+							ProducerOf: []broker.AppAddressType{{Address: "APP2.QUEUE"}},
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, &app2)).Should(Succeed())
+
+			app2Key := types.NamespacedName{Name: app2Name, Namespace: defaultNamespace}
+			createdApp2 := &broker.BrokerApp{}
+
+			By("verifying second app is NOT ready due to port clash")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, app2Key, createdApp2)).Should(Succeed())
+
+				// Valid condition should be True (spec is valid)
+				validCond := meta.FindStatusCondition(createdApp2.Status.Conditions, broker.ValidConditionType)
+				if validCond != nil {
+					if verbose {
+						fmt.Printf("App2 Valid condition: Status=%s, Reason=%s\n",
+							validCond.Status, validCond.Reason)
+					}
+					g.Expect(validCond.Status).Should(Equal(metav1.ConditionTrue))
+					g.Expect(validCond.Reason).Should(Equal(broker.ValidConditionSuccessReason))
+				}
+
+				// Deployed condition should be False with NoServiceCapacity reason
+				deployedCond := meta.FindStatusCondition(createdApp2.Status.Conditions, broker.DeployedConditionType)
+				if deployedCond != nil {
+					if verbose {
+						fmt.Printf("App2 Deployed condition: Status=%s, Reason=%s, Message=%s\n",
+							deployedCond.Status, deployedCond.Reason, deployedCond.Message)
+					}
+					g.Expect(deployedCond.Status).Should(Equal(metav1.ConditionFalse))
+					g.Expect(deployedCond.Reason).Should(Equal(broker.DeployedConditionNoServiceCapacityReason))
+					g.Expect(deployedCond.Message).Should(ContainSubstring("port"))
+					g.Expect(deployedCond.Message).Should(ContainSubstring(fmt.Sprintf("%d", conflictingPort)))
+				}
+
+				// Ready should be False
+				readyCond := meta.FindStatusCondition(createdApp2.Status.Conditions, broker.ReadyConditionType)
+				if readyCond != nil {
+					g.Expect(readyCond.Status).Should(Equal(metav1.ConditionFalse))
+				}
+			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+			By("verifying service still has only first app provisioned (second rejected)")
+			Consistently(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, serviceKey, createdService)).Should(Succeed())
+				if verbose {
+					fmt.Printf("Service ProvisionedApps: %v\n", createdService.Status.ProvisionedApps)
+				}
+				// Only app1 should be provisioned, app2 should be rejected due to port clash
+				g.Expect(len(createdService.Status.ProvisionedApps)).Should(BeNumerically("<=", 1))
+			}, "10s", "1s").Should(Succeed())
+
+			By("changing second app to use different port - should become ready")
+			differentPort := int32(61621)
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, app2Key, createdApp2)).Should(Succeed())
+				createdApp2.Spec.Acceptor.Port = differentPort
+				g.Expect(k8sClient.Update(ctx, createdApp2)).Should(Succeed())
+			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+			By("verifying second app becomes ready after port change")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, app2Key, createdApp2)).Should(Succeed())
+
+				validCond := meta.FindStatusCondition(createdApp2.Status.Conditions, broker.ValidConditionType)
+				if validCond != nil {
+					if verbose {
+						fmt.Printf("App2 Valid condition after fix: Status=%s, Reason=%s\n",
+							validCond.Status, validCond.Reason)
+					}
+					g.Expect(validCond.Status).Should(Equal(metav1.ConditionTrue))
+					g.Expect(validCond.Reason).Should(Equal(broker.ValidConditionSuccessReason))
+				}
+
+				g.Expect(meta.IsStatusConditionTrue(createdApp2.Status.Conditions, broker.ReadyConditionType)).Should(BeTrue())
+			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+			By("verifying both apps are now provisioned on the service")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, serviceKey, createdService)).Should(Succeed())
+				if verbose {
+					fmt.Printf("Service ProvisionedApps after fix: %v\n", createdService.Status.ProvisionedApps)
+				}
+				g.Expect(createdService.Status.ProvisionedApps).Should(HaveLen(2))
+			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
+
+			By("cleanup")
+			Expect(k8sClient.Delete(ctx, createdApp1)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, createdApp2)).Should(Succeed())
+			Expect(k8sClient.Delete(ctx, createdService)).Should(Succeed())
+			UninstallCert(app1CertName, defaultNamespace)
+			UninstallCert(app2CertName, defaultNamespace)
+			UninstallCert(certName, defaultNamespace)
+			UninstallCert(prometheusCertName, defaultNamespace)
+		})
 	})
 })

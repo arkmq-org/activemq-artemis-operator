@@ -193,9 +193,9 @@ func TestResolveBrokerService(t *testing.T) {
 			for i := range tt.services {
 				objs = append(objs, &tt.services[i])
 			}
-			fakeClient := fake.NewClientBuilder().
+			fakeClient := setupBrokerAppIndexer(fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithRuntimeObjects(objs...).
+				WithRuntimeObjects(objs...)).
 				Build()
 
 			// Create reconciler
