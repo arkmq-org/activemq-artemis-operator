@@ -34,6 +34,35 @@ type BrokerServiceSpec struct {
 
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Broker image"
 	Image *string `json:"image,omitempty"`
+
+	// AppSelectorExpression is a CEL expression that determines which BrokerApps
+	// can deploy to this service.
+	//
+	// The expression has access to the following variables:
+	// - app: The BrokerApp object being evaluated (map with metadata, spec, etc.)
+	// - service: The BrokerService object (map with metadata, spec, etc.)
+	// - appNamespace: The Namespace object where the app resides (map with metadata, etc.)
+	// - serviceNamespace: The Namespace object where the service resides (map with metadata, etc.)
+	//
+	// Empty or nil (default): Uses "app.metadata.namespace == service.metadata.namespace" (same namespace only).
+	//
+	// The expression must evaluate to a boolean. Matching is checked at binding time
+	// and continuously during reconciliation. Apps that no longer match are automatically
+	// unbound and must find an alternative service.
+	//
+	//+optional
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="App Selector Expression"
+	AppSelectorExpression string `json:"appSelectorExpression,omitempty"`
+}
+
+// RejectedApp represents a BrokerApp that was rejected during provisioning validation
+type RejectedApp struct {
+	// Name of the rejected app
+	Name string `json:"name"`
+	// Namespace of the rejected app
+	Namespace string `json:"namespace"`
+	// Reason why the app was rejected
+	Reason string `json:"reason"`
 }
 
 type BrokerServiceStatus struct {
@@ -51,6 +80,11 @@ type BrokerServiceStatus struct {
 	// List of BrokerApp identities that have been applied to the service
 	//+operator-sdk:csv:customresourcedefinitions:type=status,displayName="Provisioned Applications"
 	ProvisionedApps []string `json:"provisionedApps,omitempty"`
+
+	// List of BrokerApps that were rejected during provisioning validation
+	//+optional
+	//+operator-sdk:csv:customresourcedefinitions:type=status,displayName="Rejected Applications"
+	RejectedApps []RejectedApp `json:"rejectedApps,omitempty"`
 }
 
 //+kubebuilder:object:root=true

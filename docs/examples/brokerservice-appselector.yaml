@@ -1,0 +1,191 @@
+# BrokerService App Selector Examples
+#
+# The appSelectorExpression field uses CEL (Common Expression Language) to control
+# which BrokerApps can deploy to a BrokerService.
+#
+# Available variables:
+# - app: The BrokerApp being evaluated
+# - service: The BrokerService object
+# - appNamespace: The Namespace object where the app resides
+# - serviceNamespace: The Namespace object where the service resides
+
+---
+# Default - Same namespace only (secure by default)
+apiVersion: arkmq.org/v1beta2
+kind: BrokerService
+metadata:
+  name: isolated-broker
+  namespace: team-a
+spec:
+  # Default behavior when appSelectorExpression is omitted:
+  # Only apps from the same namespace are allowed
+  # Equivalent to: appSelectorExpression: "app.metadata.namespace == service.metadata.namespace"
+  image: quay.io/artemiscloud/activemq-artemis-broker-kubernetes:latest
+---
+apiVersion: arkmq.org/v1beta2
+kind: BrokerApp
+metadata:
+  name: app-same-ns
+  namespace: team-a  # ✓ ALLOWED - same namespace
+spec:
+  acceptor:
+    port: 61616
+
+---
+# Open access - Allow all namespaces
+apiVersion: arkmq.org/v1beta2
+kind: BrokerService
+metadata:
+  name: dev-broker
+  namespace: broker-services
+  labels:
+    environment: development
+spec:
+  appSelectorExpression: "true"  # Allow all namespaces
+  image: quay.io/artemiscloud/activemq-artemis-broker-kubernetes:latest
+---
+apiVersion: arkmq.org/v1beta2
+kind: BrokerApp
+metadata:
+  name: app1
+  namespace: dev-team-1  # ✓ ALLOWED
+spec:
+  serviceSelector:
+    matchLabels:
+      environment: development
+  acceptor:
+    port: 61616
+---
+apiVersion: arkmq.org/v1beta2
+kind: BrokerApp
+metadata:
+  name: app2
+  namespace: dev-team-2  # ✓ ALLOWED
+spec:
+  serviceSelector:
+    matchLabels:
+      environment: development
+  acceptor:
+    port: 61617
+
+---
+# Namespace pattern matching
+apiVersion: arkmq.org/v1beta2
+kind: BrokerService
+metadata:
+  name: prod-broker
+  namespace: broker-services
+  labels:
+    environment: production
+spec:
+  appSelectorExpression: |
+    app.metadata.namespace.startsWith("team-") &&
+    (app.metadata.namespace.endsWith("-prod") || app.metadata.namespace.endsWith("-staging"))
+  image: quay.io/artemiscloud/activemq-artemis-broker-kubernetes:latest
+---
+apiVersion: arkmq.org/v1beta2
+kind: BrokerApp
+metadata:
+  name: payment-service
+  namespace: team-a-prod  # ✓ ALLOWED - matches pattern
+spec:
+  serviceSelector:
+    matchLabels:
+      environment: production
+  acceptor:
+    port: 61616
+---
+apiVersion: arkmq.org/v1beta2
+kind: BrokerApp
+metadata:
+  name: test-service
+  namespace: team-b-staging  # ✓ ALLOWED - matches pattern
+spec:
+  serviceSelector:
+    matchLabels:
+      environment: production
+  acceptor:
+    port: 61617
+---
+apiVersion: arkmq.org/v1beta2
+kind: BrokerApp
+metadata:
+  name: dev-app
+  namespace: team-c-dev  # ✗ DENIED - doesn't match pattern
+spec:
+  serviceSelector:
+    matchLabels:
+      environment: production
+  acceptor:
+    port: 61618
+
+---
+# App label-based selection
+apiVersion: arkmq.org/v1beta2
+kind: BrokerService
+metadata:
+  name: premium-broker
+  namespace: broker-services
+spec:
+  appSelectorExpression: |
+    has(app.metadata.labels) &&
+    app.metadata.labels["tier"] == "premium"
+  image: quay.io/artemiscloud/activemq-artemis-broker-kubernetes:latest
+---
+apiVersion: arkmq.org/v1beta2
+kind: BrokerApp
+metadata:
+  name: premium-app
+  namespace: apps
+  labels:
+    tier: premium  # ✓ ALLOWED
+spec:
+  acceptor:
+    port: 61616
+---
+apiVersion: arkmq.org/v1beta2
+kind: BrokerApp
+metadata:
+  name: standard-app
+  namespace: apps
+  labels:
+    tier: standard  # ✗ DENIED
+spec:
+  acceptor:
+    port: 61617
+
+---
+# Namespace label-based selection
+apiVersion: arkmq.org/v1beta2
+kind: BrokerService
+metadata:
+  name: environment-broker
+  namespace: broker-services
+spec:
+  appSelectorExpression: |
+    has(appNamespace.metadata.labels) &&
+    appNamespace.metadata.labels["environment"] == "production"
+  image: quay.io/artemiscloud/activemq-artemis-broker-kubernetes:latest
+
+# For this example, you would need namespaces labeled:
+# kubectl label namespace prod-apps environment=production
+
+---
+# Team-based multi-tenancy
+apiVersion: arkmq.org/v1beta2
+kind: BrokerService
+metadata:
+  name: team-broker
+  namespace: team-alpha-services
+  labels:
+    team: alpha
+spec:
+  appSelectorExpression: |
+    has(appNamespace.metadata.labels) &&
+    has(serviceNamespace.metadata.labels) &&
+    appNamespace.metadata.labels["team"] == serviceNamespace.metadata.labels["team"]
+  image: quay.io/artemiscloud/activemq-artemis-broker-kubernetes:latest
+
+# For this example, you would need namespaces labeled:
+# kubectl label namespace team-alpha-apps team=alpha
+# kubectl label namespace team-alpha-services team=alpha

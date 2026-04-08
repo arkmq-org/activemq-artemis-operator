@@ -30,6 +30,7 @@ import (
 func TestFindServiceWithCapacity(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = brokerv1beta1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
 
 	tests := []struct {
 		name                string
@@ -232,8 +233,16 @@ func TestFindServiceWithCapacity(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create fake client with services and existing apps
-			objs := make([]runtime.Object, 0, len(tt.services)+len(tt.existingApps)+1)
-			objs = append(objs, tt.app)
+			objs := make([]runtime.Object, 0, len(tt.services)+len(tt.existingApps)+2)
+
+			// Add namespace object (required for CEL evaluation)
+			namespace := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: tt.app.Namespace,
+				},
+			}
+			objs = append(objs, namespace, tt.app)
+
 			for i := range tt.services {
 				objs = append(objs, &tt.services[i])
 			}

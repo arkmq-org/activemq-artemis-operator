@@ -20,6 +20,7 @@ import (
 
 	broker "github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,6 +31,7 @@ import (
 func TestResolveBrokerService(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = broker.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
 
 	tests := []struct {
 		name                   string
@@ -193,6 +195,11 @@ func TestResolveBrokerService(t *testing.T) {
 			for i := range tt.services {
 				objs = append(objs, &tt.services[i])
 			}
+			objs = append(objs, &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: tt.app.Namespace,
+				},
+			})
 			fakeClient := setupBrokerAppIndexer(fake.NewClientBuilder().
 				WithScheme(scheme).
 				WithRuntimeObjects(objs...)).

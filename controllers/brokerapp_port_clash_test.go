@@ -47,6 +47,12 @@ func TestReconcilePortClashBetweenApps(t *testing.T) {
 	app2Name := "app2"
 	conflictingPort := int32(61616)
 
+	nsObj := &corev1.Namespace{
+		ObjectMeta: v1.ObjectMeta{
+			Name: ns,
+		},
+	}
+
 	// Create BrokerService
 	svc := &v1beta2.BrokerService{
 		ObjectMeta: v1.ObjectMeta{
@@ -90,7 +96,7 @@ func TestReconcilePortClashBetweenApps(t *testing.T) {
 	// Setup fake client with both service and app1 already present
 	cl := setupBrokerAppIndexer(fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(svc, app1, app2).
+		WithObjects(svc, app1, app2, nsObj).
 		WithStatusSubresource(app1, app2, svc)).
 		Build()
 
@@ -143,6 +149,12 @@ func TestReconcileNoPortClashDifferentPorts(t *testing.T) {
 	port1 := int32(61616)
 	port2 := int32(61617) // Different port - no clash
 
+	nsObj := &corev1.Namespace{
+		ObjectMeta: v1.ObjectMeta{
+			Name: ns,
+		},
+	}
+
 	// Create BrokerService
 	svc := &v1beta2.BrokerService{
 		ObjectMeta: v1.ObjectMeta{
@@ -186,7 +198,7 @@ func TestReconcileNoPortClashDifferentPorts(t *testing.T) {
 	// Setup fake client
 	cl := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(svc, app1, app2).
+		WithObjects(svc, app1, app2, nsObj).
 		WithStatusSubresource(app1, app2, svc).
 		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(obj client.Object) []string {
 			app := obj.(*v1beta2.BrokerApp)
@@ -231,12 +243,27 @@ func TestReconcilePortClashCrossNamespace(t *testing.T) {
 	app2Name := "app2"
 	conflictingPort := int32(61616)
 
-	// Create BrokerService
+	ns1Obj := &corev1.Namespace{
+		ObjectMeta: v1.ObjectMeta{
+			Name: ns1,
+		},
+	}
+
+	ns2Obj := &corev1.Namespace{
+		ObjectMeta: v1.ObjectMeta{
+			Name: ns2,
+		},
+	}
+
+	// Create BrokerService that allows both namespaces
 	svc := &v1beta2.BrokerService{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      svcName,
 			Namespace: ns1,
 			Labels:    map[string]string{"type": "broker"},
+		},
+		Spec: v1beta2.BrokerServiceSpec{
+			AppSelectorExpression: fmt.Sprintf(`app.metadata.namespace in ["%s", "%s"]`, ns1, ns2), // Allow both namespaces
 		},
 	}
 
@@ -274,7 +301,7 @@ func TestReconcilePortClashCrossNamespace(t *testing.T) {
 	// Setup fake client
 	cl := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(svc, app1, app2).
+		WithObjects(svc, app1, app2, ns1Obj, ns2Obj).
 		WithStatusSubresource(app1, app2, svc).
 		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(obj client.Object) []string {
 			app := obj.(*v1beta2.BrokerApp)

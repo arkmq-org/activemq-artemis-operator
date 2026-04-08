@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	broker "github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/appselector"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/secrets"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
@@ -117,7 +118,6 @@ func NewBrokerAppReconciler(client client.Client, scheme *runtime.Scheme, config
 
 //+kubebuilder:rbac:groups=arkmq.org,namespace=arkmq-org-broker-operator,resources=brokerapps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=arkmq.org,namespace=arkmq-org-broker-operator,resources=brokerapps/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=arkmq.org,namespace=arkmq-org-broker-operator,resources=brokerapps/finalizers,verbs=update
 //+kubebuilder:rbac:groups=arkmq.org,namespace=arkmq-org-broker-operator,resources=brokerservices,verbs=get;list;watch;update
 
 func (reconciler *BrokerAppReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
@@ -221,8 +221,30 @@ func (reconciler *BrokerAppInstanceReconciler) resolveBrokerService() error {
 			}
 		}
 
+		// Check if we found the service and if it still matches
+		if service != nil {
+			matches, matchErr := reconciler.matchesServiceSelector(service)
+			if matchErr != nil {
+				// CEL evaluation error - surface to user via status
+				return NewConditionError(broker.DeployedConditionSelectorEvaluationError,
+					"error evaluating service selector: %v", matchErr)
+			}
+			if !matches {
+				reconciler.log.V(1).Info("App no longer matches annotated service selector, removing binding",
+					"app", reconciler.instance.Name,
+					"service", deployedTo)
+				// Remove the annotation since we no longer match
+				delete(reconciler.instance.Annotations, common.AppServiceAnnotation)
+				if err := resources.Update(reconciler.Client, reconciler.instance); err != nil {
+					return err
+				}
+				service = nil
+				needsServiceAssignment = true
+			}
+		}
+
 		// If annotated service not found, selector may have changed
-		if service == nil {
+		if service == nil && !needsServiceAssignment {
 			if len(list.Items) > 0 {
 				reconciler.log.V(1).Info("Annotated service not found in selector matches, reassigning",
 					"app", reconciler.instance.Name,
@@ -253,6 +275,11 @@ func (reconciler *BrokerAppInstanceReconciler) resolveBrokerService() error {
 			common.ApplyAnnotations(&reconciler.instance.ObjectMeta, map[string]string{common.AppServiceAnnotation: annotationNameFromService(service)})
 			err = resources.Update(reconciler.Client, reconciler.instance)
 		} else {
+			// Check if error is already a ConditionError (e.g., AppSelectorNoMatch)
+			if _, isCondErr := AsConditionError(err); isCondErr {
+				// Already a ConditionError, return as-is
+				return err
+			}
 			// No service with capacity is a runtime issue, not a CR validation issue
 			// Let processStatus handle it in Deployed condition
 			err = NewConditionError(broker.DeployedConditionNoServiceCapacityReason,
@@ -280,6 +307,36 @@ func parseServiceAnnotation(annotation string) (namespace string, name string, o
 	return "", "", false
 }
 
+// matchesServiceSelector checks if the app matches the service's appSelectorExpression.
+// Returns (matches, nil) if evaluation succeeds.
+// Returns (false, error) if CEL evaluation fails - caller should surface this to user.
+func (reconciler *BrokerAppInstanceReconciler) matchesServiceSelector(service *broker.BrokerService) (bool, error) {
+	matches, err := appselector.Matches(reconciler.instance, service, reconciler.Client)
+	if err != nil {
+		reconciler.log.Error(err, "Failed to evaluate appSelectorExpression",
+			"app", reconciler.instance.Namespace+"/"+reconciler.instance.Name,
+			"service", service.Namespace+"/"+service.Name,
+			"expression", service.Spec.AppSelectorExpression)
+		return false, fmt.Errorf("failed to evaluate appSelectorExpression on service %s/%s: %w",
+			service.Namespace, service.Name, err)
+	}
+
+	// Additional debug logging for BrokerApp controller
+	if reconciler.log.V(2).Enabled() {
+		expression := service.Spec.AppSelectorExpression
+		if expression == "" {
+			expression = appselector.DefaultExpression
+		}
+		reconciler.log.V(2).Info("App selector check result",
+			"expression", expression,
+			"app", reconciler.instance.Namespace+"/"+reconciler.instance.Name,
+			"service", service.Namespace+"/"+service.Name,
+			"matches", matches)
+	}
+
+	return matches, nil
+}
+
 func (reconciler *BrokerAppInstanceReconciler) findServiceWithCapacity(list *broker.BrokerServiceList) (chosen *broker.BrokerService, err error) {
 	if len(list.Items) == 0 {
 		return nil, fmt.Errorf("no services in list")
@@ -294,9 +351,34 @@ func (reconciler *BrokerAppInstanceReconciler) findServiceWithCapacity(list *bro
 
 	// Track why services were rejected for better error messages
 	rejectionReasons := make(map[string]string)
+	selectorRejectionCount := 0
+	var celEvaluationError error // Track first CEL error encountered
 
 	for i := range list.Items {
 		service := &list.Items[i]
+
+		// Check selector match first
+		matches, matchErr := reconciler.matchesServiceSelector(service)
+		if matchErr != nil {
+			// CEL evaluation error - track it and continue to check other services
+			reconciler.log.V(1).Info("Failed to evaluate selector for service",
+				"service", service.Name,
+				"error", matchErr)
+			rejectionReasons[service.Name] = fmt.Sprintf("selector evaluation failed: %v", matchErr)
+			if celEvaluationError == nil {
+				celEvaluationError = matchErr // Keep first error for reporting
+			}
+			selectorRejectionCount++
+			continue
+		}
+		if !matches {
+			reconciler.log.V(1).Info("App does not match service selector",
+				"service", service.Name,
+				"app-namespace", reconciler.instance.Namespace)
+			rejectionReasons[service.Name] = "does not match selector"
+			selectorRejectionCount++
+			continue
+		}
 
 		// Check memory capacity
 		available, checkErr := reconciler.getAvailableMemory(service)
@@ -348,6 +430,18 @@ func (reconciler *BrokerAppInstanceReconciler) findServiceWithCapacity(list *bro
 		reasons := []string{}
 		for svcName, reason := range rejectionReasons {
 			reasons = append(reasons, fmt.Sprintf("%s: %s", svcName, reason))
+		}
+
+		// If we encountered CEL evaluation errors, surface them to user
+		if celEvaluationError != nil {
+			return nil, NewConditionError(broker.DeployedConditionSelectorEvaluationError,
+				"failed to evaluate service selector: %v", celEvaluationError)
+		}
+
+		// If all services were rejected due to selector mismatch, return specific error
+		if selectorRejectionCount > 0 && selectorRejectionCount == len(rejectionReasons) {
+			return nil, NewConditionError(broker.DeployedConditionDoesNotMatchReason,
+				"app in namespace %s does not match selector for any service", reconciler.instance.Namespace)
 		}
 
 		if len(reasons) > 0 {
@@ -513,29 +607,28 @@ func (r *BrokerAppReconciler) enqueueAppsForService() handler.EventHandler {
 		service := obj.(*broker.BrokerService)
 		serviceAnnotation := fmt.Sprintf("%s:%s", service.Namespace, service.Name)
 
-		// Find all BrokerApps that reference this service via annotation
+		// Find all BrokerApps that reference this service via annotation using field index
 		appList := &broker.BrokerAppList{}
-		if err := r.Client.List(ctx, appList); err != nil {
+		if err := r.Client.List(ctx, appList, client.MatchingFields{common.AppServiceAnnotation: serviceAnnotation}); err != nil {
 			r.log.Error(err, "Failed to list BrokerApps for service watch", "service", serviceAnnotation)
 			return nil
 		}
 
-		var requests []reconcile.Request
+		requests := make([]reconcile.Request, 0, len(appList.Items))
 		for _, app := range appList.Items {
-			if val, ok := app.Annotations[common.AppServiceAnnotation]; ok && val == serviceAnnotation {
-				requests = append(requests, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Namespace: app.Namespace,
-						Name:      app.Name,
-					},
-				})
-			}
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: app.Namespace,
+					Name:      app.Name,
+				},
+			})
 		}
 		return requests
 	})
 }
 
 func (r *BrokerAppReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// Note: Namespace informer is set up in main.go for CEL evaluation
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&broker.BrokerApp{}).
 		Owns(&corev1.Secret{}).

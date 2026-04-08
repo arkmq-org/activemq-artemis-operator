@@ -132,7 +132,7 @@ func NewActiveMQArtemisReconciler(cluster cluster.Cluster, logger logr.Logger, i
 //+kubebuilder:rbac:groups=broker.amq.io,namespace=arkmq-org-broker-operator,resources=activemqartemises/finalizers,verbs=update
 //+kubebuilder:rbac:groups=broker.amq.io,namespace=arkmq-org-broker-operator,resources=pods,verbs=get;list
 //+kubebuilder:rbac:groups="",namespace=arkmq-org-broker-operator,resources=pods;services;endpoints;persistentvolumeclaims;events;configmaps;secrets;routes;serviceaccounts,verbs=get;list;watch;create;delete;update
-//+kubebuilder:rbac:groups="",namespace=arkmq-org-broker-operator,resources=namespaces,verbs=get
+//+kubebuilder:rbac:groups="",namespace=arkmq-org-broker-operator,resources=namespaces,verbs=get;list;watch
 //+kubebuilder:rbac:groups=apps,namespace=arkmq-org-broker-operator,resources=deployments;daemonsets;replicasets;statefulsets,verbs=get;list;watch;create;delete;update
 //+kubebuilder:rbac:groups=networking.k8s.io,namespace=arkmq-org-broker-operator,resources=ingresses,verbs=get;list;watch;create;delete;update
 //+kubebuilder:rbac:groups=route.openshift.io,namespace=arkmq-org-broker-operator,resources=routes;routes/custom-host;routes/status,verbs=get;list;watch;create;delete;update

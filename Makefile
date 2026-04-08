@@ -20,7 +20,7 @@ OS := $(shell go env GOOS)
 ARCH := $(shell go env GOARCH)
 OPM_VERSION := v1.55.0
 OPERATOR_SDK_VERSION := v1.42.2
-YQ_VERSION := v4.46.1
+YQ_VERSION := v4.52.5
 
 HELM_CHART_NAME := $(BUNDLE_PACKAGE)
 HELMIFY ?= $(LOCALBIN)/helmify

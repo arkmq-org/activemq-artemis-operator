@@ -67,6 +67,13 @@ func TestBrokerServiceReconcileWithAppMove(t *testing.T) {
 	common.SetOperatorNameSpace(ns)
 	t.Cleanup(common.UnsetOperatorNameSpace)
 
+	// Create namespace object (required for CEL evaluation)
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ns,
+		},
+	}
+
 	oc := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "op_ca",
@@ -103,7 +110,7 @@ func TestBrokerServiceReconcileWithAppMove(t *testing.T) {
 	}
 
 	// Setup fake client with indexer
-	builder := fake.NewClientBuilder().WithScheme(scheme).WithObjects(oc, s1, s2, app).WithStatusSubresource(s1, s2, app)
+	builder := fake.NewClientBuilder().WithScheme(scheme).WithObjects(namespace, oc, s1, s2, app).WithStatusSubresource(s1, s2, app)
 	builder.WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
 		app := rawObj.(*v1beta2.BrokerApp)
 		val, ok := app.Annotations[common.AppServiceAnnotation]
@@ -419,6 +426,13 @@ func TestBrokerServiceReconcileStatusAppliedApps(t *testing.T) {
 	common.SetOperatorNameSpace(ns)
 	t.Cleanup(common.UnsetOperatorNameSpace)
 
+	// Create namespace object (required for CEL evaluation)
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ns,
+		},
+	}
+
 	oc := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "op_ca",
@@ -455,7 +469,7 @@ func TestBrokerServiceReconcileStatusAppliedApps(t *testing.T) {
 	// Setup fake client
 	cl := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(oc, svc, app).
+		WithObjects(namespace, oc, svc, app).
 		WithStatusSubresource(svc, &v1beta2.Broker{}).
 		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
 			app := rawObj.(*v1beta2.BrokerApp)
@@ -538,6 +552,13 @@ func TestBrokerServiceReconcileStatusAppliedAppsIncremental(t *testing.T) {
 	common.SetOperatorNameSpace(ns)
 	t.Cleanup(common.UnsetOperatorNameSpace)
 
+	// Create namespace object (required for CEL evaluation)
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ns,
+		},
+	}
+
 	oc := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "op_ca",
@@ -574,7 +595,7 @@ func TestBrokerServiceReconcileStatusAppliedAppsIncremental(t *testing.T) {
 	// Setup fake client
 	cl := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(oc, svc, app1).
+		WithObjects(namespace, oc, svc, app1).
 		WithStatusSubresource(svc, &v1beta2.Broker{}).
 		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
 			app := rawObj.(*v1beta2.BrokerApp)
@@ -807,6 +828,13 @@ func TestBrokerServiceReconcilePrometheusOverrideSecret(t *testing.T) {
 	common.SetOperatorNameSpace(ns)
 	t.Cleanup(common.UnsetOperatorNameSpace)
 
+	// Create namespace object (required for CEL evaluation)
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ns,
+		},
+	}
+
 	oc := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "op_ca",
@@ -855,7 +883,7 @@ func TestBrokerServiceReconcilePrometheusOverrideSecret(t *testing.T) {
 	// Setup fake client
 	cl := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(oc, svc, app).
+		WithObjects(namespace, oc, svc, app).
 		WithStatusSubresource(svc, &v1beta2.Broker{}).
 		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
 			app := rawObj.(*v1beta2.BrokerApp)
@@ -916,6 +944,13 @@ func TestBrokerServiceReconcilePrometheusOverrideNoApps(t *testing.T) {
 	common.SetOperatorNameSpace(ns)
 	t.Cleanup(common.UnsetOperatorNameSpace)
 
+	// Create namespace object (required for CEL evaluation)
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ns,
+		},
+	}
+
 	oc := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "op_ca",
@@ -938,7 +973,7 @@ func TestBrokerServiceReconcilePrometheusOverrideNoApps(t *testing.T) {
 	// Setup fake client
 	cl := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(oc, svc).
+		WithObjects(namespace, oc, svc).
 		WithStatusSubresource(svc, &v1beta2.Broker{}).
 		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
 			app := rawObj.(*v1beta2.BrokerApp)

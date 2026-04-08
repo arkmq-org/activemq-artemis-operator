@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	broker "github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/appselector"
 	servicemetrics "github.com/arkmq-org/activemq-artemis-operator/pkg/metrics"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources"
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/secrets"
@@ -33,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -68,8 +70,8 @@ func NewBrokerServiceReconciler(client client.Client, scheme *runtime.Scheme, co
 
 //+kubebuilder:rbac:groups=arkmq.org,namespace=arkmq-org-broker-operator,resources=brokerservices,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=arkmq.org,namespace=arkmq-org-broker-operator,resources=brokerservices/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=arkmq.org,namespace=arkmq-org-broker-operator,resources=brokerservices/finalizers,verbs=update
 //+kubebuilder:rbac:groups=arkmq.org,namespace=arkmq-org-broker-operator,resources=brokerapps,verbs=get;list;watch
+//+kubebuilder:rbac:groups=arkmq.org,namespace=arkmq-org-broker-operator,resources=brokerapps/status,verbs=get;list;watch
 
 func (reconciler *BrokerServiceReconciler) Reconcile(ctx context.Context, request ctrl.Request) (ctrl.Result, error) {
 	reqLogger := reconciler.log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name, "Reconciling", "BrokerService")
@@ -139,8 +141,18 @@ func (reconciler *BrokerServiceInstanceReconciler) validateSpec() error {
 		return err
 	}
 
-	// Add additional spec validations here as needed
-	// Future: validate image, resources, etc.
+	// Validate CEL expression if provided
+	if reconciler.instance.Spec.AppSelectorExpression != "" {
+		if err := appselector.ValidateExpression(reconciler.instance.Spec.AppSelectorExpression); err != nil {
+			meta.SetStatusCondition(&reconciler.status.Conditions, metav1.Condition{
+				Type:    broker.ValidConditionType,
+				Status:  metav1.ConditionFalse,
+				Reason:  broker.ValidConditionSpecSelectorError,
+				Message: fmt.Sprintf("invalid appSelectorExpression: %v", err),
+			})
+			return err
+		}
+	}
 
 	// All validations passed - set Valid=True
 	meta.SetStatusCondition(&reconciler.status.Conditions, metav1.Condition{
@@ -219,16 +231,21 @@ func (reconciler *BrokerServiceInstanceReconciler) processAppSecrets() (err erro
 	// reset data
 	desired.Data = make(map[string][]byte)
 	appIdentities := make([]string, 0, len(apps.Items))
+	rejectedApps := make([]broker.RejectedApp, 0)
+	validApps := make([]broker.BrokerApp, 0, len(apps.Items))
 
 	for _, app := range apps.Items {
-		// Double-check the annotation matches (field indexer cache might be stale)
-		if currentAnnotation, ok := app.Annotations[common.AppServiceAnnotation]; !ok || currentAnnotation != serviceKey {
-			reconciler.log.V(1).Info("Skipping app with mismatched annotation (index cache stale)",
-				"app", app.Name,
-				"expected", serviceKey,
-				"actual", currentAnnotation)
+		valid, rejectionReason := reconciler.validateAppForProvisioning(&app, serviceKey)
+		if !valid {
+			// App failed validation - track it for user visibility
+			rejectedApps = append(rejectedApps, broker.RejectedApp{
+				Name:      app.Name,
+				Namespace: app.Namespace,
+				Reason:    rejectionReason,
+			})
 			continue
 		}
+
 		// Validate app name for safe file path construction
 		if err = common.ValidateResourceName(app.Name); err != nil {
 			reconciler.log.Error(err, "invalid app name", "app", app.Name)
@@ -243,6 +260,7 @@ func (reconciler *BrokerServiceInstanceReconciler) processAppSecrets() (err erro
 			break
 		}
 		appIdentities = append(appIdentities, AppIdentity(&app))
+		validApps = append(validApps, app)
 	}
 
 	sort.Strings(appIdentities)
@@ -251,11 +269,14 @@ func (reconciler *BrokerServiceInstanceReconciler) processAppSecrets() (err erro
 	}
 	desired.Annotations[common.ProvisionedAppsAnnotation] = strings.Join(appIdentities, ",")
 
+	// Track rejected apps in status for user visibility
+	reconciler.status.RejectedApps = rejectedApps
+
 	reconciler.TrackDesired(desired)
 
 	// Update prometheus config in control-plane-override secret with queue-level metrics
 	if err == nil {
-		err = reconciler.processControlPlaneOverrideSecret(apps)
+		err = reconciler.processControlPlaneOverrideSecret(validApps)
 	}
 
 	return err
@@ -371,6 +392,67 @@ func getPeerLabelKey(cr *broker.BrokerService) string {
 	return fmt.Sprintf("%s-peers", cr.Name)
 }
 
+// appName returns the formatted name of an app for logging (namespace/name).
+func appName(app *broker.BrokerApp) string {
+	return app.Namespace + "/" + app.Name
+}
+
+// serviceName returns the formatted name of a service for logging (namespace/name).
+func serviceName(service *broker.BrokerService) string {
+	return service.Namespace + "/" + service.Name
+}
+
+// appMatchesSelector validates that an app matches this service's appSelectorExpression.
+// This is a security check to prevent apps from bypassing access control by manually
+// setting the AppServiceAnnotation.
+func (reconciler *BrokerServiceInstanceReconciler) appMatchesSelector(app *broker.BrokerApp) bool {
+	matches, err := appselector.Matches(app, reconciler.instance, reconciler.Client)
+	if err != nil {
+		reconciler.log.Error(err, "Failed to evaluate appSelectorExpression, excluding app",
+			"app", appName(app),
+			"service", serviceName(reconciler.instance),
+			"expression", reconciler.instance.Spec.AppSelectorExpression)
+		return false
+	}
+	return matches
+}
+
+// validateAppForProvisioning performs all security checks to ensure an app is authorized
+// to be provisioned by this service.
+// Returns (valid, reason):
+//   - (true, "") if app should be provisioned
+//   - (false, reason) if app fails validation and should be skipped
+func (reconciler *BrokerServiceInstanceReconciler) validateAppForProvisioning(app *broker.BrokerApp, serviceKey string) (bool, string) {
+	// App's label selector matches service labels
+	if app.Spec.ServiceSelector != nil {
+		selector, err := metav1.LabelSelectorAsSelector(app.Spec.ServiceSelector)
+		if err != nil {
+			reconciler.log.Error(err, "Skipping app with invalid label selector",
+				"app", appName(app))
+			return false, "invalid label selector"
+		}
+		if !selector.Matches(labels.Set(reconciler.instance.Labels)) {
+			reconciler.log.Info("Skipping app that does not match service labels (annotation manually set?)",
+				"app", appName(app),
+				"service", serviceName(reconciler.instance),
+				"appSelector", app.Spec.ServiceSelector,
+				"serviceLabels", reconciler.instance.Labels)
+			return false, "does not match service labels"
+		}
+	}
+
+	// App matches CEL selector expression
+	if !reconciler.appMatchesSelector(app) {
+		reconciler.log.Info("Skipping app that does not match appSelectorExpression (annotation manually set?)",
+			"app", appName(app),
+			"service", serviceName(reconciler.instance),
+			"expression", reconciler.instance.Spec.AppSelectorExpression)
+		return false, "does not match appSelectorExpression"
+	}
+
+	return true, ""
+}
+
 func (reconciler *BrokerServiceInstanceReconciler) processService() error {
 
 	var desired *corev1.Service
@@ -463,6 +545,8 @@ func (h *appToServiceHandler) getServiceRequestFromAnnotation(annotation string)
 }
 
 func (r *BrokerServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	// Note: Namespace informer is set up in main.go for CEL evaluation
+
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &broker.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
 		app := rawObj.(*broker.BrokerApp)
 		val, ok := app.Annotations[common.AppServiceAnnotation]
@@ -758,10 +842,10 @@ func (reconciler *BrokerServiceInstanceReconciler) controlPlaneOverrideSecretNam
 	return reconciler.instance.Name + "-control-plane-override"
 }
 
-func (reconciler *BrokerServiceInstanceReconciler) processControlPlaneOverrideSecret(apps *broker.BrokerAppList) error {
-	// Collect all unique ConsumerOf addresses from apps
+func (reconciler *BrokerServiceInstanceReconciler) processControlPlaneOverrideSecret(validApps []broker.BrokerApp) error {
+	// Collect all unique ConsumerOf addresses from validated apps only
 	consumerAddresses := make(map[string]bool)
-	for _, app := range apps.Items {
+	for _, app := range validApps {
 		for _, capability := range app.Spec.Capabilities {
 			for _, address := range capability.ConsumerOf {
 				consumerAddresses[address.Address] = true

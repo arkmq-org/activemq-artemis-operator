@@ -28,6 +28,8 @@ rules:
   - namespaces
   verbs:
   - get
+  - list
+  - watch
 - apiGroups:
   - apps
   resources:
@@ -65,15 +67,22 @@ rules:
 - apiGroups:
   - arkmq.org
   resources:
-  - brokerapps/finalizers
+  - brokerapps/status
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - arkmq.org
+  resources:
   - brokers/finalizers
-  - brokerservices/finalizers
   verbs:
   - update
 - apiGroups:
   - arkmq.org
   resources:
-  - brokerapps/status
   - brokers/status
   - brokerservices/status
   verbs:

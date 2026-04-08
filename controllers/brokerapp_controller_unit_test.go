@@ -48,6 +48,13 @@ func TestSimpleReconcile(t *testing.T) {
 	svcName := "my-broker-service"
 	appName := "my-app"
 
+	// Create namespace object (required for CEL evaluation)
+	namespace := &corev1.Namespace{
+		ObjectMeta: v1.ObjectMeta{
+			Name: ns,
+		},
+	}
+
 	// Create BrokerService
 	svc := &v1beta2.BrokerService{
 		ObjectMeta: v1.ObjectMeta{
@@ -73,7 +80,7 @@ func TestSimpleReconcile(t *testing.T) {
 	// Setup fake client
 	cl := setupBrokerAppIndexer(fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(svc, app).
+		WithObjects(namespace, svc, app).
 		WithStatusSubresource(app, svc)).
 		Build()
 
@@ -188,6 +195,13 @@ func TestReconcileValidConditionTransition(t *testing.T) {
 	// Data
 	ns := "default"
 	svcName := "my-broker-service"
+
+	// Create namespace object (required for CEL evaluation)
+	namespace := &corev1.Namespace{
+		ObjectMeta: v1.ObjectMeta{
+			Name: ns,
+		},
+	}
 	appName := "my-app"
 
 	// Create BrokerService
@@ -215,7 +229,7 @@ func TestReconcileValidConditionTransition(t *testing.T) {
 	// Setup fake client
 	cl := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(svc, app).
+		WithObjects(namespace, svc, app).
 		WithStatusSubresource(app).
 		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(obj client.Object) []string {
 			app := obj.(*v1beta2.BrokerApp)
@@ -288,6 +302,13 @@ func TestReconcileStatusUpdateFailure(t *testing.T) {
 	appName := "my-app"
 	svcName := "my-broker-service"
 
+	// Create namespace object (required for CEL evaluation)
+	namespace := &corev1.Namespace{
+		ObjectMeta: v1.ObjectMeta{
+			Name: ns,
+		},
+	}
+
 	// Create BrokerService
 	svc := &v1beta2.BrokerService{
 		ObjectMeta: v1.ObjectMeta{
@@ -319,7 +340,7 @@ func TestReconcileStatusUpdateFailure(t *testing.T) {
 
 	cl := setupBrokerAppIndexer(fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(svc, app).
+		WithObjects(namespace, svc, app).
 		WithStatusSubresource(app).
 		WithInterceptorFuncs(interceptorFuncs)).
 		Build()
@@ -404,6 +425,13 @@ func TestReconcileDeployedConditionFromBrokerServiceStatus(t *testing.T) {
 	// Data
 	ns := "default"
 	svcName := "my-broker-service"
+
+	// Create namespace object (required for CEL evaluation)
+	namespace := &corev1.Namespace{
+		ObjectMeta: v1.ObjectMeta{
+			Name: ns,
+		},
+	}
 	appName := "my-app"
 
 	// Create BrokerService
@@ -431,7 +459,7 @@ func TestReconcileDeployedConditionFromBrokerServiceStatus(t *testing.T) {
 	// Setup fake client
 	cl := setupBrokerAppIndexer(fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(svc, app).
+		WithObjects(namespace, svc, app).
 		WithStatusSubresource(app, svc)).
 		Build()
 
@@ -487,6 +515,13 @@ func TestReconcileIdempotentStatus(t *testing.T) {
 	// Data
 	ns := "default"
 	svcName := "my-broker-service"
+
+	// Create namespace object (required for CEL evaluation)
+	namespace := &corev1.Namespace{
+		ObjectMeta: v1.ObjectMeta{
+			Name: ns,
+		},
+	}
 	appName := "my-app"
 
 	// Create BrokerService
@@ -512,7 +547,7 @@ func TestReconcileIdempotentStatus(t *testing.T) {
 	}
 
 	// Setup fake client for first reconcile
-	cl := setupBrokerAppIndexer(fake.NewClientBuilder().WithScheme(scheme).WithObjects(svc, app).WithStatusSubresource(app, svc)).Build()
+	cl := setupBrokerAppIndexer(fake.NewClientBuilder().WithScheme(scheme).WithObjects(namespace, svc, app).WithStatusSubresource(app, svc)).Build()
 
 	// Create Reconciler
 	r := NewBrokerAppReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
@@ -541,7 +576,7 @@ func TestReconcileIdempotentStatus(t *testing.T) {
 
 	cl2 := setupBrokerAppIndexer(fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(svc, updatedApp).
+		WithObjects(namespace, svc, updatedApp).
 		WithStatusSubresource(updatedApp, svc).
 		WithInterceptorFuncs(interceptorFuncs)).
 		Build()
@@ -662,6 +697,13 @@ func TestReconcileMatchedServiceNotFound(t *testing.T) {
 	// Data
 	ns := "default"
 	svcName := "my-broker-service"
+
+	// Create namespace object (required for CEL evaluation)
+	namespace := &corev1.Namespace{
+		ObjectMeta: v1.ObjectMeta{
+			Name: ns,
+		},
+	}
 	appName := "my-app"
 
 	// Create BrokerService
@@ -692,7 +734,7 @@ func TestReconcileMatchedServiceNotFound(t *testing.T) {
 	// Setup fake client
 	cl := setupBrokerAppIndexer(fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(svc, app).
+		WithObjects(namespace, svc, app).
 		WithStatusSubresource(app, svc)).
 		Build()
 

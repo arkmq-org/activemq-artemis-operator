@@ -17,18 +17,11 @@ limitations under the License.
 package metrics
 
 import (
-	"testing"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 )
-
-func TestMetrics(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Metrics Suite")
-}
 
 var _ = Describe("Service Metrics", func() {
 	BeforeEach(func() {

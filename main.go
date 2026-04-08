@@ -46,6 +46,7 @@ import (
 	"fmt"
 	goruntime "runtime"
 
+	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -64,6 +65,7 @@ import (
 	brokerv2alpha4 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha4"
 	brokerv2alpha5 "github.com/arkmq-org/activemq-artemis-operator/api/v2alpha5"
 	"github.com/arkmq-org/activemq-artemis-operator/controllers"
+	"github.com/arkmq-org/activemq-artemis-operator/pkg/appselector"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -239,17 +241,38 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Ensure Namespace objects are cached for CEL evaluation in BrokerApp/BrokerService controllers
+	// This allows CEL expressions to access namespace labels/annotations without live API calls
+	// Check permissions first to avoid continuous errors from the informer trying to list/watch namespaces
+	ctx := context.Background()
+	clnt, err := client.New(cfg, client.Options{})
+	if err != nil {
+		setupLog.Error(err, "can't create client from config for permission check")
+		os.Exit(1)
+	}
+
+	hasNamespacePermission := canListNamespaces(clnt, ctx)
+	if !hasNamespacePermission {
+		setupLog.Info("operator lacks permission to list namespaces - CEL expressions that reference appNamespace or serviceNamespace metadata will fail",
+			"note", "to enable namespace-based CEL expressions, grant 'list' permission on namespaces resource")
+	}
+	// Set global namespace permission flag to avoid repeated failed API calls in CEL evaluation
+	appselector.SetNamespacePermission(hasNamespacePermission)
+
+	if hasNamespacePermission {
+		_, err = mgr.GetCache().GetInformer(ctx, &corev1.Namespace{})
+		if err != nil {
+			setupLog.Error(err, "unable to setup namespace informer")
+			os.Exit(1)
+		}
+		setupLog.Info("namespace informer configured for CEL evaluation")
+	}
+
 	// Set the service account name for the drainer pod
 	// It will be broken without this as it won't have
 	// permission to list the endpoints in drain.sh
 	name := os.Getenv("POD_NAME")
-	clnt, err := client.New(cfg, client.Options{})
-	if err != nil {
-		setupLog.Error(err, "can't create client from config")
-		os.Exit(1)
-	} else {
-		setupAccountName(clnt, context.TODO(), oprNamespace, name)
-	}
+	setupAccountName(clnt, context.TODO(), oprNamespace, name)
 
 	isOpenshift, err := common.DetectOpenshiftWith(cfg)
 	if err != nil {
@@ -373,6 +396,26 @@ func getSupportedBrokerVersions() string {
 	}
 
 	return strings.TrimSpace(supportedProductVersions)
+}
+
+// canListNamespaces checks if the operator has permission to list namespaces cluster-wide.
+// This is used to determine if we can set up a namespace informer without causing continuous errors.
+func canListNamespaces(clnt client.Client, ctx context.Context) bool {
+	sar := &authorizationv1.SelfSubjectAccessReview{
+		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationv1.ResourceAttributes{
+				Verb:     "list",
+				Group:    "",
+				Resource: "namespaces",
+			},
+		},
+	}
+
+	if err := clnt.Create(ctx, sar); err != nil {
+		return false
+	}
+
+	return sar.Status.Allowed
 }
 
 func setupAccountName(clnt client.Client, ctx context.Context, ns, podname string) {

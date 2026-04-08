@@ -7428,6 +7428,23 @@ spec:
         name: ""
         version: v1
       specDescriptors:
+      - description: |-
+          AppSelectorExpression is a CEL expression that determines which BrokerApps
+          can deploy to this service.
+
+          The expression has access to the following variables:
+          - app: The BrokerApp object being evaluated (map with metadata, spec, etc.)
+          - service: The BrokerService object (map with metadata, spec, etc.)
+          - appNamespace: The Namespace object where the app resides (map with metadata, etc.)
+          - serviceNamespace: The Namespace object where the service resides (map with metadata, etc.)
+
+          Empty or nil (default): Uses "app.metadata.namespace == service.metadata.namespace" (same namespace only).
+
+          The expression must evaluate to a boolean. Matching is checked at binding time
+          and continuously during reconciliation. Apps that no longer match are automatically
+          unbound and must find an alternative service.
+        displayName: App Selector Expression
+        path: appSelectorExpression
       - displayName: Environment
         path: env
       - displayName: Broker image
@@ -7445,6 +7462,9 @@ spec:
       - description: List of BrokerApp identities that have been applied to the service
         displayName: Provisioned Applications
         path: provisionedApps
+      - description: List of BrokerApps that were rejected during provisioning validation
+        displayName: Rejected Applications
+        path: rejectedApps
       version: v1beta2
   description: ArkMQ Broker Operator manages the Apache Artemis messaging broker on
     Kubernetes

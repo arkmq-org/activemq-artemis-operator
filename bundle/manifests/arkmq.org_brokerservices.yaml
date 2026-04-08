@@ -39,6 +39,23 @@ spec:
             type: object
           spec:
             properties:
+              appSelectorExpression:
+                description: |-
+                  AppSelectorExpression is a CEL expression that determines which BrokerApps
+                  can deploy to this service.
+
+                  The expression has access to the following variables:
+                  - app: The BrokerApp object being evaluated (map with metadata, spec, etc.)
+                  - service: The BrokerService object (map with metadata, spec, etc.)
+                  - appNamespace: The Namespace object where the app resides (map with metadata, etc.)
+                  - serviceNamespace: The Namespace object where the service resides (map with metadata, etc.)
+
+                  Empty or nil (default): Uses "app.metadata.namespace == service.metadata.namespace" (same namespace only).
+
+                  The expression must evaluate to a boolean. Matching is checked at binding time
+                  and continuously during reconciliation. Apps that no longer match are automatically
+                  unbound and must find an alternative service.
+                type: string
               env:
                 items:
                   description: EnvVar represents an environment variable present in
@@ -270,6 +287,28 @@ spec:
                   the service
                 items:
                   type: string
+                type: array
+              rejectedApps:
+                description: List of BrokerApps that were rejected during provisioning
+                  validation
+                items:
+                  description: RejectedApp represents a BrokerApp that was rejected
+                    during provisioning validation
+                  properties:
+                    name:
+                      description: Name of the rejected app
+                      type: string
+                    namespace:
+                      description: Namespace of the rejected app
+                      type: string
+                    reason:
+                      description: Reason why the app was rejected
+                      type: string
+                  required:
+                  - name
+                  - namespace
+                  - reason
+                  type: object
                 type: array
             type: object
         type: object

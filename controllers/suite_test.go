@@ -87,18 +87,19 @@ import (
 
 // Define utility constants for object names and testing timeouts/durations and intervals.
 const (
-	defaultNamespace        = "test"
-	otherNamespace          = "other"
-	restrictedNamespace     = "restricted"
-	timeout                 = time.Second * 30
-	duration                = time.Second * 10
-	interval                = time.Millisecond * 500
-	existingClusterTimeout  = time.Second * 180
-	existingClusterInterval = time.Second * 2
-	namespace1              = "namespace1"
-	namespace2              = "namespace2"
-	namespace3              = "namespace3"
-	specShortNameLimit      = 25
+	defaultNamespace                   = "test"
+	otherNamespace                     = "other"
+	restrictedNamespace                = "restricted"
+	timeout                            = time.Second * 30
+	duration                           = time.Second * 10
+	interval                           = time.Millisecond * 500
+	existingClusterTimeout             = time.Second * 180
+	existingClusterConsistentlyTimeout = time.Second * 20
+	existingClusterInterval            = time.Second * 2
+	namespace1                         = "namespace1"
+	namespace2                         = "namespace2"
+	namespace3                         = "namespace3"
+	specShortNameLimit                 = 25
 
 	// Default ingress domain for tests
 	defaultTestIngressDomain = "tests.arkmq-org.io"
