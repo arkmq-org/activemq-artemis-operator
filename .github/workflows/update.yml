@@ -139,7 +139,7 @@ jobs:
       - name: Trigger CI
         env:
           TRIGGER_RELEASE: ${{ (github.event_name == 'schedule' && steps.update_related_images.outputs.status == 'DONE') || inputs.trigger_release }}
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.BOT_TOKEN }}
           script: |

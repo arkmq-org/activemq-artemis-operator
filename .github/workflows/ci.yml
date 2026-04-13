@@ -264,7 +264,7 @@ jobs:
 
       - name: Trigger release
         if: ${{ inputs.trigger_release }}
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.BOT_TOKEN }}
           script: |
