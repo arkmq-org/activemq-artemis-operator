@@ -14675,23 +14675,6 @@ metadata:
   name: arkmq-org-broker-controller-manager-netpol
   namespace: arkmq-org-broker-operator
 spec:
-  egress:
-  - ports:
-    - port: 53
-      protocol: UDP
-    - port: 53
-      protocol: TCP
-  - ports:
-    - port: 443
-      protocol: TCP
-    - port: 6443
-      protocol: TCP
-  - ports:
-    - port: 8161
-      protocol: TCP
-  - ports:
-    - port: 8778
-      protocol: TCP
   ingress:
   - ports:
     - port: 8081
@@ -14705,4 +14688,3 @@ spec:
       name: arkmq-org-broker-operator
   policyTypes:
   - Ingress
-  - Egress

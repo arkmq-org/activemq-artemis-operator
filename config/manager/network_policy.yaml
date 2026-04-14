@@ -11,7 +11,6 @@ spec:
       name: arkmq-org-broker-operator
   policyTypes:
     - Ingress
-    - Egress
   ingress:
     # Kubelet health and readiness probes
     - ports:
@@ -20,25 +19,4 @@ spec:
     # Metrics endpoint
     - ports:
         - port: 8383
-          protocol: TCP
-  egress:
-    # Cluster DNS
-    - ports:
-        - port: 53
-          protocol: UDP
-        - port: 53
-          protocol: TCP
-    # Kubernetes API server
-    - ports:
-        - port: 443
-          protocol: TCP
-        - port: 6443
-          protocol: TCP
-    # Broker Jolokia via console (non-restricted mode)
-    - ports:
-        - port: 8161
-          protocol: TCP
-    # Broker Jolokia via JVM agent (restricted mode)
-    - ports:
-        - port: 8778
           protocol: TCP
