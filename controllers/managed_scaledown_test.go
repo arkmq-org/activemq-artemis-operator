@@ -106,9 +106,6 @@ rootLogger = INFO, STDOUT`
 					ScaleDownConfigTrigger,
 				}
 
-				brokerCrd.Spec.DeploymentPlan.Image = "quay.io/arkmq-org/activemq-artemis-broker-kubernetes:snapshot"
-				brokerCrd.Spec.DeploymentPlan.InitImage = "quay.io/arkmq-org/activemq-artemis-broker-init:snapshot"
-
 				Expect(k8sClient.Create(ctx, brokerCrd)).Should(Succeed())
 
 				createdBrokerCrd := &brokerv1beta1.ActiveMQArtemis{}
@@ -273,9 +270,6 @@ rootLogger = INFO, STDOUT`
 					// 	const ScaleDownConfigTrigger = "HAPolicyConfiguration.scaleDownConfiguration.enabled=false"
 					ScaleDownConfigTrigger,
 				}
-
-				brokerCrd.Spec.DeploymentPlan.Image = "quay.io/arkmq-org/activemq-artemis-broker-kubernetes:snapshot"
-				brokerCrd.Spec.DeploymentPlan.InitImage = "quay.io/arkmq-org/activemq-artemis-broker-init:snapshot"
 
 				Expect(k8sClient.Create(ctx, brokerCrd)).Should(Succeed())
 
