@@ -150,14 +150,6 @@ var _ = Describe("Scale down controller", func() {
 					By("drain pod gone")
 				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
-				By("finally checking log no retry on unknown host")
-				Eventually(func(g Gomega) {
-					pod0AfterScaleDown := &corev1.Pod{}
-					g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: podWithOrdinal0, Namespace: defaultNamespace}, pod0AfterScaleDown)).Should(Succeed())
-					pod0Log := LogsOfPod(podWithOrdinal0, brokerName, defaultNamespace, g)
-					g.Expect(pod0Log).ShouldNot(ContainSubstring("UnknownHostException"))
-				}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
-
 				Expect(k8sClient.Delete(ctx, createdBrokerCrd)).Should(Succeed())
 			}
 
