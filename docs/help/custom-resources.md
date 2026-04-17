@@ -21,6 +21,7 @@ The following sub-sections detail the configuration items that you can set in Cu
 broker and addressing CRDs.
 
 ### Broker Custom Resource configuration reference
+
 A CR instance based on the main broker CRD enables you to configure brokers for deployment in a Kubernetes project, see the [arkmq-org/activemq-artemis-operator CRDs](https://doc.crds.dev/github.com/arkmq-org/activemq-artemis-operator). The following is the full CRD yaml file
 
 ```yaml
@@ -28,21 +29,23 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.7.0
-  name: activemqartemises.broker.amq.io
+    controller-gen.kubebuilder.io/version: v0.16.5
+  name: brokers.broker.arkmq.org
 spec:
-  group: broker.amq.io
+  group: broker.arkmq.org
   names:
-    kind: ActiveMQArtemis
-    listKind: ActiveMQArtemisList
-    plural: activemqartemises
-    singular: activemqartemis
+    kind: Broker
+    listKind: BrokerList
+    plural: brokers
+    shortNames:
+    - b
+    singular: broker
   scope: Namespaced
   versions:
-  - name: v1beta1
+  - name: v1beta2
     schema:
       openAPIV3Schema:
-        description: ActiveMQArtemis is the Schema for the activemqartemises API
+        description: A stateful deployment of one or more brokers
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -57,7 +60,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: ActiveMQArtemisSpec defines the desired state of ActiveMQArtemis
+            description: BrokerSpec defines the desired state of Broker
             properties:
               acceptors:
                 description: Acceptor configuration
@@ -635,8 +638,8 @@ spec:
                         type: string
                     type: object
                 type: object
-              upgrades: This is deprecated in v1beta1, specifying the Version is sufficient.
-                description: ActiveMQArtemis App product upgrade flags
+              upgrades:
+                description: Specifies the upgrades (deprecated in favour of Version)
                 properties:
                   enabled:
                     description: Set to true to enable automatic micro version product
@@ -656,7 +659,7 @@ spec:
                 type: string
             type: object
           status:
-            description: ActiveMQArtemisStatus defines the observed state of ActiveMQArtemis
+            description: BrokerStatus defines the observed state of Broker
             properties:
               podStatus:
                 description: Pod Status

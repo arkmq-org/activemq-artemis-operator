@@ -48,12 +48,12 @@ $ kubectl create secret generic my-tls-secret \
 --from-literal=trustStorePassword=securepass
 ```
 
-### Deploy ActiveMQArtemis with an mqtt acceptor
-Use the following command to deploy ActiveMQArtemis with an mqtt acceptor:
+### Deploy Broker with an mqtt acceptor
+Use the following command to deploy Broker with an mqtt acceptor:
 ```shell script
 $ kubectl apply -f - <<EOF
-apiVersion: broker.amq.io/v1beta1
-kind: ActiveMQArtemis
+apiVersion: broker.arkmq.org/v1beta2
+kind: Broker
 metadata:
   name: artemis-mqtt-ssl
 spec:

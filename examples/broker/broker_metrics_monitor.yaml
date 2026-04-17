@@ -1,5 +1,5 @@
-apiVersion: broker.amq.io/v1beta1
-kind: ActiveMQArtemis
+apiVersion: broker.arkmq.org/v1beta2
+kind: Broker
 metadata:
   name: artemis-with-metrics
 spec:

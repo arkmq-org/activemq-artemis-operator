@@ -225,7 +225,7 @@ Replace **myproject** with actual namespace your brokers are installed in.
 Deploy a broker with (beeing on the root folder of this repository):
 
 ```shell
-kubectl apply -f examples/artemis/artemis_ssl_acceptor_cert_and_trust_managers.yaml -n myproject
+kubectl apply -f examples/broker/broker_ssl_acceptor_cert_and_trust_managers.yaml -n myproject
 ```
 
 ## Deploy a queue

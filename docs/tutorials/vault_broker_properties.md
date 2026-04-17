@@ -83,7 +83,7 @@ customresourcedefinition.apiextensions.k8s.io/activemqartemises.broker.amq.io cr
 customresourcedefinition.apiextensions.k8s.io/activemqartemisaddresses.broker.amq.io created
 customresourcedefinition.apiextensions.k8s.io/activemqartemisscaledowns.broker.amq.io created
 customresourcedefinition.apiextensions.k8s.io/activemqartemissecurities.broker.amq.io created
-customresourcedefinition.apiextensions.k8s.io/brokers.arkmq.org created
+customresourcedefinition.apiextensions.k8s.io/brokers.broker.arkmq.org created
 serviceaccount/arkmq-org-broker-controller-manager created
 role.rbac.authorization.k8s.io/arkmq-org-broker-operator-role created
 rolebinding.rbac.authorization.k8s.io/arkmq-org-broker-operator-rolebinding created
@@ -254,8 +254,8 @@ Create the broker CR with Vault Agent Injector annotations. The template constru
 
 ```{"stage":"agent-injector", "runtime":"bash", "label":"deploy hashicorp broker"}
 kubectl apply -f - << EOF
-apiVersion: broker.amq.io/v1beta1
-kind: ActiveMQArtemis
+apiVersion: broker.arkmq.org/v1beta2
+kind: Broker
 metadata:
   name: hashicorp-broker
 spec:
@@ -278,16 +278,16 @@ spec:
 EOF
 ```
 ```shell markdown_runner
-activemqartemis.broker.amq.io/hashicorp-broker created
+broker.broker.arkmq.org/hashicorp-broker created
 ```
 
 Wait for the broker to be ready:
 
 ```{"stage":"agent-injector", "label":"wait for hashicorp broker"}
-kubectl wait ActiveMQArtemis hashicorp-broker --for=condition=Ready --namespace=vault-broker-project --timeout=300s
+kubectl wait Broker hashicorp-broker --for=condition=Ready --namespace=vault-broker-project --timeout=300s
 ```
 ```shell markdown_runner
-activemqartemis.broker.amq.io/hashicorp-broker condition met
+broker.broker.arkmq.org/hashicorp-broker condition met
 ```
 
 ### Verify Vault Agent Injector worked
@@ -412,8 +412,8 @@ Create the broker CR with an environment variable that gets injected from Vault.
 
 ```{"stage":"banzai", "runtime":"bash", "label":"deploy banzai broker"}
 kubectl apply -f - << EOF
-apiVersion: broker.amq.io/v1beta1
-kind: ActiveMQArtemis
+apiVersion: broker.arkmq.org/v1beta2
+kind: Broker
 metadata:
   name: banzai-broker
 spec:
@@ -432,16 +432,16 @@ spec:
 EOF
 ```
 ```shell markdown_runner
-activemqartemis.broker.amq.io/banzai-broker created
+broker.broker.arkmq.org/banzai-broker created
 ```
 
 Wait for the broker to be ready:
 
 ```{"stage":"banzai", "label":"wait for banzai broker"}
-kubectl wait ActiveMQArtemis banzai-broker --for=condition=Ready --namespace=vault-broker-project --timeout=300s
+kubectl wait Broker banzai-broker --for=condition=Ready --namespace=vault-broker-project --timeout=300s
 ```
 ```shell markdown_runner
-activemqartemis.broker.amq.io/banzai-broker condition met
+broker.broker.arkmq.org/banzai-broker condition met
 ```
 
 ### Verify Secret Injection Webhook worked
@@ -526,7 +526,7 @@ This tutorial demonstrates two approaches for injecting the **same Vault secret*
 
 1. **Vault Storage**: Same address name at `secret/data/broker` (`addressName=VAULT-TEST`)
 2. **Vault Auth**: Webhook uses `vault-broker-sa` service account with Kubernetes auth (same as HashiCorp approach)
-3. **Environment Variable**: ActiveMQArtemis CR defines `VAULT_ADDRESS_NAME` env var with `vault:secret/data/broker#addressName` reference
+3. **Environment Variable**: Broker CR defines `VAULT_ADDRESS_NAME` env var with `vault:secret/data/broker#addressName` reference
 4. **Banzai Webhook**: Mutating webhook intercepts pod creation, authenticates to Vault using Kubernetes auth, replaces `vault:` reference in env var with actual value `VAULT-TEST`
 5. **Kubernetes Secret**: Broker properties use `${VAULT_ADDRESS_NAME}` placeholder
 6. **ArkMQ Operator**: Mounts the secret via `extraMounts.secrets`

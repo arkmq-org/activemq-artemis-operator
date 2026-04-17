@@ -141,8 +141,8 @@ The **sslEnabled: true** tells the operator to make this acceptor to use SSL tra
 
 ```{"stage":"deploy", "runtime":"bash", "label":"deploy the broker"}
 kubectl apply -f - << EOF
-apiVersion: broker.amq.io/v1beta1
-kind: ActiveMQArtemis
+apiVersion: broker.arkmq.org/v1beta2
+kind: Broker
 metadata:
   name: ex-aao
 spec:
@@ -154,16 +154,16 @@ spec:
 EOF
 ```
 ```shell markdown_runner
-activemqartemis.broker.amq.io/ex-aao created
+broker.broker.arkmq.org/ex-aao created
 ```
 
 Wait for the Broker to be ready:
 
 ```{"stage":"deploy"}
-kubectl wait ActiveMQArtemis ex-aao --for=condition=Ready --namespace=ssl-broker-project --timeout=240s
+kubectl wait Broker ex-aao --for=condition=Ready --namespace=ssl-broker-project --timeout=240s
 ```
 ```shell markdown_runner
-activemqartemis.broker.amq.io/ex-aao condition met
+broker.broker.arkmq.org/ex-aao condition met
 ```
 
 ### Test messaging over a SSL connection

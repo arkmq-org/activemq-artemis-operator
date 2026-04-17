@@ -327,8 +327,8 @@ Get minikube's ip
 ```bash {"stage":"deploy", "runtime":"bash", "label":"deploy the broker"}
 INGRESS_HOST='ing.$(ITEM_NAME).$(CR_NAME)-$(BROKER_ORDINAL).$(CR_NAMESPACE).$(INGRESS_DOMAIN)'
 cat <<EOF > deploy.yml
-apiVersion: broker.amq.io/v1beta1
-kind: ActiveMQArtemis
+apiVersion: broker.arkmq.org/v1beta2
+kind: Broker
 metadata:
   name: send-receive
   namespace: send-receive-project
@@ -363,16 +363,16 @@ EOF
 kubectl apply -f deploy.yml
 ```
 ```shell markdown_runner
-activemqartemis.broker.amq.io/send-receive created
+broker.broker.arkmq.org/send-receive created
 ```
 
 Wait for the Broker to be ready:
 
 ```{"stage":"deploy"}
-kubectl wait ActiveMQArtemis send-receive --for=condition=Ready --namespace=send-receive-project --timeout=240s
+kubectl wait Broker send-receive --for=condition=Ready --namespace=send-receive-project --timeout=240s
 ```
 ```shell markdown_runner
-activemqartemis.broker.amq.io/send-receive condition met
+broker.broker.arkmq.org/send-receive condition met
 ```
 
 Check that the ingress is available and has an IP address:
@@ -402,7 +402,7 @@ open a working connection:
 #### Get the actual broker version
 
 ```{"stage":"test_setup", "runtime":"bash", "label":"get latest broker version"}
-export BROKER_VERSION=$(kubectl get ActiveMQArtemis send-receive --namespace=send-receive-project -o json | jq .status.version.brokerVersion -r)
+export BROKER_VERSION=$(kubectl get Broker send-receive --namespace=send-receive-project -o json | jq .status.version.brokerVersion -r)
 echo broker version: $BROKER_VERSION
 ```
 ```shell markdown_runner

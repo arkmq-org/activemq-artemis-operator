@@ -1,10 +1,9 @@
-apiVersion: broker.amq.io/v1beta1
-kind: ActiveMQArtemis
+apiVersion: broker.arkmq.org/v1beta2
+kind: Broker
 metadata:
-  name: artemis-broker-logging
+  name: my-broker-logging
 spec:
   deploymentPlan:
     extraMounts:
       configMaps:
         - "newlog4j-logging-config"
-

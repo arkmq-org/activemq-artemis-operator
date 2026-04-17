@@ -98,16 +98,16 @@ arkmq-org-broker-operator-source-g94fd                            1/1     Runnin
 
 ## Deploy a single Apache Artemis Broker
 
-The following command line deploys a single Apache Artemis Broker instance by applying the ActiveMQArtemis custom resource (CR) defined in artemis_single.yaml file:
+The following command line deploys a single Apache Artemis Broker instance by applying the Broker custom resource (CR) defined in broker_single.yaml file:
 
 ```$xslt
-$ kubectl apply -f examples/artemis/artemis_single.yaml
+$ kubectl apply -f examples/broker/broker_single.yaml
 ```
 
 To check the status of the broker, run:
 
-```$xslt 
-$ kubectl get ActivemqArtemis 
-NAME             READY   AGE
-artemis-broker   True    39s
+```$xslt
+$ kubectl get Broker
+NAME        READY   AGE
+my-broker   True    39s
 ```

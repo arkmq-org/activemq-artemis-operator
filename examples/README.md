@@ -2,13 +2,13 @@
 
 This directory contains example YAML files to create and configure an Artemis broker on Kubernetes.
 
-If you are new to Artemis on Kubernetes, start with [a basic deployment](artemis/artemis_single.yaml):
+If you are new to Artemis on Kubernetes, start with [a basic deployment](broker/broker_single.yaml):
 
 1. Deploy the operator as described in the [Operator help](../docs/help/operator#deploy-the-operator).
 2. Create a basic broker deployment:
 
 ```bash
-kubectl create -f examples/artemis/artemis_single.yaml -n <namespace>
+kubectl create -f examples/broker/broker_single.yaml -n <namespace>
 ```
 
 See https://arkmq.org/ for tutorials and more information about Artemis.

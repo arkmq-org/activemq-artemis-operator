@@ -193,7 +193,7 @@ The locked-down broker uses certificate-based authentication. This tutorial uses
     * Override via env: `BASE_PROMETHEUS_CERT_SECRET_NAME` (affects both
       CR-specific and shared secret names)
     * Example: If env is set to `custom-prometheus`, checks
-      `my-broker-custom-prometheus` then `custom-prometheus`
+      `artemis-broker-custom-prometheus` then `custom-prometheus`
     * CN in this tutorial: `prometheus` (gets metrics access)
 
 ## Prerequisites
@@ -313,7 +313,7 @@ Deploying operator to watch single namespace
 Client Version: 4.18.5
 Kustomize Version: v5.4.2
 Kubernetes Version: v1.33.1
-customresourcedefinition.apiextensions.k8s.io/activemqartemises.broker.amq.io created
+customresourcedefinition.apiextensions.k8s.io/brokers.broker.arkmq.org created
 customresourcedefinition.apiextensions.k8s.io/activemqartemisaddresses.broker.amq.io created
 customresourcedefinition.apiextensions.k8s.io/activemqartemisscaledowns.broker.amq.io created
 customresourcedefinition.apiextensions.k8s.io/activemqartemissecurities.broker.amq.io created
@@ -773,7 +773,7 @@ EOF
 secret/artemis-broker-jaas-config-bp created
 ```
 
-Now, deploy the `ActiveMQArtemis` custom resource with `spec.restricted: true`,
+Now, deploy the `Broker` custom resource with `spec.restricted: true`,
 along with the configuration for the acceptor.
 
 **Key Configuration Elements:**
@@ -787,8 +787,8 @@ For detailed explanation of broker properties, see the [broker configuration doc
 
 ```{"stage":"deploy", "runtime":"bash", "label":"deploy broker cr"}
 kubectl apply -f - <<'EOF'
-apiVersion: broker.amq.io/v1beta1
-kind: ActiveMQArtemis
+apiVersion: broker.arkmq.org/v1beta2
+kind: Broker
 metadata:
   name: artemis-broker
   namespace: locked-down-broker
@@ -824,16 +824,16 @@ spec:
 EOF
 ```
 ```shell markdown_runner
-activemqartemis.broker.amq.io/artemis-broker created
+broker.broker.arkmq.org/artemis-broker created
 ```
 
 Wait for the broker to be ready.
 
 ```{"stage":"deploy"}
-kubectl wait ActiveMQArtemis artemis-broker --for=condition=Ready --namespace=locked-down-broker --timeout=300s
+kubectl wait Broker artemis-broker --for=condition=Ready --namespace=locked-down-broker --timeout=300s
 ```
 ```shell markdown_runner
-activemqartemis.broker.amq.io/artemis-broker condition met
+broker.broker.arkmq.org/artemis-broker condition met
 ```
 
 ## Scrape the broker
@@ -1592,10 +1592,10 @@ queue, and the other will consume them. They are configured to use the
 `messaging-client-cert` to authenticate.
 
 Note that the image version used by the jobs should match the one deployed by
-the operator. We can get it from the `ActiveMQArtemis` CR status.
+the operator. We can get it from the `Broker` CR status.
 
 ```{"stage":"test_setup", "runtime":"bash", "label":"get latest broker version"}
-export BROKER_VERSION=$(kubectl get ActiveMQArtemis artemis-broker --namespace=locked-down-broker -o json | jq .status.version.brokerVersion -r)
+export BROKER_VERSION=$(kubectl get Broker artemis-broker --namespace=locked-down-broker -o json | jq .status.version.brokerVersion -r)
 echo broker version: $BROKER_VERSION
 ```
 ```shell markdown_runner
@@ -1893,7 +1893,7 @@ kubectl top pods -n locked-down-broker
 kubectl get events -n locked-down-broker --sort-by='.lastTimestamp'
 
 # Export configurations for analysis
-kubectl get activemqartemis artemis-broker -n locked-down-broker -o yaml
+kubectl get broker artemis-broker -n locked-down-broker -o yaml
 kubectl get prometheus artemis-prometheus -n locked-down-broker -o yaml
 ```
 

@@ -72,8 +72,8 @@ After the `post-config.sh` script is executed, the broker instance is launched w
 3. When you have added the image to a repository, you need to configure the Operator to use the custom Init Container image. To do this, edit the CR file. For the `image` property, specify the custom image. For example:
 
     ```yaml
-    apiVersion: broker.amq.io/v2alpha4
-    kind: ActiveMQArtemis
+    apiVersion: broker.arkmq.org/v1beta2
+    kind: Broker
     metadata:
         name: ex-aao
         spec:
