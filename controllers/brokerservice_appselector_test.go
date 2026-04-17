@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -103,10 +102,10 @@ func TestAppSelectorAllowedNamespace(t *testing.T) {
 	err = cl.Get(context.TODO(), req.NamespacedName, updatedApp)
 	assert.NoError(t, err)
 
-	// Should have annotation binding to the service
-	annotation, hasAnnotation := updatedApp.Annotations[common.AppServiceAnnotation]
-	assert.True(t, hasAnnotation, "App should be bound to service")
-	assert.Equal(t, svcNs+":"+svcName, annotation)
+	// Should have status binding to the service
+	assert.NotNil(t, updatedApp.Status.Service, "App should be bound to service")
+	assert.Equal(t, svcName, updatedApp.Status.Service.Name)
+	assert.Equal(t, svcNs, updatedApp.Status.Service.Namespace)
 
 	// Check Valid condition - should be True
 	validCondition := meta.FindStatusCondition(updatedApp.Status.Conditions, v1beta2.ValidConditionType)
@@ -198,8 +197,7 @@ func TestAppSelectorDeniedNamespace(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Should NOT have annotation (not bound to service)
-	_, hasAnnotation := updatedApp.Annotations[common.AppServiceAnnotation]
-	assert.False(t, hasAnnotation, "App should not be bound to service")
+	assert.Nil(t, updatedApp.Status.Service, "App should not be bound to service")
 
 	// Check Valid condition - should be True (spec is valid)
 	validCondition := meta.FindStatusCondition(updatedApp.Status.Conditions, v1beta2.ValidConditionType)
@@ -284,9 +282,9 @@ func TestAppSelectorEmptyAllowlist(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Should have annotation binding to the service (allowed because same namespace)
-	annotation, hasAnnotation := updatedApp.Annotations[common.AppServiceAnnotation]
-	assert.True(t, hasAnnotation, "App should be bound to service")
-	assert.Equal(t, svcNs+":"+svcName, annotation)
+	assert.NotNil(t, updatedApp.Status.Service, "App should be bound to service")
+	assert.Equal(t, svcName, updatedApp.Status.Service.Name)
+	assert.Equal(t, svcNs, updatedApp.Status.Service.Namespace)
 
 	// Check Valid condition - should be True
 	validCondition := meta.FindStatusCondition(updatedApp.Status.Conditions, v1beta2.ValidConditionType)
@@ -365,8 +363,7 @@ func TestAppSelectorEmptyAllowlistDifferentNamespace(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Should NOT have annotation
-	_, hasAnnotation := updatedApp.Annotations[common.AppServiceAnnotation]
-	assert.False(t, hasAnnotation, "App should not be bound to service")
+	assert.Nil(t, updatedApp.Status.Service, "App should not be bound to service")
 
 	// Check Deployed condition - should be False with Unauthorized reason
 	deployedCondition := meta.FindStatusCondition(updatedApp.Status.Conditions, v1beta2.DeployedConditionType)
@@ -416,15 +413,19 @@ func TestAppSelectorRevokedAccess(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      appName,
 			Namespace: appNs,
-			Annotations: map[string]string{
-				common.AppServiceAnnotation: svcNs + ":" + svcName,
-			},
 		},
 		Spec: v1beta2.BrokerAppSpec{
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
 			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
+		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{
+				Name:      svcName,
+				Namespace: svcNs,
+				Secret:    "binding-secret",
+			},
 		},
 	}
 
@@ -448,8 +449,7 @@ func TestAppSelectorRevokedAccess(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Should still be bound
-	_, hasAnnotation := updatedApp.Annotations[common.AppServiceAnnotation]
-	assert.True(t, hasAnnotation, "App should remain bound initially")
+	assert.NotNil(t, updatedApp.Status.Service, "App should remain bound initially")
 
 	// Now update the service to remove team-a from allowed namespaces
 	updatedSvc := &v1beta2.BrokerService{}
@@ -577,8 +577,8 @@ func TestAppSelectorMultipleNamespaces(t *testing.T) {
 	updatedAppA := &v1beta2.BrokerApp{}
 	err = cl.Get(context.TODO(), reqA.NamespacedName, updatedAppA)
 	assert.NoError(t, err)
-	_, hasAnnotation := updatedAppA.Annotations[common.AppServiceAnnotation]
-	assert.True(t, hasAnnotation, "App A should be bound")
+	hasBinding := updatedAppA.Status.Service != nil
+	assert.True(t, hasBinding, "App A should be bound")
 
 	// Reconcile app-b (should succeed)
 	reqB := ctrl.Request{NamespacedName: types.NamespacedName{Name: "app-b", Namespace: "team-b"}}
@@ -588,8 +588,8 @@ func TestAppSelectorMultipleNamespaces(t *testing.T) {
 	updatedAppB := &v1beta2.BrokerApp{}
 	err = cl.Get(context.TODO(), reqB.NamespacedName, updatedAppB)
 	assert.NoError(t, err)
-	_, hasAnnotation = updatedAppB.Annotations[common.AppServiceAnnotation]
-	assert.True(t, hasAnnotation, "App B should be bound")
+	hasBinding = updatedAppB.Status.Service != nil
+	assert.True(t, hasBinding, "App B should be bound")
 
 	// Reconcile app-denied (should fail)
 	reqDenied := ctrl.Request{NamespacedName: types.NamespacedName{Name: "app-denied", Namespace: "team-d"}}
@@ -599,8 +599,8 @@ func TestAppSelectorMultipleNamespaces(t *testing.T) {
 	updatedAppDenied := &v1beta2.BrokerApp{}
 	err = cl.Get(context.TODO(), reqDenied.NamespacedName, updatedAppDenied)
 	assert.NoError(t, err)
-	_, hasAnnotation = updatedAppDenied.Annotations[common.AppServiceAnnotation]
-	assert.False(t, hasAnnotation, "Denied app should not be bound")
+	hasBinding = updatedAppDenied.Status.Service != nil
+	assert.False(t, hasBinding, "Denied app should not be bound")
 
 	deployedCondition := meta.FindStatusCondition(updatedAppDenied.Status.Conditions, v1beta2.DeployedConditionType)
 	assert.NotNil(t, deployedCondition)
@@ -679,9 +679,9 @@ func TestAppSelectorAllowAll(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Should have annotation
-	annotation, hasAnnotation := updatedApp.Annotations[common.AppServiceAnnotation]
-	assert.True(t, hasAnnotation, "App should be bound to service")
-	assert.Equal(t, svcNs+":"+svcName, annotation)
+	assert.NotNil(t, updatedApp.Status.Service, "App should be bound to service")
+	assert.Equal(t, svcName, updatedApp.Status.Service.Name)
+	assert.Equal(t, svcNs, updatedApp.Status.Service.Namespace)
 }
 
 // TestAppSelectorPrefix verifies that startsWith() matches namespaces with prefix
@@ -767,8 +767,8 @@ func TestAppSelectorPrefix(t *testing.T) {
 	updatedMatch := &v1beta2.BrokerApp{}
 	err = cl.Get(context.TODO(), reqMatch.NamespacedName, updatedMatch)
 	assert.NoError(t, err)
-	_, hasAnnotation := updatedMatch.Annotations[common.AppServiceAnnotation]
-	assert.True(t, hasAnnotation, "Matching app should be bound")
+	hasBinding := updatedMatch.Status.Service != nil
+	assert.True(t, hasBinding, "Matching app should be bound")
 
 	// Reconcile non-matching app - should fail
 	reqNoMatch := ctrl.Request{NamespacedName: types.NamespacedName{Name: "app-nomatch", Namespace: "other-namespace"}}
@@ -778,8 +778,8 @@ func TestAppSelectorPrefix(t *testing.T) {
 	updatedNoMatch := &v1beta2.BrokerApp{}
 	err = cl.Get(context.TODO(), reqNoMatch.NamespacedName, updatedNoMatch)
 	assert.NoError(t, err)
-	_, hasAnnotation = updatedNoMatch.Annotations[common.AppServiceAnnotation]
-	assert.False(t, hasAnnotation, "Non-matching app should not be bound")
+	hasBinding = updatedNoMatch.Status.Service != nil
+	assert.False(t, hasBinding, "Non-matching app should not be bound")
 }
 
 // TestAppSelectorSuffix verifies that endsWith() matches namespaces with suffix
@@ -866,8 +866,8 @@ func TestAppSelectorSuffix(t *testing.T) {
 	updatedMatch := &v1beta2.BrokerApp{}
 	err = cl.Get(context.TODO(), reqMatch.NamespacedName, updatedMatch)
 	assert.NoError(t, err)
-	_, hasAnnotation := updatedMatch.Annotations[common.AppServiceAnnotation]
-	assert.True(t, hasAnnotation)
+	hasBinding := updatedMatch.Status.Service != nil
+	assert.True(t, hasBinding)
 
 	// Reconcile non-matching app
 	reqNoMatch := ctrl.Request{NamespacedName: types.NamespacedName{Name: "app-nomatch", Namespace: "team-a-dev"}}
@@ -877,8 +877,8 @@ func TestAppSelectorSuffix(t *testing.T) {
 	updatedNoMatch := &v1beta2.BrokerApp{}
 	err = cl.Get(context.TODO(), reqNoMatch.NamespacedName, updatedNoMatch)
 	assert.NoError(t, err)
-	_, hasAnnotation = updatedNoMatch.Annotations[common.AppServiceAnnotation]
-	assert.False(t, hasAnnotation)
+	hasBinding = updatedNoMatch.Status.Service != nil
+	assert.False(t, hasBinding)
 }
 
 // TestAppSelectorPrefixAndSuffix verifies that combined startsWith/endsWith works

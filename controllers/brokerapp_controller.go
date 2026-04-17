@@ -71,9 +71,8 @@ func (reconciler BrokerAppInstanceReconciler) validateSpec() error {
 
 func (reconciler BrokerAppInstanceReconciler) processBindingSecret() error {
 
-	// Only manage binding secret if app has been bound to a service (annotation exists)
-	serviceAnnotation, hasAnnotation := reconciler.instance.Annotations[common.AppServiceAnnotation]
-	if !hasAnnotation {
+	// Only manage binding secret if app has been bound to a service (status field exists)
+	if reconciler.status.Service == nil {
 		return nil
 	}
 
@@ -91,19 +90,11 @@ func (reconciler BrokerAppInstanceReconciler) processBindingSecret() error {
 		desired = secrets.NewSecret(bindingSecretNsName, nil, nil)
 	}
 
-	// Parse annotation to get service namespace and name
-	serviceNamespace, serviceName, ok := parseServiceAnnotation(serviceAnnotation)
-	if ok {
-		desired.Data = map[string][]byte{
-			// host as FQQN to work everywhere in the cluster
-			"host": []byte(fmt.Sprintf("%s.%s.svc.%s", serviceName, serviceNamespace, common.GetClusterDomain())),
-			"port": []byte(fmt.Sprintf("%d", reconciler.instance.Spec.Acceptor.Port)),
-			"uri":  []byte(fmt.Sprintf("amqps://%s.%s.svc.%s:%d", serviceName, serviceNamespace, common.GetClusterDomain(), reconciler.instance.Spec.Acceptor.Port)),
-		}
-	}
-
-	reconciler.status.Binding = &corev1.LocalObjectReference{
-		Name: bindingSecretNsName.Name,
+	desired.Data = map[string][]byte{
+		// host as FQQN to work everywhere in the cluster
+		"host": []byte(fmt.Sprintf("%s.%s.svc.%s", reconciler.status.Service.Name, reconciler.status.Service.Namespace, common.GetClusterDomain())),
+		"port": []byte(fmt.Sprintf("%d", reconciler.instance.Spec.Acceptor.Port)),
+		"uri":  []byte(fmt.Sprintf("amqps://%s.%s.svc.%s:%d", reconciler.status.Service.Name, reconciler.status.Service.Namespace, common.GetClusterDomain(), reconciler.instance.Spec.Acceptor.Port)),
 	}
 	reconciler.TrackDesired(desired)
 	return nil
@@ -209,13 +200,14 @@ func (reconciler *BrokerAppInstanceReconciler) resolveBrokerService() error {
 	var service *broker.BrokerService
 	needsServiceAssignment := false
 
-	// Check if we have an existing annotation
-	deployedTo, hasAnnotation := reconciler.instance.Annotations[common.AppServiceAnnotation]
+	// Check if we have an existing binding in status
+	hasBinding := reconciler.status.Service != nil
 
-	if hasAnnotation {
-		// Try to find the annotated service in the list
+	if hasBinding {
+		deployedTo := reconciler.status.Service.Key()
+		// Try to find the bound service in the list
 		for index, candidate := range list.Items {
-			if annotationNameFromService(&candidate) == deployedTo {
+			if candidate.Namespace == reconciler.status.Service.Namespace && candidate.Name == reconciler.status.Service.Name {
 				service = &list.Items[index]
 				break
 			}
@@ -230,32 +222,29 @@ func (reconciler *BrokerAppInstanceReconciler) resolveBrokerService() error {
 					"error evaluating service selector: %v", matchErr)
 			}
 			if !matches {
-				reconciler.log.V(1).Info("App no longer matches annotated service selector, removing binding",
+				reconciler.log.V(1).Info("App no longer matches service selector, removing binding",
 					"app", reconciler.instance.Name,
 					"service", deployedTo)
-				// Remove the annotation since we no longer match
-				delete(reconciler.instance.Annotations, common.AppServiceAnnotation)
-				if err := resources.Update(reconciler.Client, reconciler.instance); err != nil {
-					return err
-				}
+				// Clear status binding - status update happens in processStatus()
+				reconciler.status.Service = nil
 				service = nil
 				needsServiceAssignment = true
 			}
 		}
 
-		// If annotated service not found, selector may have changed
+		// If bound service not found, selector may have changed
 		if service == nil && !needsServiceAssignment {
 			if len(list.Items) > 0 {
-				reconciler.log.V(1).Info("Annotated service not found in selector matches, reassigning",
+				reconciler.log.V(1).Info("Bound service not found in selector matches, reassigning",
 					"app", reconciler.instance.Name,
-					"old-annotation", deployedTo,
+					"old-binding", deployedTo,
 					"matching-services", len(list.Items))
 				needsServiceAssignment = true
 			}
 			// else: no services match current selector, processStatus will handle it
 		}
 	} else {
-		// No annotation yet, need initial assignment
+		// No binding yet, need initial assignment
 		needsServiceAssignment = true
 	}
 
@@ -271,9 +260,11 @@ func (reconciler *BrokerAppInstanceReconciler) resolveBrokerService() error {
 
 		service, err = reconciler.findServiceWithCapacity(list)
 		if service != nil {
-			// Update annotation to bind to this service
-			common.ApplyAnnotations(&reconciler.instance.ObjectMeta, map[string]string{common.AppServiceAnnotation: annotationNameFromService(service)})
-			err = resources.Update(reconciler.Client, reconciler.instance)
+			reconciler.status.Service = &broker.BrokerServiceBindingStatus{
+				Name:      service.Name,
+				Namespace: service.Namespace,
+				Secret:    BindingsSecretName(reconciler.instance.Name),
+			}
 		} else {
 			// Check if error is already a ConditionError (e.g., AppSelectorNoMatch)
 			if _, isCondErr := AsConditionError(err); isCondErr {
@@ -295,16 +286,9 @@ func BindingsSecretName(crName string) string {
 	return fmt.Sprintf("%s-binding-secret", crName)
 }
 
-func annotationNameFromService(service *broker.BrokerService) string {
-	return fmt.Sprintf("%s:%s", service.Namespace, service.Name)
-}
-
-func parseServiceAnnotation(annotation string) (namespace string, name string, ok bool) {
-	parts := strings.Split(annotation, ":")
-	if len(parts) == 2 {
-		return parts[0], parts[1], true
-	}
-	return "", "", false
+// serviceKey returns the field indexer key for a BrokerService
+func serviceKey(service *broker.BrokerService) string {
+	return service.Namespace + ":" + service.Name
 }
 
 // matchesServiceSelector checks if the app matches the service's appSelectorExpression.
@@ -460,8 +444,8 @@ func (reconciler *BrokerAppInstanceReconciler) findServiceWithCapacity(list *bro
 
 func (reconciler *BrokerAppInstanceReconciler) listOtherAppsForService(service *broker.BrokerService) ([]broker.BrokerApp, error) {
 	apps := &broker.BrokerAppList{}
-	serviceKey := annotationNameFromService(service)
-	if err := reconciler.Client.List(context.TODO(), apps, client.MatchingFields{common.AppServiceAnnotation: serviceKey}); err != nil {
+	key := serviceKey(service)
+	if err := reconciler.Client.List(context.TODO(), apps, client.MatchingFields{common.AppServiceBindingField: key}); err != nil {
 		return nil, err
 	}
 
@@ -533,7 +517,7 @@ func (reconciler *BrokerAppInstanceReconciler) getPortConflict(service *broker.B
 	// Query all other apps assigned to this service
 	apps, err := reconciler.listOtherAppsForService(service)
 	if err != nil {
-		return "", false, fmt.Errorf("failed to list apps for service %s: %w", annotationNameFromService(service), err)
+		return "", false, fmt.Errorf("failed to list apps for service %s: %w", serviceKey(service), err)
 	}
 
 	// Check for port conflicts with other apps
@@ -551,7 +535,8 @@ func (reconciler *BrokerAppInstanceReconciler) processStatus(reconcilerError err
 	var deployedCondition metav1.Condition = metav1.Condition{
 		Type: broker.DeployedConditionType,
 	}
-	if serviceName, found := reconciler.instance.Annotations[common.AppServiceAnnotation]; found {
+	if reconciler.status.Service != nil {
+		serviceName := reconciler.status.Service.Key()
 
 		deployedCondition.Status = metav1.ConditionFalse
 		deployedCondition.Reason = broker.DeployedConditionProvisioningPendingReason
@@ -570,7 +555,7 @@ func (reconciler *BrokerAppInstanceReconciler) processStatus(reconcilerError err
 		} else {
 			deployedCondition.Status = metav1.ConditionFalse
 			deployedCondition.Reason = broker.DeployedConditionMatchedServiceNotFoundReason
-			deployedCondition.Message = fmt.Sprintf("matching service from annotation %s not found", serviceName)
+			deployedCondition.Message = fmt.Sprintf("matching service from status binding %s not found", serviceName)
 		}
 
 	} else if reconcilerError != nil {
@@ -586,7 +571,7 @@ func (reconciler *BrokerAppInstanceReconciler) processStatus(reconcilerError err
 			deployedCondition.Message = fmt.Sprintf("error on resource crud %v", reconcilerError)
 		}
 	} else {
-		// No annotation and no error means we haven't tried to assign yet
+		// No binding and no error means we haven't tried to assign yet
 		deployedCondition.Status = metav1.ConditionFalse
 		deployedCondition.Reason = broker.DeployedConditionNoMatchingServiceReason
 	}
@@ -605,12 +590,12 @@ func (reconciler *BrokerAppInstanceReconciler) processStatus(reconcilerError err
 func (r *BrokerAppReconciler) enqueueAppsForService() handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
 		service := obj.(*broker.BrokerService)
-		serviceAnnotation := fmt.Sprintf("%s:%s", service.Namespace, service.Name)
+		svcKey := serviceKey(service)
 
-		// Find all BrokerApps that reference this service via annotation using field index
+		// Find all BrokerApps that reference this service
 		appList := &broker.BrokerAppList{}
-		if err := r.Client.List(ctx, appList, client.MatchingFields{common.AppServiceAnnotation: serviceAnnotation}); err != nil {
-			r.log.Error(err, "Failed to list BrokerApps for service watch", "service", serviceAnnotation)
+		if err := r.Client.List(ctx, appList, client.MatchingFields{common.AppServiceBindingField: svcKey}); err != nil {
+			r.log.Error(err, "Failed to list BrokerApps for service watch", "service", svcKey)
 			return nil
 		}
 

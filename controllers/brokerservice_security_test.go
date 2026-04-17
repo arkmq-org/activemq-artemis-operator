@@ -33,7 +33,7 @@ import (
 )
 
 // TestBrokerServiceRejectsManuallyAnnotatedApp verifies that the BrokerService controller
-// does NOT provision apps that have manually set the AppServiceAnnotation to bypass
+// does NOT provision apps that have manually set the Status.ServiceBinding to bypass
 // the appSelectorExpression access control.
 func TestBrokerServiceRejectsManuallyAnnotatedApp(t *testing.T) {
 	// Setup scheme
@@ -65,16 +65,19 @@ func TestBrokerServiceRejectsManuallyAnnotatedApp(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      appName,
 			Namespace: attackerNs,
-			Annotations: map[string]string{
-				// SECURITY ISSUE: Manually set annotation to claim access to service
-				common.AppServiceAnnotation: svcNs + ":" + svcName,
-			},
 		},
 		Spec: v1beta2.BrokerAppSpec{
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
 			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
+		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{
+				Name:      svcName,
+				Namespace: svcNs,
+				Secret:    "binding-secret",
+			},
 		},
 	}
 
@@ -83,10 +86,10 @@ func TestBrokerServiceRejectsManuallyAnnotatedApp(t *testing.T) {
 		WithScheme(scheme).
 		WithObjects(svc, attackerApp).
 		WithStatusSubresource(svc, attackerApp).
-		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(obj client.Object) []string {
+		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceBindingField, func(obj client.Object) []string {
 			app := obj.(*v1beta2.BrokerApp)
-			if val, ok := app.Annotations[common.AppServiceAnnotation]; ok {
-				return []string{val}
+			if app.Status.Service != nil {
+				return []string{app.Status.Service.Key()}
 			}
 			return nil
 		}).
@@ -154,8 +157,10 @@ func TestBrokerServiceRejectsManuallyAnnotatedApp(t *testing.T) {
 		Namespace: attackerNs,
 	}, verifyApp)
 	assert.NoError(t, err)
-	assert.Equal(t, svcNs+":"+svcName, verifyApp.Annotations[common.AppServiceAnnotation],
-		"App annotation should still be set, proving it was found but rejected")
+	assert.NotNil(t, verifyApp.Status.Service)
+	assert.Equal(t, svcName, verifyApp.Status.Service.Name)
+	assert.Equal(t, svcNs, verifyApp.Status.Service.Namespace,
+		"App status binding should still be set, proving it was found but rejected")
 }
 
 // TestBrokerServiceAllowsMatchingApp verifies that legitimate apps that match
@@ -199,20 +204,24 @@ func TestBrokerServiceAllowsMatchingApp(t *testing.T) {
 		},
 	}
 
-	// Create legitimate BrokerApp from ALLOWED namespace with annotation set by controller
+	// Create legitimate BrokerApp from ALLOWED namespace with status binding set by controller
 	legitimateApp := &v1beta2.BrokerApp{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      appName,
 			Namespace: allowedNs, // Matches the selector
-			Annotations: map[string]string{
-				common.AppServiceAnnotation: svcNs + ":" + svcName,
-			},
 		},
 		Spec: v1beta2.BrokerAppSpec{
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
 			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
+		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{
+				Name:      svcName,
+				Namespace: svcNs,
+				Secret:    "binding-secret",
+			},
 		},
 	}
 
@@ -221,10 +230,10 @@ func TestBrokerServiceAllowsMatchingApp(t *testing.T) {
 		WithScheme(scheme).
 		WithObjects(svc, legitimateApp, opCASecret).
 		WithStatusSubresource(svc, legitimateApp).
-		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(obj client.Object) []string {
+		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceBindingField, func(obj client.Object) []string {
 			app := obj.(*v1beta2.BrokerApp)
-			if val, ok := app.Annotations[common.AppServiceAnnotation]; ok {
-				return []string{val}
+			if app.Status.Service != nil {
+				return []string{app.Status.Service.Key()}
 			}
 			return nil
 		}).
@@ -318,10 +327,6 @@ func TestBrokerServiceRejectsLabelMismatch(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      appName,
 			Namespace: appNs,
-			Annotations: map[string]string{
-				// ATTACK: Manually set annotation to premium service
-				common.AppServiceAnnotation: svcNs + ":" + svcName,
-			},
 		},
 		Spec: v1beta2.BrokerAppSpec{
 			ServiceSelector: &v1.LabelSelector{
@@ -331,6 +336,13 @@ func TestBrokerServiceRejectsLabelMismatch(t *testing.T) {
 			},
 			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
 		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{
+				Name:      svcName,
+				Namespace: svcNs,
+				Secret:    "binding-secret",
+			},
+		},
 	}
 
 	// Setup fake client
@@ -338,10 +350,10 @@ func TestBrokerServiceRejectsLabelMismatch(t *testing.T) {
 		WithScheme(scheme).
 		WithObjects(svc, app, opCASecret).
 		WithStatusSubresource(svc, app).
-		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(obj client.Object) []string {
+		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceBindingField, func(obj client.Object) []string {
 			app := obj.(*v1beta2.BrokerApp)
-			if val, ok := app.Annotations[common.AppServiceAnnotation]; ok {
-				return []string{val}
+			if app.Status.Service != nil {
+				return []string{app.Status.Service.Key()}
 			}
 			return nil
 		}).
@@ -440,12 +452,16 @@ func TestBrokerServiceMixedApps(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "app1",
 			Namespace: "team-a", // Matches
-			Annotations: map[string]string{
-				common.AppServiceAnnotation: svcNs + ":" + svcName,
-			},
 		},
 		Spec: v1beta2.BrokerAppSpec{
 			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
+		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{
+				Name:      svcName,
+				Namespace: svcNs,
+				Secret:    "binding-secret",
+			},
 		},
 	}
 
@@ -453,12 +469,16 @@ func TestBrokerServiceMixedApps(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "app2",
 			Namespace: "team-b", // Matches
-			Annotations: map[string]string{
-				common.AppServiceAnnotation: svcNs + ":" + svcName,
-			},
 		},
 		Spec: v1beta2.BrokerAppSpec{
 			Acceptor: v1beta2.AppAcceptorType{Port: 61617},
+		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{
+				Name:      svcName,
+				Namespace: svcNs,
+				Secret:    "binding-secret",
+			},
 		},
 	}
 
@@ -466,8 +486,12 @@ func TestBrokerServiceMixedApps(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "attacker-app",
 			Namespace: "other-namespace", // Does NOT match
-			Annotations: map[string]string{
-				common.AppServiceAnnotation: svcNs + ":" + svcName, // Manually set!
+		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{ // Manually set!
+				Name:      svcName,
+				Namespace: svcNs,
+				Secret:    "binding-secret",
 			},
 		},
 		Spec: v1beta2.BrokerAppSpec{
@@ -480,10 +504,10 @@ func TestBrokerServiceMixedApps(t *testing.T) {
 		WithScheme(scheme).
 		WithObjects(svc, matchingApp1, matchingApp2, attackerApp, opCASecret).
 		WithStatusSubresource(svc, matchingApp1, matchingApp2, attackerApp).
-		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(obj client.Object) []string {
+		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceBindingField, func(obj client.Object) []string {
 			app := obj.(*v1beta2.BrokerApp)
-			if val, ok := app.Annotations[common.AppServiceAnnotation]; ok {
-				return []string{val}
+			if app.Status.Service != nil {
+				return []string{app.Status.Service.Key()}
 			}
 			return nil
 		}).
@@ -591,9 +615,6 @@ func TestBrokerServiceRejectsAppsFromPrometheusConfig(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "valid-app",
 			Namespace: allowedNs,
-			Annotations: map[string]string{
-				common.AppServiceAnnotation: svcNs + ":" + svcName,
-			},
 		},
 		Spec: v1beta2.BrokerAppSpec{
 			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
@@ -607,17 +628,27 @@ func TestBrokerServiceRejectsAppsFromPrometheusConfig(t *testing.T) {
 				},
 			},
 		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{
+				Name:      svcName,
+				Namespace: svcNs,
+				Secret:    "binding-secret",
+			},
+		},
 	}
 
-	// Create ATTACKER app from untrusted namespace with manually set annotation
+	// Create ATTACKER app from untrusted namespace with manually set status binding
 	// This app should be REJECTED and should NOT leak its ConsumerOf addresses
 	attackerApp := &v1beta2.BrokerApp{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "attacker-app",
 			Namespace: attackerNs,
-			Annotations: map[string]string{
-				// SECURITY: Manually set annotation to bypass selector
-				common.AppServiceAnnotation: svcNs + ":" + svcName,
+		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{ // SECURITY: Manually set to bypass selector
+				Name:      svcName,
+				Namespace: svcNs,
+				Secret:    "binding-secret",
 			},
 		},
 		Spec: v1beta2.BrokerAppSpec{
@@ -640,10 +671,10 @@ func TestBrokerServiceRejectsAppsFromPrometheusConfig(t *testing.T) {
 		WithScheme(scheme).
 		WithObjects(svc, validApp, attackerApp, opCASecret).
 		WithStatusSubresource(svc, validApp, attackerApp).
-		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(obj client.Object) []string {
+		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceBindingField, func(obj client.Object) []string {
 			app := obj.(*v1beta2.BrokerApp)
-			if val, ok := app.Annotations[common.AppServiceAnnotation]; ok {
-				return []string{val}
+			if app.Status.Service != nil {
+				return []string{app.Status.Service.Key()}
 			}
 			return nil
 		}).

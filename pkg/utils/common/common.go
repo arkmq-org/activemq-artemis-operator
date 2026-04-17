@@ -75,7 +75,7 @@ const (
 	CertRolesKeySuffix              = "cert-roles"
 	JaasRealm                       = "activemq"
 	HttpAuthenticatorRealm          = "http_server_authenticator"
-	AppServiceAnnotation            = "arkmq.org/app-service"
+	AppServiceBindingField          = "status.serviceBinding"
 	ProvisionedAppsAnnotation       = "arkmq.org/provisioned-apps"
 	BlockReconcileAnnotation        = "arkmq.org/block-reconcile"
 

@@ -187,18 +187,6 @@ spec:
             type: object
           status:
             properties:
-              binding:
-                description: |-
-                  LocalObjectReference contains enough information to let you locate the
-                  referenced object inside the same namespace.
-                properties:
-                  name:
-                    description: |-
-                      Name of the referent.
-                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                    type: string
-                type: object
-                x-kubernetes-map-type: atomic
               conditions:
                 description: |-
                   Current state of the resource
@@ -258,6 +246,26 @@ spec:
                   - type
                   type: object
                 type: array
+              service:
+                description: Service references the BrokerService this app is bound
+                  to and its binding secret
+                properties:
+                  name:
+                    description: Name of the BrokerService this app is bound to
+                    type: string
+                  namespace:
+                    description: Namespace of the BrokerService this app is bound
+                      to
+                    type: string
+                  secret:
+                    description: Secret is the name of the binding secret containing
+                      connection details
+                    type: string
+                required:
+                - name
+                - namespace
+                - secret
+                type: object
             type: object
         type: object
     served: true

@@ -223,8 +223,8 @@ func (reconciler *BrokerServiceInstanceReconciler) processAppSecrets() (err erro
 
 	// find all apps that select this service
 	apps := &broker.BrokerAppList{}
-	serviceKey := fmt.Sprintf("%s:%s", reconciler.instance.Namespace, reconciler.instance.Name)
-	if err = reconciler.Client.List(context.TODO(), apps, client.MatchingFields{common.AppServiceAnnotation: serviceKey}); err != nil {
+	key := reconciler.instance.Namespace + ":" + reconciler.instance.Name
+	if err = reconciler.Client.List(context.TODO(), apps, client.MatchingFields{common.AppServiceBindingField: key}); err != nil {
 		return err
 	}
 
@@ -235,7 +235,7 @@ func (reconciler *BrokerServiceInstanceReconciler) processAppSecrets() (err erro
 	validApps := make([]broker.BrokerApp, 0, len(apps.Items))
 
 	for _, app := range apps.Items {
-		valid, rejectionReason := reconciler.validateAppForProvisioning(&app, serviceKey)
+		valid, rejectionReason := reconciler.validateAppForProvisioning(&app, key)
 		if !valid {
 			// App failed validation - track it for user visibility
 			rejectedApps = append(rejectedApps, broker.RejectedApp{
@@ -402,9 +402,17 @@ func serviceName(service *broker.BrokerService) string {
 	return service.Namespace + "/" + service.Name
 }
 
+// getBindingValue returns the string value of a service binding, or "<none>" if nil.
+func getBindingValue(service *broker.BrokerServiceBindingStatus) string {
+	if service == nil {
+		return "<none>"
+	}
+	return service.Key()
+}
+
 // appMatchesSelector validates that an app matches this service's appSelectorExpression.
 // This is a security check to prevent apps from bypassing access control by manually
-// setting the AppServiceAnnotation.
+// setting the status.serviceBinding field.
 func (reconciler *BrokerServiceInstanceReconciler) appMatchesSelector(app *broker.BrokerApp) bool {
 	matches, err := appselector.Matches(app, reconciler.instance, reconciler.Client)
 	if err != nil {
@@ -432,7 +440,7 @@ func (reconciler *BrokerServiceInstanceReconciler) validateAppForProvisioning(ap
 			return false, "invalid label selector"
 		}
 		if !selector.Matches(labels.Set(reconciler.instance.Labels)) {
-			reconciler.log.Info("Skipping app that does not match service labels (annotation manually set?)",
+			reconciler.log.Info("Skipping app that does not match service labels (status.serviceBinding manually set?)",
 				"app", appName(app),
 				"service", serviceName(reconciler.instance),
 				"appSelector", app.Spec.ServiceSelector,
@@ -443,7 +451,7 @@ func (reconciler *BrokerServiceInstanceReconciler) validateAppForProvisioning(ap
 
 	// App matches CEL selector expression
 	if !reconciler.appMatchesSelector(app) {
-		reconciler.log.Info("Skipping app that does not match appSelectorExpression (annotation manually set?)",
+		reconciler.log.Info("Skipping app that does not match appSelectorExpression (status.serviceBinding manually set?)",
 			"app", appName(app),
 			"service", serviceName(reconciler.instance),
 			"expression", reconciler.instance.Spec.AppSelectorExpression)
@@ -484,7 +492,7 @@ func (reconciler *BrokerServiceInstanceReconciler) processService() error {
 }
 
 // appToServiceHandler handles BrokerApp events and enqueues the affected BrokerService(s).
-// On Update, it enqueues both the old and new service if the annotation changed.
+// On Update, it enqueues both the old and new service if the binding changed.
 type appToServiceHandler struct{}
 
 func (h *appToServiceHandler) Create(ctx context.Context, evt event.CreateEvent, q workqueue.RateLimitingInterface) {
@@ -494,22 +502,38 @@ func (h *appToServiceHandler) Create(ctx context.Context, evt event.CreateEvent,
 }
 
 func (h *appToServiceHandler) Update(ctx context.Context, evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
-	oldAnnotation, oldOk := evt.ObjectOld.GetAnnotations()[common.AppServiceAnnotation]
-	newAnnotation, newOk := evt.ObjectNew.GetAnnotations()[common.AppServiceAnnotation]
+	oldApp := evt.ObjectOld.(*broker.BrokerApp)
+	newApp := evt.ObjectNew.(*broker.BrokerApp)
 
-	// Enqueue old service if annotation existed
-	if oldOk {
-		if req := h.getServiceRequestFromAnnotation(oldAnnotation); req != nil {
-			q.Add(*req)
-		}
+	oldService := oldApp.Status.Service
+	newService := newApp.Status.Service
+
+	// Enqueue old service if binding existed
+	if oldService != nil {
+		q.Add(reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: oldService.Namespace,
+				Name:      oldService.Name,
+			},
+		})
 	}
 
-	// Enqueue new service if annotation exists and is different from old
-	if newOk && oldAnnotation != newAnnotation {
-		if req := h.getServiceRequestFromAnnotation(newAnnotation); req != nil {
-			q.Add(*req)
-		}
+	// Enqueue new service if binding exists and is different from old
+	if newService != nil && !sameService(oldService, newService) {
+		q.Add(reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: newService.Namespace,
+				Name:      newService.Name,
+			},
+		})
 	}
+}
+
+func sameService(a, b *broker.BrokerServiceBindingStatus) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return a.Namespace == b.Namespace && a.Name == b.Name
 }
 
 func (h *appToServiceHandler) Delete(ctx context.Context, evt event.DeleteEvent, q workqueue.RateLimitingInterface) {
@@ -525,19 +549,12 @@ func (h *appToServiceHandler) Generic(ctx context.Context, evt event.GenericEven
 }
 
 func (h *appToServiceHandler) getServiceRequest(obj client.Object) *reconcile.Request {
-	if annotation, ok := obj.GetAnnotations()[common.AppServiceAnnotation]; ok {
-		return h.getServiceRequestFromAnnotation(annotation)
-	}
-	return nil
-}
-
-func (h *appToServiceHandler) getServiceRequestFromAnnotation(annotation string) *reconcile.Request {
-	namespace, name, parsed := parseServiceAnnotation(annotation)
-	if parsed {
+	app := obj.(*broker.BrokerApp)
+	if app.Status.Service != nil {
 		return &reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Namespace: namespace,
-				Name:      name,
+				Namespace: app.Status.Service.Namespace,
+				Name:      app.Status.Service.Name,
 			},
 		}
 	}
@@ -547,13 +564,13 @@ func (h *appToServiceHandler) getServiceRequestFromAnnotation(annotation string)
 func (r *BrokerServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// Note: Namespace informer is set up in main.go for CEL evaluation
 
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &broker.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
+	// Index BrokerApp by status.service for efficient lookup
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &broker.BrokerApp{}, common.AppServiceBindingField, func(rawObj client.Object) []string {
 		app := rawObj.(*broker.BrokerApp)
-		val, ok := app.Annotations[common.AppServiceAnnotation]
-		if !ok {
-			return nil
+		if app.Status.Service != nil {
+			return []string{app.Status.Service.Key()}
 		}
-		return []string{val}
+		return nil
 	}); err != nil {
 		return err
 	}

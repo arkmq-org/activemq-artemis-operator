@@ -261,7 +261,7 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, app1Key, createdApp1)).Should(Succeed())
 				g.Expect(meta.IsStatusConditionTrue(createdApp1.Status.Conditions, broker.ReadyConditionType)).Should(BeTrue())
-				g.Expect(createdApp1.Status.Binding).ShouldNot(BeNil())
+				g.Expect(createdApp1.Status.Service).ShouldNot(BeNil())
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
 			app2Key := types.NamespacedName{Name: app2Name, Namespace: defaultNamespace}
@@ -269,7 +269,7 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, app2Key, createdApp2)).Should(Succeed())
 				g.Expect(meta.IsStatusConditionTrue(createdApp2.Status.Conditions, broker.ReadyConditionType)).Should(BeTrue())
-				g.Expect(createdApp2.Status.Binding).ShouldNot(BeNil())
+				g.Expect(createdApp2.Status.Service).ShouldNot(BeNil())
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
 			By("verifying both apps are in service's ProvisionedApps status")
@@ -477,10 +477,10 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, appKey, createdApp)).Should(Succeed())
 				g.Expect(meta.IsStatusConditionTrue(createdApp.Status.Conditions, broker.ReadyConditionType)).Should(BeTrue())
-				g.Expect(createdApp.Status.Binding).ShouldNot(BeNil())
+				g.Expect(createdApp.Status.Service).ShouldNot(BeNil())
 				// Binding secret name should contain service name
 				if verbose {
-					fmt.Printf("App binding secret: %s\n", createdApp.Status.Binding.Name)
+					fmt.Printf("App binding secret: %s\n", createdApp.Status.Service.Secret)
 				}
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
@@ -529,7 +529,7 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 				g.Expect(k8sClient.Get(ctx, appKey, createdApp)).Should(Succeed())
 				g.Expect(meta.IsStatusConditionTrue(createdApp.Status.Conditions, broker.ReadyConditionType)).Should(BeTrue())
 				// Binding should still exist
-				g.Expect(createdApp.Status.Binding).ShouldNot(BeNil())
+				g.Expect(createdApp.Status.Service).ShouldNot(BeNil())
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
 			By("cleanup")
@@ -673,7 +673,7 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 				g.Expect(k8sClient.Get(ctx, app1Key, createdApp1)).Should(Succeed())
 				g.Expect(meta.IsStatusConditionTrue(createdApp1.Status.Conditions, broker.ReadyConditionType)).Should(BeTrue())
 				if verbose {
-					fmt.Printf("App1 Ready, binding: %v\n", createdApp1.Status.Binding)
+					fmt.Printf("App1 Ready, binding: %v\n", createdApp1.Status.Service)
 				}
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
@@ -732,7 +732,7 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 				g.Expect(k8sClient.Get(ctx, app2Key, createdApp2)).Should(Succeed())
 				g.Expect(meta.IsStatusConditionTrue(createdApp2.Status.Conditions, broker.ReadyConditionType)).Should(BeTrue())
 				if verbose {
-					fmt.Printf("App2 Ready, binding: %v\n", createdApp2.Status.Binding)
+					fmt.Printf("App2 Ready, binding: %v\n", createdApp2.Status.Service)
 				}
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
@@ -747,14 +747,16 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 				g.Expect(createdService.Status.ProvisionedApps).Should(ContainElement(ContainSubstring(app2Name)))
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
-			By("verifying both apps have correct annotations")
-			expectedAnnotation := fmt.Sprintf("%s:%s", defaultNamespace, serviceName)
+			By("verifying both apps have correct status bindings")
+			expectedBinding := fmt.Sprintf("%s:%s", defaultNamespace, serviceName)
 
 			Expect(k8sClient.Get(ctx, app1Key, createdApp1)).Should(Succeed())
-			Expect(createdApp1.Annotations[common.AppServiceAnnotation]).Should(Equal(expectedAnnotation))
+			Expect(createdApp1.Status.Service).ShouldNot(BeNil())
+			Expect(fmt.Sprintf("%s:%s", createdApp1.Status.Service.Namespace, createdApp1.Status.Service.Name)).Should(Equal(expectedBinding))
 
 			Expect(k8sClient.Get(ctx, app2Key, createdApp2)).Should(Succeed())
-			Expect(createdApp2.Annotations[common.AppServiceAnnotation]).Should(Equal(expectedAnnotation))
+			Expect(createdApp2.Status.Service).ShouldNot(BeNil())
+			Expect(fmt.Sprintf("%s:%s", createdApp2.Status.Service.Namespace, createdApp2.Status.Service.Name)).Should(Equal(expectedBinding))
 
 			By("verifying capacity tracking across namespaces - third app should fail")
 			app3Name := "app-ns-test-too-big"
@@ -853,7 +855,7 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 				g.Expect(k8sClient.Get(ctx, app3Key, createdApp3)).Should(Succeed())
 				g.Expect(meta.IsStatusConditionTrue(createdApp3.Status.Conditions, broker.ReadyConditionType)).Should(BeTrue())
 				if verbose {
-					fmt.Printf("App3 now ready, binding: %v\n", createdApp3.Status.Binding)
+					fmt.Printf("App3 now ready, binding: %v\n", createdApp3.Status.Service)
 				}
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
@@ -974,7 +976,7 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 			app1Consumer := jobTemplate(
 				"app1-consumer",
 				defaultNamespace,
-				createdApp1.Status.Binding.Name,
+				createdApp1.Status.Service.Secret,
 				app1CertName,
 				[]string{"/bin/sh", "-c", "exec java -classpath /opt/amq/lib/*:/opt/amq/lib/extra/* org.apache.activemq.artemis.cli.Artemis consumer --protocol=AMQP --url " + app1ServiceUrl + " --message-count=1 --durable --clientID=app1-client --subscriptionName=app1-shared-queue --destination topic://shared.address;"},
 			)
@@ -984,7 +986,7 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 			app2Consumer := jobTemplate(
 				"app2-consumer",
 				otherNamespace,
-				createdApp2.Status.Binding.Name,
+				createdApp2.Status.Service.Secret,
 				app2CertName,
 				[]string{"/bin/sh", "-c", "exec java -classpath /opt/amq/lib/*:/opt/amq/lib/extra/* org.apache.activemq.artemis.cli.Artemis consumer --protocol=AMQP --url " + app2ServiceUrl + " --message-count=1 --durable --clientID=app2-client --subscriptionName=app2-shared-queue --destination topic://shared.address;"},
 			)
@@ -995,7 +997,7 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 			app3Producer := jobTemplate(
 				"app3-producer",
 				defaultNamespace,
-				createdApp3.Status.Binding.Name,
+				createdApp3.Status.Service.Secret,
 				app3CertName,
 				[]string{"/bin/sh", "-c", "exec java -classpath /opt/amq/lib/*:/opt/amq/lib/extra/* org.apache.activemq.artemis.cli.Artemis producer --protocol=AMQP --url " + app3ServiceUrl + " --message-count=1 --destination topic://shared.address;"},
 			)

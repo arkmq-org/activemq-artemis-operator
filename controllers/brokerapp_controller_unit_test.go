@@ -97,16 +97,18 @@ func TestSimpleReconcile(t *testing.T) {
 	err = cl.Get(context.TODO(), req.NamespacedName, updatedApp)
 	assert.NoError(t, err)
 
-	expectedAnnotation := ns + ":" + svcName
-	assert.Equal(t, expectedAnnotation, updatedApp.Annotations[common.AppServiceAnnotation])
+	// Verify Service binding
+	assert.NotNil(t, updatedApp.Status.Service)
+	assert.Equal(t, svcName, updatedApp.Status.Service.Name)
+	assert.Equal(t, ns, updatedApp.Status.Service.Namespace)
+	assert.NotEmpty(t, updatedApp.Status.Service.Secret)
 
 	// Verify Status
 	assert.False(t, meta.IsStatusConditionTrue(updatedApp.Status.Conditions, v1beta2.DeployedConditionType))
 	assert.False(t, meta.IsStatusConditionTrue(updatedApp.Status.Conditions, v1beta2.ReadyConditionType))
-	assert.NotNil(t, updatedApp.Status.Binding)
 
 	bindingSecret := &corev1.Secret{}
-	err = cl.Get(context.TODO(), types.NamespacedName{Name: updatedApp.Status.Binding.Name, Namespace: ns}, bindingSecret)
+	err = cl.Get(context.TODO(), types.NamespacedName{Name: updatedApp.Status.Service.Secret, Namespace: ns}, bindingSecret)
 	assert.NoError(t, err)
 
 	assert.Equal(t, fmt.Sprintf("%s.%s.svc.%s", svcName, ns, common.GetClusterDomain()), string(bindingSecret.Data["host"]))
@@ -126,7 +128,7 @@ func TestSimpleReconcile(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, meta.IsStatusConditionTrue(updatedApp.Status.Conditions, v1beta2.DeployedConditionType))
 	assert.True(t, meta.IsStatusConditionTrue(updatedApp.Status.Conditions, v1beta2.ReadyConditionType))
-	assert.NotNil(t, updatedApp.Status.Binding)
+	assert.NotNil(t, updatedApp.Status.Service)
 
 }
 
@@ -231,10 +233,10 @@ func TestReconcileValidConditionTransition(t *testing.T) {
 		WithScheme(scheme).
 		WithObjects(namespace, svc, app).
 		WithStatusSubresource(app).
-		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(obj client.Object) []string {
+		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceBindingField, func(obj client.Object) []string {
 			app := obj.(*v1beta2.BrokerApp)
-			if val, ok := app.Annotations[common.AppServiceAnnotation]; ok {
-				return []string{val}
+			if app.Status.Service != nil {
+				return []string{app.Status.Service.Key()}
 			}
 			return nil
 		}).
@@ -715,18 +717,22 @@ func TestReconcileMatchedServiceNotFound(t *testing.T) {
 		},
 	}
 
-	// Create BrokerApp with annotation pointing to the service
+	// Create BrokerApp with status binding pointing to the service
 	app := &v1beta2.BrokerApp{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      appName,
 			Namespace: ns,
-			Annotations: map[string]string{
-				common.AppServiceAnnotation: ns + ":" + svcName,
-			},
 		},
 		Spec: v1beta2.BrokerAppSpec{
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
+			},
+		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{
+				Name:      svcName,
+				Namespace: ns,
+				Secret:    "binding-secret",
 			},
 		},
 	}

@@ -67,15 +67,19 @@ func TestReconcilePortClashBetweenApps(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      app1Name,
 			Namespace: ns,
-			Annotations: map[string]string{
-				common.AppServiceAnnotation: ns + ":" + svcName,
-			},
 		},
 		Spec: v1beta2.BrokerAppSpec{
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
 			Acceptor: v1beta2.AppAcceptorType{Port: conflictingPort},
+		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{
+				Name:      svcName,
+				Namespace: ns,
+				Secret:    "binding-secret",
+			},
 		},
 	}
 
@@ -169,15 +173,19 @@ func TestReconcileNoPortClashDifferentPorts(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      app1Name,
 			Namespace: ns,
-			Annotations: map[string]string{
-				common.AppServiceAnnotation: ns + ":" + svcName,
-			},
 		},
 		Spec: v1beta2.BrokerAppSpec{
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
 			Acceptor: v1beta2.AppAcceptorType{Port: port1},
+		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{
+				Name:      svcName,
+				Namespace: ns,
+				Secret:    "binding-secret",
+			},
 		},
 	}
 
@@ -200,10 +208,10 @@ func TestReconcileNoPortClashDifferentPorts(t *testing.T) {
 		WithScheme(scheme).
 		WithObjects(svc, app1, app2, nsObj).
 		WithStatusSubresource(app1, app2, svc).
-		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(obj client.Object) []string {
+		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceBindingField, func(obj client.Object) []string {
 			app := obj.(*v1beta2.BrokerApp)
-			if val, ok := app.Annotations[common.AppServiceAnnotation]; ok {
-				return []string{val}
+			if app.Status.Service != nil {
+				return []string{app.Status.Service.Key()}
 			}
 			return nil
 		}).
@@ -272,15 +280,19 @@ func TestReconcilePortClashCrossNamespace(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			Name:      app1Name,
 			Namespace: ns1,
-			Annotations: map[string]string{
-				common.AppServiceAnnotation: ns1 + ":" + svcName,
-			},
 		},
 		Spec: v1beta2.BrokerAppSpec{
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
 			Acceptor: v1beta2.AppAcceptorType{Port: conflictingPort},
+		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{
+				Name:      svcName,
+				Namespace: ns1,
+				Secret:    "binding-secret",
+			},
 		},
 	}
 
@@ -303,10 +315,10 @@ func TestReconcilePortClashCrossNamespace(t *testing.T) {
 		WithScheme(scheme).
 		WithObjects(svc, app1, app2, ns1Obj, ns2Obj).
 		WithStatusSubresource(app1, app2, svc).
-		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(obj client.Object) []string {
+		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceBindingField, func(obj client.Object) []string {
 			app := obj.(*v1beta2.BrokerApp)
-			if val, ok := app.Annotations[common.AppServiceAnnotation]; ok {
-				return []string{val}
+			if app.Status.Service != nil {
+				return []string{app.Status.Service.Key()}
 			}
 			return nil
 		}).

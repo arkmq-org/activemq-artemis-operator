@@ -61,6 +61,23 @@ type AppCapabilityType struct {
 	SubscriberOf []AppAddressType `json:"subscriberOf,omitempty"`
 }
 
+// BrokerServiceBindingStatus captures the binding details between a BrokerApp and its provisioned BrokerService
+type BrokerServiceBindingStatus struct {
+	// Name of the BrokerService this app is bound to
+	Name string `json:"name"`
+
+	// Namespace of the BrokerService this app is bound to
+	Namespace string `json:"namespace"`
+
+	// Secret is the name of the binding secret containing connection details
+	Secret string `json:"secret"`
+}
+
+// Key returns the field indexer key for this service binding (namespace:name format)
+func (s *BrokerServiceBindingStatus) Key() string {
+	return s.Namespace + ":" + s.Name
+}
+
 type BrokerAppStatus struct {
 
 	// Current state of the resource
@@ -71,7 +88,9 @@ type BrokerAppStatus struct {
 	//+operator-sdk:csv:customresourcedefinitions:type=status,displayName="Conditions",xDescriptors="urn:alm:descriptor:io.kubernetes.conditions"
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,2,rep,name=conditions"`
 
-	Binding *corev1.LocalObjectReference `json:"binding,omitempty"`
+	// Service references the BrokerService this app is bound to and its binding secret
+	//+optional
+	Service *BrokerServiceBindingStatus `json:"service,omitempty"`
 }
 
 //+kubebuilder:object:root=true

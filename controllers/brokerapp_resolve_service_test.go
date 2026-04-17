@@ -15,16 +15,14 @@ limitations under the License.
 package controllers
 
 import (
-	"context"
+	"fmt"
 	"testing"
 
 	broker "github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -38,7 +36,7 @@ func TestResolveBrokerService(t *testing.T) {
 		app                    *broker.BrokerApp
 		services               []broker.BrokerService
 		expectedServiceName    string
-		expectedAnnotation     string
+		expectedBinding        string
 		expectedError          bool
 		expectedValidCondition metav1.ConditionStatus
 	}{
@@ -54,6 +52,13 @@ func TestResolveBrokerService(t *testing.T) {
 						MatchLabels: map[string]string{"env": "dev"},
 					},
 				},
+				Status: broker.BrokerAppStatus{
+					Service: &broker.BrokerServiceBindingStatus{
+						Name:      "service1",
+						Namespace: "test",
+						Secret:    "binding-secret",
+					},
+				},
 			},
 			services: []broker.BrokerService{
 				{
@@ -65,7 +70,7 @@ func TestResolveBrokerService(t *testing.T) {
 				},
 			},
 			expectedServiceName:    "service1",
-			expectedAnnotation:     "test:service1",
+			expectedBinding:        "test:service1",
 			expectedError:          false,
 			expectedValidCondition: metav1.ConditionTrue,
 		},
@@ -92,7 +97,7 @@ func TestResolveBrokerService(t *testing.T) {
 				},
 			},
 			expectedServiceName:    "",
-			expectedAnnotation:     "",
+			expectedBinding:        "",
 			expectedError:          true,
 			expectedValidCondition: metav1.ConditionTrue, // Selector syntax is valid, runtime issue handled in Deployed
 		},
@@ -102,13 +107,17 @@ func TestResolveBrokerService(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-app",
 					Namespace: "test",
-					Annotations: map[string]string{
-						common.AppServiceAnnotation: "test:service1",
-					},
 				},
 				Spec: broker.BrokerAppSpec{
 					ServiceSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{"env": "dev"},
+					},
+				},
+				Status: broker.BrokerAppStatus{
+					Service: &broker.BrokerServiceBindingStatus{
+						Name:      "service1",
+						Namespace: "test",
+						Secret:    "binding-secret",
 					},
 				},
 			},
@@ -122,7 +131,7 @@ func TestResolveBrokerService(t *testing.T) {
 				},
 			},
 			expectedServiceName:    "service1",
-			expectedAnnotation:     "test:service1",
+			expectedBinding:        "test:service1",
 			expectedError:          false,
 			expectedValidCondition: metav1.ConditionTrue,
 		},
@@ -132,13 +141,17 @@ func TestResolveBrokerService(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-app",
 					Namespace: "test",
-					Annotations: map[string]string{
-						common.AppServiceAnnotation: "test:service1", // Previously bound to service1
-					},
 				},
 				Spec: broker.BrokerAppSpec{
 					ServiceSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{"env": "prod"}, // Now selecting prod
+					},
+				},
+				Status: broker.BrokerAppStatus{
+					Service: &broker.BrokerServiceBindingStatus{
+						Name:      "service1",
+						Namespace: "test",
+						Secret:    "binding-secret",
 					},
 				},
 			},
@@ -159,7 +172,7 @@ func TestResolveBrokerService(t *testing.T) {
 				},
 			},
 			expectedServiceName:    "service2",
-			expectedAnnotation:     "test:service2", // Should reassign to service2
+			expectedBinding:        "test:service2", // Should reassign to service2
 			expectedError:          false,
 			expectedValidCondition: metav1.ConditionTrue,
 		},
@@ -169,19 +182,23 @@ func TestResolveBrokerService(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-app",
 					Namespace: "test",
-					Annotations: map[string]string{
-						common.AppServiceAnnotation: "test:service1",
-					},
 				},
 				Spec: broker.BrokerAppSpec{
 					ServiceSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{"env": "dev"},
 					},
 				},
+				Status: broker.BrokerAppStatus{
+					Service: &broker.BrokerServiceBindingStatus{
+						Name:      "service1",
+						Namespace: "test",
+						Secret:    "binding-secret",
+					},
+				},
 			},
 			services:               []broker.BrokerService{}, // Service deleted
 			expectedServiceName:    "",
-			expectedAnnotation:     "test:service1", // Annotation preserved
+			expectedBinding:        "test:service1", // Annotation preserved
 			expectedError:          false,           // No error, just no service available
 			expectedValidCondition: metav1.ConditionTrue,
 		},
@@ -216,7 +233,7 @@ func TestResolveBrokerService(t *testing.T) {
 					},
 				},
 				instance: tt.app,
-				status:   &broker.BrokerAppStatus{},
+				status:   tt.app.Status.DeepCopy(),
 			}
 
 			// Call resolveBrokerService
@@ -241,17 +258,15 @@ func TestResolveBrokerService(t *testing.T) {
 				}
 			}
 
-			// Check annotation was updated correctly
-			if tt.expectedAnnotation != "" {
-				// Fetch the updated app from the fake client
-				updatedApp := &broker.BrokerApp{}
-				key := types.NamespacedName{Name: tt.app.Name, Namespace: tt.app.Namespace}
-				if err := fakeClient.Get(context.TODO(), key, updatedApp); err != nil {
-					t.Fatalf("failed to get updated app: %v", err)
+			// Check status binding was updated correctly
+			if tt.expectedBinding != "" {
+				// Check the reconciler's status (it writes to a copy, not the instance)
+				var actualBinding string
+				if reconciler.status.Service != nil {
+					actualBinding = fmt.Sprintf("%s:%s", reconciler.status.Service.Namespace, reconciler.status.Service.Name)
 				}
-				actualAnnotation := updatedApp.Annotations[common.AppServiceAnnotation]
-				if actualAnnotation != tt.expectedAnnotation {
-					t.Errorf("expected annotation %s, got %s", tt.expectedAnnotation, actualAnnotation)
+				if actualBinding != tt.expectedBinding {
+					t.Errorf("expected annotation %s, got %s", tt.expectedBinding, actualBinding)
 				}
 			}
 

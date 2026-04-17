@@ -38,12 +38,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// setupBrokerAppIndexer adds the AppServiceAnnotation field indexer to avoid duplication in tests
+// setupBrokerAppIndexer adds the status.service field indexer to avoid duplication in tests
 func setupBrokerAppIndexer(builder *fake.ClientBuilder) *fake.ClientBuilder {
-	return builder.WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(obj client.Object) []string {
+	return builder.WithIndex(&v1beta2.BrokerApp{}, common.AppServiceBindingField, func(obj client.Object) []string {
 		app := obj.(*v1beta2.BrokerApp)
-		if val, ok := app.Annotations[common.AppServiceAnnotation]; ok {
-			return []string{val}
+		if app.Status.Service != nil {
+			return []string{app.Status.Service.Key()}
 		}
 		return nil
 	})
@@ -99,25 +99,28 @@ func TestBrokerServiceReconcileWithAppMove(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      appName,
 			Namespace: ns,
-			Annotations: map[string]string{
-				common.AppServiceAnnotation: ns + ":" + s1Name,
-			},
-			UID: types.UID("uid-app"),
+			UID:       types.UID("uid-app"),
 		},
 		Spec: v1beta2.BrokerAppSpec{
 			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
+		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{
+				Name:      s1Name,
+				Namespace: ns,
+				Secret:    "binding-secret",
+			},
 		},
 	}
 
 	// Setup fake client with indexer
 	builder := fake.NewClientBuilder().WithScheme(scheme).WithObjects(namespace, oc, s1, s2, app).WithStatusSubresource(s1, s2, app)
-	builder.WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
+	builder.WithIndex(&v1beta2.BrokerApp{}, common.AppServiceBindingField, func(rawObj client.Object) []string {
 		app := rawObj.(*v1beta2.BrokerApp)
-		val, ok := app.Annotations[common.AppServiceAnnotation]
-		if !ok {
-			return nil
+		if app.Status.Service != nil {
+			return []string{app.Status.Service.Key()}
 		}
-		return []string{val}
+		return nil
 	})
 
 	cl := builder.Build()
@@ -140,8 +143,12 @@ func TestBrokerServiceReconcileWithAppMove(t *testing.T) {
 	// Move App to S2
 	err = cl.Get(context.TODO(), types.NamespacedName{Name: appName, Namespace: ns}, app)
 	assert.NoError(t, err)
-	app.Annotations[common.AppServiceAnnotation] = ns + ":" + s2Name
-	assert.NoError(t, cl.Update(context.TODO(), app))
+	app.Status.Service = &v1beta2.BrokerServiceBindingStatus{
+		Name:      s2Name,
+		Namespace: ns,
+		Secret:    "app-binding-secret",
+	}
+	assert.NoError(t, cl.Status().Update(context.TODO(), app))
 
 	// Reconcile S1 (should remove app)
 	_, err = r.Reconcile(context.TODO(), reqS1)
@@ -199,13 +206,12 @@ func TestBrokerServiceReconcileErrorPropagation(t *testing.T) {
 
 	// Setup fake client with indexer
 	builder := fake.NewClientBuilder().WithScheme(scheme).WithObjects(s1).WithStatusSubresource(s1).WithInterceptorFuncs(interceptorFuncs)
-	builder.WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
+	builder.WithIndex(&v1beta2.BrokerApp{}, common.AppServiceBindingField, func(rawObj client.Object) []string {
 		app := rawObj.(*v1beta2.BrokerApp)
-		val, ok := app.Annotations[common.AppServiceAnnotation]
-		if !ok {
-			return nil
+		if app.Status.Service != nil {
+			return []string{app.Status.Service.Key()}
 		}
-		return []string{val}
+		return nil
 	})
 
 	cl := builder.Build()
@@ -259,7 +265,7 @@ func TestBrokerServiceReconcileStatusUpdateFailure(t *testing.T) {
 
 	// Setup fake client with indexer
 	builder := fake.NewClientBuilder().WithScheme(scheme).WithObjects(s1).WithStatusSubresource(s1).WithInterceptorFuncs(interceptorFuncs)
-	builder.WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
+	builder.WithIndex(&v1beta2.BrokerApp{}, common.AppServiceBindingField, func(rawObj client.Object) []string {
 		return nil
 	})
 
@@ -298,13 +304,17 @@ func TestBrokerServiceReconcileRequiresIndex(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      appName,
 			Namespace: ns,
-			Annotations: map[string]string{
-				common.AppServiceAnnotation: ns + ":" + s1Name,
-			},
-			UID: types.UID("uid-app"),
+			UID:       types.UID("uid-app"),
 		},
 		Spec: v1beta2.BrokerAppSpec{
 			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
+		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{
+				Name:      s1Name,
+				Namespace: ns,
+				Secret:    "binding-secret",
+			},
 		},
 	}
 
@@ -345,13 +355,12 @@ func TestReconcileDeployedConditionTransition(t *testing.T) {
 
 	// Setup fake client with indexer required by controller
 	builder := fake.NewClientBuilder().WithScheme(scheme).WithObjects(svc).WithStatusSubresource(svc, &v1beta2.Broker{})
-	builder.WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
+	builder.WithIndex(&v1beta2.BrokerApp{}, common.AppServiceBindingField, func(rawObj client.Object) []string {
 		app := rawObj.(*v1beta2.BrokerApp)
-		val, ok := app.Annotations[common.AppServiceAnnotation]
-		if !ok {
-			return nil
+		if app.Status.Service != nil {
+			return []string{app.Status.Service.Key()}
 		}
-		return []string{val}
+		return nil
 	})
 	cl := builder.Build()
 
@@ -457,12 +466,16 @@ func TestBrokerServiceReconcileStatusAppliedApps(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      appName,
 			Namespace: ns,
-			Annotations: map[string]string{
-				common.AppServiceAnnotation: fmt.Sprintf("%s:%s", ns, svcName),
-			},
 		},
 		Spec: v1beta2.BrokerAppSpec{
 			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
+		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{
+				Name:      svcName,
+				Namespace: ns,
+				Secret:    "binding-secret",
+			},
 		},
 	}
 
@@ -471,13 +484,12 @@ func TestBrokerServiceReconcileStatusAppliedApps(t *testing.T) {
 		WithScheme(scheme).
 		WithObjects(namespace, oc, svc, app).
 		WithStatusSubresource(svc, &v1beta2.Broker{}).
-		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
+		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceBindingField, func(rawObj client.Object) []string {
 			app := rawObj.(*v1beta2.BrokerApp)
-			val, ok := app.Annotations[common.AppServiceAnnotation]
-			if !ok {
-				return nil
+			if app.Status.Service != nil {
+				return []string{app.Status.Service.Key()}
 			}
-			return []string{val}
+			return nil
 		}).Build()
 
 	// Create Reconciler
@@ -583,12 +595,16 @@ func TestBrokerServiceReconcileStatusAppliedAppsIncremental(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      app1Name,
 			Namespace: ns,
-			Annotations: map[string]string{
-				common.AppServiceAnnotation: fmt.Sprintf("%s:%s", ns, svcName),
-			},
 		},
 		Spec: v1beta2.BrokerAppSpec{
 			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
+		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{
+				Name:      svcName,
+				Namespace: ns,
+				Secret:    "binding-secret",
+			},
 		},
 	}
 
@@ -597,13 +613,12 @@ func TestBrokerServiceReconcileStatusAppliedAppsIncremental(t *testing.T) {
 		WithScheme(scheme).
 		WithObjects(namespace, oc, svc, app1).
 		WithStatusSubresource(svc, &v1beta2.Broker{}).
-		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
+		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceBindingField, func(rawObj client.Object) []string {
 			app := rawObj.(*v1beta2.BrokerApp)
-			val, ok := app.Annotations[common.AppServiceAnnotation]
-			if !ok {
-				return nil
+			if app.Status.Service != nil {
+				return []string{app.Status.Service.Key()}
 			}
-			return []string{val}
+			return nil
 		}).Build()
 
 	// Create Reconciler
@@ -656,12 +671,16 @@ func TestBrokerServiceReconcileStatusAppliedAppsIncremental(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      app2Name,
 			Namespace: ns,
-			Annotations: map[string]string{
-				common.AppServiceAnnotation: fmt.Sprintf("%s:%s", ns, svcName),
-			},
 		},
 		Spec: v1beta2.BrokerAppSpec{
 			Acceptor: v1beta2.AppAcceptorType{Port: 61617},
+		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{
+				Name:      svcName,
+				Namespace: ns,
+				Secret:    "binding-secret",
+			},
 		},
 	}
 	err = cl.Create(context.TODO(), app2)
@@ -734,13 +753,12 @@ func TestBrokerServiceReconcileAppsProvisionedCondition(t *testing.T) {
 		WithScheme(scheme).
 		WithObjects(svc).
 		WithStatusSubresource(svc, &v1beta2.Broker{}).
-		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
+		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceBindingField, func(rawObj client.Object) []string {
 			app := rawObj.(*v1beta2.BrokerApp)
-			val, ok := app.Annotations[common.AppServiceAnnotation]
-			if !ok {
-				return nil
+			if app.Status.Service != nil {
+				return []string{app.Status.Service.Key()}
 			}
-			return []string{val}
+			return nil
 		}).
 		Build()
 
@@ -859,9 +877,6 @@ func TestBrokerServiceReconcilePrometheusOverrideSecret(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      appName,
 			Namespace: ns,
-			Annotations: map[string]string{
-				common.AppServiceAnnotation: fmt.Sprintf("%s:%s", ns, svcName),
-			},
 		},
 		Spec: v1beta2.BrokerAppSpec{
 			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
@@ -878,6 +893,13 @@ func TestBrokerServiceReconcilePrometheusOverrideSecret(t *testing.T) {
 				},
 			},
 		},
+		Status: v1beta2.BrokerAppStatus{
+			Service: &v1beta2.BrokerServiceBindingStatus{
+				Name:      svcName,
+				Namespace: ns,
+				Secret:    "binding-secret",
+			},
+		},
 	}
 
 	// Setup fake client
@@ -885,13 +907,12 @@ func TestBrokerServiceReconcilePrometheusOverrideSecret(t *testing.T) {
 		WithScheme(scheme).
 		WithObjects(namespace, oc, svc, app).
 		WithStatusSubresource(svc, &v1beta2.Broker{}).
-		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
+		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceBindingField, func(rawObj client.Object) []string {
 			app := rawObj.(*v1beta2.BrokerApp)
-			val, ok := app.Annotations[common.AppServiceAnnotation]
-			if !ok {
-				return nil
+			if app.Status.Service != nil {
+				return []string{app.Status.Service.Key()}
 			}
-			return []string{val}
+			return nil
 		}).Build()
 
 	// Create Reconciler
@@ -975,13 +996,12 @@ func TestBrokerServiceReconcilePrometheusOverrideNoApps(t *testing.T) {
 		WithScheme(scheme).
 		WithObjects(namespace, oc, svc).
 		WithStatusSubresource(svc, &v1beta2.Broker{}).
-		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceAnnotation, func(rawObj client.Object) []string {
+		WithIndex(&v1beta2.BrokerApp{}, common.AppServiceBindingField, func(rawObj client.Object) []string {
 			app := rawObj.(*v1beta2.BrokerApp)
-			val, ok := app.Annotations[common.AppServiceAnnotation]
-			if !ok {
-				return nil
+			if app.Status.Service != nil {
+				return []string{app.Status.Service.Key()}
 			}
-			return []string{val}
+			return nil
 		}).Build()
 
 	// Create Reconciler
