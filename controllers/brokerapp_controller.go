@@ -37,6 +37,7 @@ import (
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -618,5 +619,9 @@ func (r *BrokerAppReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&broker.BrokerApp{}).
 		Owns(&corev1.Secret{}).
 		Watches(&broker.BrokerService{}, r.enqueueAppsForService()).
+		WithOptions(controller.Options{
+			// capacity allocation requires serial processing
+			MaxConcurrentReconciles: 1,
+		}).
 		Complete(r)
 }
