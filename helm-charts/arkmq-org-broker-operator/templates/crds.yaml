@@ -8994,9 +8994,9 @@ metadata:
 {{- if .Values.crds.keep }}
     helm.sh/resource-policy: keep
 {{- end }}
-  name: brokers.arkmq.org
+  name: brokers.broker.arkmq.org
 spec:
-  group: arkmq.org
+  group: broker.arkmq.org
   names:
     kind: Broker
     listKind: BrokerList
@@ -13685,9 +13685,9 @@ metadata:
 {{- if .Values.crds.keep }}
     helm.sh/resource-policy: keep
 {{- end }}
-  name: brokerapps.arkmq.org
+  name: brokerapps.broker.arkmq.org
 spec:
-  group: arkmq.org
+  group: broker.arkmq.org
   names:
     kind: BrokerApp
     listKind: BrokerAppList
@@ -13951,9 +13951,9 @@ metadata:
 {{- if .Values.crds.keep }}
     helm.sh/resource-policy: keep
 {{- end }}
-  name: brokerservices.arkmq.org
+  name: brokerservices.broker.arkmq.org
 spec:
-  group: arkmq.org
+  group: broker.arkmq.org
   names:
     kind: BrokerService
     listKind: BrokerServiceList

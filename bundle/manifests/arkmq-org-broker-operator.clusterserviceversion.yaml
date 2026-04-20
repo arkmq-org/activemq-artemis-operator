@@ -5,83 +5,6 @@ metadata:
     alm-examples: |-
       [
         {
-          "apiVersion": "arkmq.org/v1beta2",
-          "kind": "Broker",
-          "metadata": {
-            "name": "ex-broker"
-          },
-          "spec": {
-            "deploymentPlan": {
-              "image": "placeholder",
-              "jolokiaAgentEnabled": false,
-              "journalType": "nio",
-              "managementRBACEnabled": true,
-              "messageMigration": false,
-              "persistenceEnabled": false,
-              "requireLogin": false,
-              "size": 2
-            }
-          },
-          "status": {
-            "conditions": []
-          }
-        },
-        {
-          "apiVersion": "arkmq.org/v1beta2",
-          "kind": "BrokerApp",
-          "metadata": {
-            "name": "wq-app"
-          },
-          "spec": {
-            "acceptor": {
-              "port": 61616
-            },
-            "capabilities": [
-              {
-                "producerOf": [
-                  {
-                    "address": "APP.JOBS"
-                  }
-                ]
-              }
-            ],
-            "selector": {
-              "matchLabels": {
-                "forWorkQueue": "true"
-              }
-            }
-          },
-          "status": {
-            "conditions": []
-          }
-        },
-        {
-          "apiVersion": "arkmq.org/v1beta2",
-          "kind": "BrokerService",
-          "metadata": {
-            "labels": {
-              "forWorkQueue": "true"
-            },
-            "name": "ex-as-wq"
-          },
-          "spec": {
-            "env": [
-              {
-                "name": "JAVA_ARGS_APPEND",
-                "value": "-Dlog4j2.level=INFO"
-              }
-            ],
-            "resources": {
-              "limits": {
-                "memory": "1Gi"
-              }
-            }
-          },
-          "status": {
-            "conditions": []
-          }
-        },
-        {
           "apiVersion": "broker.amq.io/v1alpha1",
           "kind": "ActiveMQArtemisSecurity",
           "metadata": {
@@ -339,6 +262,83 @@ metadata:
             "deploymentPlan": {
               "image": "placeholder",
               "size": 2
+            }
+          },
+          "status": {
+            "conditions": []
+          }
+        },
+        {
+          "apiVersion": "broker.arkmq.org/v1beta2",
+          "kind": "Broker",
+          "metadata": {
+            "name": "ex-broker"
+          },
+          "spec": {
+            "deploymentPlan": {
+              "image": "placeholder",
+              "jolokiaAgentEnabled": false,
+              "journalType": "nio",
+              "managementRBACEnabled": true,
+              "messageMigration": false,
+              "persistenceEnabled": false,
+              "requireLogin": false,
+              "size": 2
+            }
+          },
+          "status": {
+            "conditions": []
+          }
+        },
+        {
+          "apiVersion": "broker.arkmq.org/v1beta2",
+          "kind": "BrokerApp",
+          "metadata": {
+            "name": "wq-app"
+          },
+          "spec": {
+            "acceptor": {
+              "port": 61616
+            },
+            "capabilities": [
+              {
+                "producerOf": [
+                  {
+                    "address": "APP.JOBS"
+                  }
+                ]
+              }
+            ],
+            "selector": {
+              "matchLabels": {
+                "forWorkQueue": "true"
+              }
+            }
+          },
+          "status": {
+            "conditions": []
+          }
+        },
+        {
+          "apiVersion": "broker.arkmq.org/v1beta2",
+          "kind": "BrokerService",
+          "metadata": {
+            "labels": {
+              "forWorkQueue": "true"
+            },
+            "name": "ex-as-wq"
+          },
+          "spec": {
+            "env": [
+              {
+                "name": "JAVA_ARGS_APPEND",
+                "value": "-Dlog4j2.level=INFO"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "memory": "1Gi"
+              }
             }
           },
           "status": {
@@ -5624,7 +5624,7 @@ spec:
     - description: Describes the messaging requirements of an application
       displayName: Broker App
       kind: BrokerApp
-      name: brokerapps.arkmq.org
+      name: brokerapps.broker.arkmq.org
       resources:
       - kind: Secret
         name: ""
@@ -5650,7 +5650,7 @@ spec:
     - description: A stateful deployment of one or more brokers
       displayName: Broker
       kind: Broker
-      name: brokers.arkmq.org
+      name: brokers.broker.arkmq.org
       resources:
       - kind: ConfigMap
         name: ""
@@ -6709,7 +6709,7 @@ spec:
     - description: Provides a broker service
       displayName: Broker Service
       kind: BrokerService
-      name: brokerservices.arkmq.org
+      name: brokerservices.broker.arkmq.org
       resources:
       - kind: Broker
         name: ""
@@ -7064,45 +7064,6 @@ spec:
           verbs:
           - update
         - apiGroups:
-          - arkmq.org
-          resources:
-          - brokerapps
-          - brokers
-          - brokerservices
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - arkmq.org
-          resources:
-          - brokerapps/status
-          verbs:
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - arkmq.org
-          resources:
-          - brokers/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - arkmq.org
-          resources:
-          - brokers/status
-          - brokerservices/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
           - broker.amq.io
           resources:
           - activemqartemisaddresses
@@ -7144,6 +7105,45 @@ spec:
           verbs:
           - get
           - list
+        - apiGroups:
+          - broker.arkmq.org
+          resources:
+          - brokerapps
+          - brokers
+          - brokerservices
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - broker.arkmq.org
+          resources:
+          - brokerapps/status
+          verbs:
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - broker.arkmq.org
+          resources:
+          - brokers/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - broker.arkmq.org
+          resources:
+          - brokers/status
+          - brokerservices/status
+          verbs:
+          - get
+          - patch
+          - update
         - apiGroups:
           - monitoring.coreos.com
           resources:

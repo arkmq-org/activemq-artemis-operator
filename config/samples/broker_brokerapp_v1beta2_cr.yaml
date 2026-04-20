@@ -1,4 +1,4 @@
-apiVersion: arkmq.org/v1beta2
+apiVersion: broker.arkmq.org/v1beta2
 kind: BrokerApp
 metadata:
   name: wq-app

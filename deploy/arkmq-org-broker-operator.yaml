@@ -8985,9 +8985,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.16.5
-  name: brokerapps.arkmq.org
+  name: brokerapps.broker.arkmq.org
 spec:
-  group: arkmq.org
+  group: broker.arkmq.org
   names:
     kind: BrokerApp
     listKind: BrokerAppList
@@ -9248,9 +9248,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.16.5
-  name: brokers.arkmq.org
+  name: brokers.broker.arkmq.org
 spec:
-  group: arkmq.org
+  group: broker.arkmq.org
   names:
     kind: Broker
     listKind: BrokerList
@@ -13936,9 +13936,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.16.5
-  name: brokerservices.arkmq.org
+  name: brokerservices.broker.arkmq.org
 spec:
-  group: arkmq.org
+  group: broker.arkmq.org
   names:
     kind: BrokerService
     listKind: BrokerServiceList
@@ -14335,45 +14335,6 @@ rules:
   verbs:
   - update
 - apiGroups:
-  - arkmq.org
-  resources:
-  - brokerapps
-  - brokers
-  - brokerservices
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - arkmq.org
-  resources:
-  - brokerapps/status
-  verbs:
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - arkmq.org
-  resources:
-  - brokers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - arkmq.org
-  resources:
-  - brokers/status
-  - brokerservices/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - broker.amq.io
   resources:
   - activemqartemisaddresses
@@ -14415,6 +14376,45 @@ rules:
   verbs:
   - get
   - list
+- apiGroups:
+  - broker.arkmq.org
+  resources:
+  - brokerapps
+  - brokers
+  - brokerservices
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - broker.arkmq.org
+  resources:
+  - brokerapps/status
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - broker.arkmq.org
+  resources:
+  - brokers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - broker.arkmq.org
+  resources:
+  - brokers/status
+  - brokerservices/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - monitoring.coreos.com
   resources:

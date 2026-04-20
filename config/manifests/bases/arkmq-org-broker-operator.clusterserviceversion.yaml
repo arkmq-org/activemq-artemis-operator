@@ -33,7 +33,7 @@ spec:
     - description: A stateful deployment of one or more brokers
       displayName: Broker
       kind: Broker
-      name: brokers.arkmq.org
+      name: brokers.broker.arkmq.org
       resources:
       - kind: ConfigMap
         name: ""
@@ -6331,7 +6331,7 @@ spec:
     - description: Describes the messaging requirements of an application
       displayName: Broker App
       kind: BrokerApp
-      name: brokerapps.arkmq.org
+      name: brokerapps.broker.arkmq.org
       resources:
       - kind: Secret
         name: ""
@@ -6357,7 +6357,7 @@ spec:
     - description: A stateful deployment of one or more brokers
       displayName: Broker
       kind: Broker
-      name: brokers.arkmq.org
+      name: brokers.broker.arkmq.org
       resources:
       - kind: ConfigMap
         name: ""
@@ -7416,7 +7416,7 @@ spec:
     - description: Provides a broker service
       displayName: Broker Service
       kind: BrokerService
-      name: brokerservices.arkmq.org
+      name: brokerservices.broker.arkmq.org
       resources:
       - kind: Broker
         name: ""

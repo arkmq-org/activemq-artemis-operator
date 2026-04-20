@@ -140,6 +140,7 @@ resources:
     namespaced: true
   controller: true
   domain: arkmq.org
+  group: broker
   kind: Broker
   path: github.com/arkmq-org/activemq-artemis-operator/api/v1beta2
   plural: brokers
@@ -149,6 +150,7 @@ resources:
     namespaced: true
   controller: true
   domain: arkmq.org
+  group: broker
   kind: BrokerService
   path: github.com/arkmq-org/activemq-artemis-operator/api/v1beta2
   version: v1beta2
@@ -157,6 +159,7 @@ resources:
     namespaced: true
   controller: true
   domain: arkmq.org
+  group: broker
   kind: BrokerApp
   path: github.com/arkmq-org/activemq-artemis-operator/api/v1beta2
   version: v1beta2

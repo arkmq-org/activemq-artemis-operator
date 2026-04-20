@@ -16,7 +16,7 @@ limitations under the License.
 
 // Package v1beta2 contains API Schema definitions for the broker v1beta2 API group
 // +kubebuilder:object:generate=true
-// +groupName=arkmq.org
+// +groupName=broker.arkmq.org
 package v1beta2
 
 import (
@@ -26,7 +26,7 @@ import (
 
 var (
 	// GroupVersion is group version used to register these objects
-	GroupVersion = schema.GroupVersion{Group: "arkmq.org", Version: "v1beta2"}
+	GroupVersion = schema.GroupVersion{Group: "broker.arkmq.org", Version: "v1beta2"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}

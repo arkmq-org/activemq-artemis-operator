@@ -53,45 +53,6 @@ rules:
   verbs:
   - update
 - apiGroups:
-  - arkmq.org
-  resources:
-  - brokerapps
-  - brokers
-  - brokerservices
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - arkmq.org
-  resources:
-  - brokerapps/status
-  verbs:
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - arkmq.org
-  resources:
-  - brokers/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - arkmq.org
-  resources:
-  - brokers/status
-  - brokerservices/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - broker.amq.io
   resources:
   - activemqartemisaddresses
@@ -133,6 +94,45 @@ rules:
   verbs:
   - get
   - list
+- apiGroups:
+  - broker.arkmq.org
+  resources:
+  - brokerapps
+  - brokers
+  - brokerservices
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - broker.arkmq.org
+  resources:
+  - brokerapps/status
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - broker.arkmq.org
+  resources:
+  - brokers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - broker.arkmq.org
+  resources:
+  - brokers/status
+  - brokerservices/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - monitoring.coreos.com
   resources:
