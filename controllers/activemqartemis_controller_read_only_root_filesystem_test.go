@@ -62,7 +62,7 @@ var _ = Describe("Read-only root filesystem support", Label("read-only-root-file
 				candidate.Spec.ResourceTemplates = []brokerv1beta1.ResourceTemplate{
 					{
 						Selector: &brokerv1beta1.ResourceSelector{Kind: ptr.To("StatefulSet")},
-						Patch: &unstructured.Unstructured{
+						Patch: FromUnstructuredToRawExtension(&unstructured.Unstructured{
 							Object: map[string]interface{}{
 								"kind": "StatefulSet",
 								"spec": map[string]interface{}{
@@ -135,7 +135,7 @@ var _ = Describe("Read-only root filesystem support", Label("read-only-root-file
 									},
 								},
 							},
-						},
+						}),
 					},
 				}
 			})
@@ -186,7 +186,7 @@ var _ = Describe("Read-only root filesystem support", Label("read-only-root-file
 				candidate.Spec.ResourceTemplates = []brokerv1beta1.ResourceTemplate{
 					{
 						Selector: &brokerv1beta1.ResourceSelector{Kind: ptr.To("StatefulSet")},
-						Patch: &unstructured.Unstructured{
+						Patch: FromUnstructuredToRawExtension(&unstructured.Unstructured{
 							Object: map[string]interface{}{
 								"kind": "StatefulSet",
 								"spec": map[string]interface{}{
@@ -265,7 +265,7 @@ var _ = Describe("Read-only root filesystem support", Label("read-only-root-file
 									},
 								},
 							},
-						},
+						}),
 					},
 				}
 			})

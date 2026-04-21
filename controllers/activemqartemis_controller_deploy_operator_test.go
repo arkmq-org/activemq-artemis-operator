@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -40,6 +41,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
@@ -339,6 +341,8 @@ var _ = Describe("artemis controller", Label("do"), func() {
 						},
 					}
 
+					rawBytes, err := json.Marshal(statefulSetPatch.Object)
+					Expect(err).To(BeNil())
 					By("deploying dummy broker with cr: " + crName)
 					cr := brokerv1beta1.ActiveMQArtemis{
 						TypeMeta: metav1.TypeMeta{
@@ -365,7 +369,7 @@ var _ = Describe("artemis controller", Label("do"), func() {
 							ResourceTemplates: []brokerv1beta1.ResourceTemplate{
 								{
 									Selector: &brokerv1beta1.ResourceSelector{Kind: &ssKind},
-									Patch:    statefulSetPatch,
+									Patch:    runtime.RawExtension{Raw: rawBytes},
 								},
 							},
 						},

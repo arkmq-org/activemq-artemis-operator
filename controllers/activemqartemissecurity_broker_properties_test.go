@@ -152,7 +152,7 @@ var _ = Describe("security without controller", func() {
 					Selector: &brokerv1beta1.ResourceSelector{
 						Kind: &kindMatchSs,
 					},
-					Patch: &unstructured.Unstructured{Object: map[string]interface{}{
+					Patch: FromUnstructuredToRawExtension(&unstructured.Unstructured{Object: map[string]interface{}{
 						"kind": &kindMatchSs,
 						"spec": map[string]interface{}{
 							"template": map[string]interface{}{
@@ -171,7 +171,7 @@ var _ = Describe("security without controller", func() {
 							},
 						},
 					},
-					},
+					}),
 				},
 			}
 

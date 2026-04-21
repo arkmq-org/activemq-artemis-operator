@@ -7279,19 +7279,19 @@ var _ = Describe("artemis controller", func() {
 				{
 					Selector:    &brokerv1beta1.ResourceSelector{Kind: &serviceKind},
 					Annotations: map[string]string{"someKey": "someValue"},
-					Patch: &unstructured.Unstructured{
+					Patch: FromUnstructuredToRawExtension(&unstructured.Unstructured{
 						Object: map[string]interface{}{
 							"kind": "Service",
 							"spec": map[string]interface{}{
 								"publishNotReadyAddresses": false,
 							},
 						},
-					},
+					}),
 				},
 				{
 					Selector:    &brokerv1beta1.ResourceSelector{Kind: &ssKind},
 					Annotations: map[string]string{"someSsKey": "someSsValue"},
-					Patch: &unstructured.Unstructured{
+					Patch: FromUnstructuredToRawExtension(&unstructured.Unstructured{
 						Object: map[string]interface{}{
 							"kind": "StatefulSet",
 							"spec": map[string]interface{}{
@@ -7309,7 +7309,7 @@ var _ = Describe("artemis controller", func() {
 								},
 							},
 						},
-					},
+					}),
 				},
 			}
 
@@ -7470,7 +7470,7 @@ var _ = Describe("artemis controller", func() {
 			crd.Spec.ResourceTemplates = []brokerv1beta1.ResourceTemplate{
 				{
 					Selector: &brokerv1beta1.ResourceSelector{Kind: ptr.To("StatefulSet")},
-					Patch: &unstructured.Unstructured{
+					Patch: FromUnstructuredToRawExtension(&unstructured.Unstructured{
 						Object: map[string]interface{}{
 							"kind": "StatefulSet",
 							"spec": map[string]interface{}{
@@ -7482,7 +7482,7 @@ var _ = Describe("artemis controller", func() {
 								},
 							},
 						},
-					},
+					}),
 				},
 			}
 
@@ -7523,7 +7523,7 @@ var _ = Describe("artemis controller", func() {
 			crd.Spec.ResourceTemplates = []brokerv1beta1.ResourceTemplate{
 				{
 					Selector: &brokerv1beta1.ResourceSelector{Kind: ptr.To("StatefulSet")},
-					Patch: &unstructured.Unstructured{
+					Patch: FromUnstructuredToRawExtension(&unstructured.Unstructured{
 						Object: map[string]interface{}{
 							"kind": "StatefulSet",
 							"spec": map[string]interface{}{
@@ -7531,7 +7531,7 @@ var _ = Describe("artemis controller", func() {
 								"podManagementPolicy": invalidValue,
 							},
 						},
-					},
+					}),
 				},
 			}
 

@@ -397,7 +397,7 @@ var _ = Describe("artemis controller with cert manager test", Label("controller-
 					Annotations: map[string]string{
 						"cert-manager.io/issuer": issuerName,
 					},
-					Patch: &unstructured.Unstructured{
+					Patch: FromUnstructuredToRawExtension(&unstructured.Unstructured{
 						Object: map[string]interface{}{
 							"kind": "Ingress",
 							"spec": map[string]interface{}{
@@ -409,7 +409,7 @@ var _ = Describe("artemis controller with cert manager test", Label("controller-
 								},
 							},
 						},
-					},
+					}),
 				},
 			}
 

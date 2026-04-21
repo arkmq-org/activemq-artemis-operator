@@ -5164,7 +5164,7 @@ spec:
                       description: Custom labels
                       type: object
                     patch:
-                      description: Custom attributes applied as strategic merge patch by the operator
+                      description: Custom attributes applied as strategic merge patch by the operator.
                       type: object
                       x-kubernetes-preserve-unknown-fields: true
                     selector:
@@ -13757,8 +13757,7 @@ spec:
                       description: Custom labels
                       type: object
                     patch:
-                      description: Custom attributes applied as strategic merge patch by the operator
-                      type: object
+                      description: Custom attributes applied as strategic merge patch by the operator.
                       x-kubernetes-preserve-unknown-fields: true
                     selector:
                       description: Select which resources to match, an empty selector will match all resources

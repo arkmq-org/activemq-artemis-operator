@@ -4867,7 +4867,7 @@ spec:
                       type: object
                     patch:
                       description: Custom attributes applied as strategic merge patch
-                        by the operator
+                        by the operator.
                       type: object
                       x-kubernetes-preserve-unknown-fields: true
                     selector:

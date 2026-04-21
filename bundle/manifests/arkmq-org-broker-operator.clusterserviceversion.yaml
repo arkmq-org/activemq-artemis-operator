@@ -1791,7 +1791,7 @@ spec:
       - description: Custom labels
         displayName: Labels
         path: resourceTemplates[0].labels
-      - description: Custom attributes applied as strategic merge patch by the operator
+      - description: Custom attributes applied as strategic merge patch by the operator.
         displayName: Patch
         path: resourceTemplates[0].patch
       - description: Select which resources to match, an empty selector will match
@@ -6613,7 +6613,7 @@ spec:
       - description: Custom labels
         displayName: Labels
         path: resourceTemplates[0].labels
-      - description: Custom attributes applied as strategic merge patch by the operator
+      - description: Custom attributes applied as strategic merge patch by the operator.
         displayName: Patch
         path: resourceTemplates[0].patch
       - description: Select which resources to match, an empty selector will match

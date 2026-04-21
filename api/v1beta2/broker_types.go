@@ -21,7 +21,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -440,10 +440,11 @@ type ResourceTemplate struct {
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Labels"
 	Labels map[string]string `json:"labels,omitempty"`
 
-	// Custom attributes applied as strategic merge patch by the operator
-	//+kubebuilder:pruning:PreserveUnknownFields
+	// Custom attributes applied as strategic merge patch by the operator.
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Patch"
-	Patch *unstructured.Unstructured `json:"patch,omitempty"`
+	Patch runtime.RawExtension `json:"patch,omitempty"`
 }
 
 // match criteria to restrict the selection of resources

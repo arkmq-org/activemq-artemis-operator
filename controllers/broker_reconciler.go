@@ -1155,7 +1155,7 @@ func (reconciler *BrokerReconcilerImpl) applyTemplate(index int, template v1beta
 			target.SetLabels(modified)
 		}
 
-		if template.Patch != nil {
+		if len(template.Patch.Raw) > 0 {
 
 			// apply any patch
 			converter := runtime.DefaultUnstructuredConverter
@@ -1163,9 +1163,14 @@ func (reconciler *BrokerReconcilerImpl) applyTemplate(index int, template v1beta
 			var err error
 			var targetAsUnstructured map[string]interface{}
 
+			patchMap := make(map[string]interface{})
+			if err := json.Unmarshal(template.Patch.Raw, &patchMap); err != nil {
+				return fmt.Errorf("error unmarshalling patch from template[%d], got %v", index, err)
+			}
+
 			if targetAsUnstructured, err = converter.ToUnstructured(target); err == nil {
 				// patch, part of our CR, needs to be mutable
-				patch := formatTemplatedObject(reconciler.customResource, template.Patch.Object, ordinal, itemName, resType).(map[string]interface{})
+				patch := formatTemplatedObject(reconciler.customResource, patchMap, ordinal, itemName, resType).(map[string]interface{})
 				reconciler.log.V(1).Info("Applying strategic merge patch", "formattedPatch", patch)
 
 				var patched strategicpatch.JSONMap
