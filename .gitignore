@@ -89,3 +89,6 @@ bin
 
 # Catalog files
 catalog/
+
+### Claude ###
+.claude/*
