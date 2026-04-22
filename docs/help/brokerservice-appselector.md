@@ -18,7 +18,7 @@ BrokerService app selector provides flexible access control for BrokerApps using
 The `appSelectorExpression` field in `BrokerServiceSpec` contains a CEL expression that determines whether a BrokerApp can use the service.
 
 ```yaml
-apiVersion: arkmq.org/v1beta2
+apiVersion: broker.arkmq.org/v1beta2
 kind: BrokerService
 metadata:
   name: my-broker

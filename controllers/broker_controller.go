@@ -40,7 +40,7 @@ import (
 	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
 )
 
-// BrokerReconciler reconciles a Broker object (arkmq.org/v1beta2)
+// BrokerReconciler reconciles a Broker object (broker.arkmq.org/v1beta2)
 type BrokerReconciler struct {
 	rtclient.Client
 	Scheme        *runtime.Scheme

@@ -217,7 +217,7 @@ kubectl wait certificate messaging-service-broker-cert -n service-app-project --
 
 ```bash {"stage":"deploy_service", "label":"deploy service crd", "runtime":"bash"}
 kubectl apply -f - <<EOF
-apiVersion: arkmq.org/v1beta2
+apiVersion: broker.arkmq.org/v1beta2
 kind: BrokerService
 metadata:
   name: messaging-service
@@ -262,7 +262,7 @@ EOF
 
 ```bash {"stage":"deploy_app", "label":"deploy app crd", "runtime":"bash"}
 kubectl apply -f - <<EOF
-apiVersion: arkmq.org/v1beta2
+apiVersion: broker.arkmq.org/v1beta2
 kind: BrokerApp
 metadata:
   name: first-app

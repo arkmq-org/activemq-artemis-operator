@@ -11,7 +11,7 @@
 
 ---
 # Default - Same namespace only (secure by default)
-apiVersion: arkmq.org/v1beta2
+apiVersion: broker.arkmq.org/v1beta2
 kind: BrokerService
 metadata:
   name: isolated-broker
@@ -22,7 +22,7 @@ spec:
   # Equivalent to: appSelectorExpression: "app.metadata.namespace == service.metadata.namespace"
   image: quay.io/artemiscloud/activemq-artemis-broker-kubernetes:latest
 ---
-apiVersion: arkmq.org/v1beta2
+apiVersion: broker.arkmq.org/v1beta2
 kind: BrokerApp
 metadata:
   name: app-same-ns
@@ -33,7 +33,7 @@ spec:
 
 ---
 # Open access - Allow all namespaces
-apiVersion: arkmq.org/v1beta2
+apiVersion: broker.arkmq.org/v1beta2
 kind: BrokerService
 metadata:
   name: dev-broker
@@ -44,7 +44,7 @@ spec:
   appSelectorExpression: "true"  # Allow all namespaces
   image: quay.io/artemiscloud/activemq-artemis-broker-kubernetes:latest
 ---
-apiVersion: arkmq.org/v1beta2
+apiVersion: broker.arkmq.org/v1beta2
 kind: BrokerApp
 metadata:
   name: app1
@@ -56,7 +56,7 @@ spec:
   acceptor:
     port: 61616
 ---
-apiVersion: arkmq.org/v1beta2
+apiVersion: broker.arkmq.org/v1beta2
 kind: BrokerApp
 metadata:
   name: app2
@@ -70,7 +70,7 @@ spec:
 
 ---
 # Namespace pattern matching
-apiVersion: arkmq.org/v1beta2
+apiVersion: broker.arkmq.org/v1beta2
 kind: BrokerService
 metadata:
   name: prod-broker
@@ -83,7 +83,7 @@ spec:
     (app.metadata.namespace.endsWith("-prod") || app.metadata.namespace.endsWith("-staging"))
   image: quay.io/artemiscloud/activemq-artemis-broker-kubernetes:latest
 ---
-apiVersion: arkmq.org/v1beta2
+apiVersion: broker.arkmq.org/v1beta2
 kind: BrokerApp
 metadata:
   name: payment-service
@@ -95,7 +95,7 @@ spec:
   acceptor:
     port: 61616
 ---
-apiVersion: arkmq.org/v1beta2
+apiVersion: broker.arkmq.org/v1beta2
 kind: BrokerApp
 metadata:
   name: test-service
@@ -107,7 +107,7 @@ spec:
   acceptor:
     port: 61617
 ---
-apiVersion: arkmq.org/v1beta2
+apiVersion: broker.arkmq.org/v1beta2
 kind: BrokerApp
 metadata:
   name: dev-app
@@ -121,7 +121,7 @@ spec:
 
 ---
 # App label-based selection
-apiVersion: arkmq.org/v1beta2
+apiVersion: broker.arkmq.org/v1beta2
 kind: BrokerService
 metadata:
   name: premium-broker
@@ -132,7 +132,7 @@ spec:
     app.metadata.labels["tier"] == "premium"
   image: quay.io/artemiscloud/activemq-artemis-broker-kubernetes:latest
 ---
-apiVersion: arkmq.org/v1beta2
+apiVersion: broker.arkmq.org/v1beta2
 kind: BrokerApp
 metadata:
   name: premium-app
@@ -143,7 +143,7 @@ spec:
   acceptor:
     port: 61616
 ---
-apiVersion: arkmq.org/v1beta2
+apiVersion: broker.arkmq.org/v1beta2
 kind: BrokerApp
 metadata:
   name: standard-app
@@ -156,7 +156,7 @@ spec:
 
 ---
 # Namespace label-based selection
-apiVersion: arkmq.org/v1beta2
+apiVersion: broker.arkmq.org/v1beta2
 kind: BrokerService
 metadata:
   name: environment-broker
@@ -172,7 +172,7 @@ spec:
 
 ---
 # Team-based multi-tenancy
-apiVersion: arkmq.org/v1beta2
+apiVersion: broker.arkmq.org/v1beta2
 kind: BrokerService
 metadata:
   name: team-broker
