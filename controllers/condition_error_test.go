@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"testing"
 
-	broker "github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
+	broker "github.com/arkmq-org/arkmq-org-broker-operator/api/v1beta2"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

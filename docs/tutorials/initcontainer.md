@@ -10,15 +10,15 @@ weight: 110
 toc: true
 ---
 
-Starting from [v0.18.1](https://github.com/arkmq-org/activemq-artemis-operator/tree/v0.18.1), the arkmq-org Operator
+Starting from [v0.18.1](https://github.com/arkmq-org/arkmq-org-broker-operator/tree/v0.18.1), the arkmq-org Operator
 enables you to specify a **custom Init Container image**. Specifying a custom Init Container image allows you to provide your own broker configuration within the Operator framework.
 
 > **_NOTE:_**  The use cases for init containers are deminishing. [BrokerProperties](../help/operator.md#configuring-brokerproperties) provide a way to configure the broker. [Extra mounts](../getting-started/quick-start.md#using-a-operator-extramounts) provide ways to configure logging, jaas (securiry) and the classpath. Use of these newer mechanisms is advised because the maintance overhnead of an init container is non trivial.
 
 
 ### What is a custom Init Container image?
-The arkmq-org Operator uses a [Custom Resource Definition (CRD)](https://github.com/arkmq-org/activemq-artemis-operator/blob/v0.18.1/deploy/crds/broker_activemqartemis_crd.yaml) to define the broker configuration. In Kubernetes, a CRD is a schema of configuration items or parameters. By creating a corresponding Custom Resource (CR) instance, you can specify values for configuration items in the CRD. For example, you can define address settings
-in this [sample CR file](https://github.com/arkmq-org/activemq-artemis-operator/blob/v0.18.1/deploy/examples/artemis-basic-address-settings-deployment.yaml).
+The arkmq-org Operator uses a [Custom Resource Definition (CRD)](https://github.com/arkmq-org/arkmq-org-broker-operator/blob/v0.18.1/deploy/crds/broker_activemqartemis_crd.yaml) to define the broker configuration. In Kubernetes, a CRD is a schema of configuration items or parameters. By creating a corresponding Custom Resource (CR) instance, you can specify values for configuration items in the CRD. For example, you can define address settings
+in this [sample CR file](https://github.com/arkmq-org/arkmq-org-broker-operator/blob/v0.18.1/deploy/examples/artemis-basic-address-settings-deployment.yaml).
 
 For configuration that _isn't_ exposed in the CRD, you can specify a custom Init Container image to manipulate or add to the configuration that has been created by the Operator. When the CR is deployed and the broker instance is created, the Operator will then run a  user-provided post-configuration script.
 
@@ -89,4 +89,4 @@ After the `post-config.sh` script is executed, the broker instance is launched w
 ### Further information
 * A fully working example is available [here](https://github.com/arkmq-org/arkmq-org-examples/tree/main/operator/init/jdbc).
 
-* For issues or suggestions please open an issue at [arkmq-org](https://github.com/arkmq-org/activemq-artemis-operator/issues).
+* For issues or suggestions please open an issue at [arkmq-org](https://github.com/arkmq-org/arkmq-org-broker-operator/issues).

@@ -34,12 +34,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta1"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/resources/configmaps"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/namer"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/selectors"
-	"github.com/arkmq-org/activemq-artemis-operator/version"
+	brokerv1beta1 "github.com/arkmq-org/arkmq-org-broker-operator/api/v1beta1"
+	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/resources/configmaps"
+	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/utils/common"
+	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/utils/namer"
+	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/utils/selectors"
+	"github.com/arkmq-org/arkmq-org-broker-operator/version"
 )
 
 var _ = Describe("work queue", func() {

@@ -1,4 +1,4 @@
-module github.com/arkmq-org/activemq-artemis-operator
+module github.com/arkmq-org/arkmq-org-broker-operator
 
 go 1.25.8
 

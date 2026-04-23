@@ -24,7 +24,7 @@ In this blog post, we assume that you have a Kubernetes cluster environment.
 ### Step 1 - Preparing for deployment
 Clone the arkmq-org Operator repo:
 ```shell script
-      $ git clone https://github.com/arkmq-org/activemq-artemis-operator.git
+      $ git clone https://github.com/arkmq-org/arkmq-org-broker-operator.git
 ```
 We will use a namespace called **myproject** to deploy the operator and other resources.
 If you don't specify a namespace the **default** namespace will be used.
@@ -39,7 +39,7 @@ namespace/myproject created
 Go to the root of the local repo and install the operator:
 
 ```shell script      
-      $ cd activemq-artemis-operator
+      $ cd arkmq-org-broker-operator
       $ ./deploy/install_opr.sh
 ```
 

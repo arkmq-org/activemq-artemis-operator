@@ -19,8 +19,8 @@ package controllers
 import (
 	"fmt"
 
-	broker "github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
+	broker "github.com/arkmq-org/arkmq-org-broker-operator/api/v1beta2"
+	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/utils/common"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

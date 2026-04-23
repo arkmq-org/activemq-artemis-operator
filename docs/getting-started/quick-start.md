@@ -34,11 +34,11 @@ There are multiple methods of installing the operator: [from releases](#install-
 ### Install the operator from releases
 In order to install the operator from the latest release is by running the following command:
 ```shell
-kubectl apply -f https://github.com/arkmq-org/activemq-artemis-operator/releases/latest/download/arkmq-org-broker-operator.yaml
+kubectl apply -f https://github.com/arkmq-org/arkmq-org-broker-operator/releases/latest/download/arkmq-org-broker-operator.yaml
 ```
 You can also install a specific operator version, i.e. to install the version `2.0.5`
 ```shell
-kubectl apply -f https://github.com/arkmq-org/activemq-artemis-operator/releases/download/v2.0.5/activemq-artemis-operator.yaml
+kubectl apply -f https://github.com/arkmq-org/arkmq-org-broker-operator/releases/download/v2.0.5/activemq-artemis-operator.yaml
 ```
 
 ### Install the operator from helm charts
@@ -50,7 +50,7 @@ You can also install a specific operator version, i.e. to install the version `2
 ```shell
 helm install my-arkmq-org-broker-operator oci://quay.io/arkmq-org/helm-charts/arkmq-org-broker-operator --version 2.1.0
 ```
-Use the `--set` option to customize the default [values](https://github.com/arkmq-org/activemq-artemis-operator/blob/main/helm-charts/arkmq-org-broker-operator/values.yaml),
+Use the `--set` option to customize the default [values](https://github.com/arkmq-org/arkmq-org-broker-operator/blob/main/helm-charts/arkmq-org-broker-operator/values.yaml),
 i.e. to install the operator without the CRDs:
 ```shell
 helm install my-arkmq-org-broker-operator oci://quay.io/arkmq-org/helm-charts/arkmq-org-broker-operator --set crds.apply=false
@@ -66,7 +66,7 @@ For further details see https://operatorhub.io/operator/arkmq-org-broker-operato
 ### Install the operator from sources
 In order to install the operator from sources, first clone the git repository with the following command:
 ```shell
-git clone https://github.com/arkmq-org/activemq-artemis-operator.git
+git clone https://github.com/arkmq-org/arkmq-org-broker-operator.git
 ```
 
 Create the namespace arkmq-org-broker-operator and save it for all subsequent kubectl commands

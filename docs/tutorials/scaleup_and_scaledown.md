@@ -17,11 +17,11 @@ Either scaling up number of nodes(pods) when workload is high, or scaling down w
 Before you start you need have access to a running Kubernetes cluster environment. A [Minikube](https://minikube.sigs.k8s.io/docs/start/) running on your laptop will just do fine. The arkmq-org operator also runs in a Openshift cluster environment like [CodeReady Container](https://developers.redhat.com/products/openshift-local/overview). In this blog we assume you have Kubernetes cluster environment. (If you use CodeReady the client tool is **oc** in place of **kubectl**)
 
 ### Step 1 - Deploy arkmq-org Operator
-In this tutorial we are using the [arkmq-org operator repo](https://github.com/arkmq-org/activemq-artemis-operator). In case you haven't done so, clone it to your local disk:
+In this tutorial we are using the [arkmq-org operator repo](https://github.com/arkmq-org/arkmq-org-broker-operator). In case you haven't done so, clone it to your local disk:
 
 ```shell
-git clone https://github.com/arkmq-org/activemq-artemis-operator.git
-cd activemq-artemis-operator
+git clone https://github.com/arkmq-org/arkmq-org-broker-operator.git
+cd arkmq-org-broker-operator
 ```
 ### Start Minikube and Deploy the Operator
 

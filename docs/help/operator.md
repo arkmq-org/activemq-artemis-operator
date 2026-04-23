@@ -137,19 +137,19 @@ After editing the Subscription yaml as such, save it and the operator will resta
 
 This procedure shows how to access and prepare the code you need to install the latest version of the Operator for arkmq-org.
 
-Download the latest version of the Operator from https://github.com/arkmq-org/activemq-artemis-operator/tags
+Download the latest version of the Operator from https://github.com/arkmq-org/arkmq-org-broker-operator/tags
 
 When the download has completed, move the archive to your chosen installation directory.
 ```shell script
 $ mkdir ~/broker/operator
-$ mv activemq-artemis-operator-0.18.1.zip ~/broker/operator
+$ mv arkmq-org-broker-operator-0.18.1.zip ~/broker/operator
 ```
 
 In your chosen installation directory, extract the contents of the archive. For example:
 
 ```shell script
 $ cd ~/broker/operator
-$ unzip activemq-artemis-operator-0.18.1.zip
+$ unzip arkmq-org-broker-operator-0.18.1.zip
 ```
 
 
@@ -159,7 +159,7 @@ $ unzip activemq-artemis-operator-0.18.1.zip
 Switch to the directory that was created when you extracted the archive. For example:
 
 ```shell script
-$ cd activemq-artemis-operator
+$ cd arkmq-org-broker-operator
 ```
 
 Specify the project in which you want to install the Operator. You can create a new project or switch to an existing one.
@@ -757,7 +757,7 @@ spec:
 It is possible to configure ResourceTemplate(s) for resources that are managed by the operator.
 The TemplateType contains Labels and Annotations with an optional Selector. If the selector is empty
 the template matches all resources. Otherwise, it can be used to restrict what is matched.
-Note: the relevant variables supported by [`ingressHost`](https://github.com/arkmq-org/activemq-artemis-operator/issues/614) in the CRD can be referenced in keys and values for both labels and annotations.
+Note: the relevant variables supported by [`ingressHost`](https://github.com/arkmq-org/arkmq-org-broker-operator/issues/614) in the CRD can be referenced in keys and values for both labels and annotations.
 In the following example, the annotation "someKey=someValue" is added to all Services
 
 ```yaml

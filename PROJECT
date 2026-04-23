@@ -9,7 +9,7 @@ plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
 projectName: activemq-artemis-operator
-repo: github.com/arkmq-org/activemq-artemis-operator
+repo: github.com/arkmq-org/arkmq-org-broker-operator
 resources:
 - api:
     crdVersion: v1
@@ -17,7 +17,7 @@ resources:
   domain: amq.io
   group: broker
   kind: ActiveMQArtemis
-  path: github.com/arkmq-org/activemq-artemis-operator/api/v2alpha1
+  path: github.com/arkmq-org/arkmq-org-broker-operator/api/v2alpha1
   plural: activemqartemises
   version: v2alpha1
 - api:
@@ -26,7 +26,7 @@ resources:
   domain: amq.io
   group: broker
   kind: ActiveMQArtemis
-  path: github.com/arkmq-org/activemq-artemis-operator/api/v2alpha2
+  path: github.com/arkmq-org/arkmq-org-broker-operator/api/v2alpha2
   plural: activemqartemises
   version: v2alpha2
 - api:
@@ -35,7 +35,7 @@ resources:
   domain: amq.io
   group: broker
   kind: ActiveMQArtemis
-  path: github.com/arkmq-org/activemq-artemis-operator/api/v2alpha3
+  path: github.com/arkmq-org/arkmq-org-broker-operator/api/v2alpha3
   plural: activemqartemises
   version: v2alpha3
 - api:
@@ -44,7 +44,7 @@ resources:
   domain: amq.io
   group: broker
   kind: ActiveMQArtemis
-  path: github.com/arkmq-org/activemq-artemis-operator/api/v2alpha4
+  path: github.com/arkmq-org/arkmq-org-broker-operator/api/v2alpha4
   plural: activemqartemises
   version: v2alpha4
 - api:
@@ -54,7 +54,7 @@ resources:
   domain: amq.io
   group: broker
   kind: ActiveMQArtemis
-  path: github.com/arkmq-org/activemq-artemis-operator/api/v2alpha5
+  path: github.com/arkmq-org/arkmq-org-broker-operator/api/v2alpha5
   plural: activemqartemises
   version: v2alpha5
 - api:
@@ -64,7 +64,7 @@ resources:
   domain: amq.io
   group: broker
   kind: ActiveMQArtemis
-  path: github.com/arkmq-org/activemq-artemis-operator/api/v1beta1
+  path: github.com/arkmq-org/arkmq-org-broker-operator/api/v1beta1
   plural: activemqartemises
   version: v1beta1
 - api:
@@ -73,7 +73,7 @@ resources:
   domain: amq.io
   group: broker
   kind: ActiveMQArtemisAddress
-  path: github.com/arkmq-org/activemq-artemis-operator/api/v2alpha1
+  path: github.com/arkmq-org/arkmq-org-broker-operator/api/v2alpha1
   version: v2alpha1
 - api:
     crdVersion: v1
@@ -81,7 +81,7 @@ resources:
   domain: amq.io
   group: broker
   kind: ActiveMQArtemisAddress
-  path: github.com/arkmq-org/activemq-artemis-operator/api/v2alpha2
+  path: github.com/arkmq-org/arkmq-org-broker-operator/api/v2alpha2
   version: v2alpha2
 - api:
     crdVersion: v1
@@ -90,7 +90,7 @@ resources:
   domain: amq.io
   group: broker
   kind: ActiveMQArtemisAddress
-  path: github.com/arkmq-org/activemq-artemis-operator/api/v2alpha3
+  path: github.com/arkmq-org/arkmq-org-broker-operator/api/v2alpha3
   version: v2alpha3
 - api:
     crdVersion: v1
@@ -98,7 +98,7 @@ resources:
   domain: amq.io
   group: broker
   kind: ActiveMQArtemisAddress
-  path: github.com/arkmq-org/activemq-artemis-operator/api/v1beta1
+  path: github.com/arkmq-org/arkmq-org-broker-operator/api/v1beta1
   version: v1beta1
 - api:
     crdVersion: v1
@@ -107,7 +107,7 @@ resources:
   domain: amq.io
   group: broker
   kind: ActiveMQArtemisScaledown
-  path: github.com/arkmq-org/activemq-artemis-operator/api/v2alpha1
+  path: github.com/arkmq-org/arkmq-org-broker-operator/api/v2alpha1
   version: v2alpha1
 - api:
     crdVersion: v1
@@ -116,7 +116,7 @@ resources:
   domain: amq.io
   group: broker
   kind: ActiveMQArtemisScaledown
-  path: github.com/arkmq-org/activemq-artemis-operator/api/v1beta1
+  path: github.com/arkmq-org/arkmq-org-broker-operator/api/v1beta1
   version: v1beta1
 - api:
     crdVersion: v1
@@ -125,7 +125,7 @@ resources:
   domain: amq.io
   group: broker
   kind: ActiveMQArtemisSecurity
-  path: github.com/arkmq-org/activemq-artemis-operator/api/v1alpha1
+  path: github.com/arkmq-org/arkmq-org-broker-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -133,7 +133,7 @@ resources:
   domain: amq.io
   group: broker
   kind: ActiveMQArtemisSecurity
-  path: github.com/arkmq-org/activemq-artemis-operator/api/v1beta1
+  path: github.com/arkmq-org/arkmq-org-broker-operator/api/v1beta1
   version: v1beta1
 - api:
     crdVersion: v1
@@ -142,7 +142,7 @@ resources:
   domain: arkmq.org
   group: broker
   kind: Broker
-  path: github.com/arkmq-org/activemq-artemis-operator/api/v1beta2
+  path: github.com/arkmq-org/arkmq-org-broker-operator/api/v1beta2
   plural: brokers
   version: v1beta2
 - api:
@@ -152,7 +152,7 @@ resources:
   domain: arkmq.org
   group: broker
   kind: BrokerService
-  path: github.com/arkmq-org/activemq-artemis-operator/api/v1beta2
+  path: github.com/arkmq-org/arkmq-org-broker-operator/api/v1beta2
   version: v1beta2
 - api:
     crdVersion: v1
@@ -161,6 +161,6 @@ resources:
   domain: arkmq.org
   group: broker
   kind: BrokerApp
-  path: github.com/arkmq-org/activemq-artemis-operator/api/v1beta2
+  path: github.com/arkmq-org/arkmq-org-broker-operator/api/v1beta2
   version: v1beta2
 version: "3"

@@ -17,8 +17,8 @@ package controllers
 import (
 	"testing"
 
-	brokerv1beta1 "github.com/arkmq-org/activemq-artemis-operator/api/v1beta2"
-	"github.com/arkmq-org/activemq-artemis-operator/pkg/utils/common"
+	brokerv1beta1 "github.com/arkmq-org/arkmq-org-broker-operator/api/v1beta2"
+	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/utils/common"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
