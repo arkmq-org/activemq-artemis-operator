@@ -882,7 +882,6 @@ func TestBrokerServiceReconcilePrometheusOverrideSecret(t *testing.T) {
 			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
 			Capabilities: []v1beta2.AppCapabilityType{
 				{
-					Role: "testRole",
 					ConsumerOf: []v1beta2.AppAddressType{
 						{Address: "TEST.QUEUE.ONE"},
 						{Address: "TEST.QUEUE.TWO"},

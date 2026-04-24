@@ -291,7 +291,6 @@ var _ = Describe("broker-service status conditions", func() {
 					Acceptor: broker.AppAcceptorType{Port: appPort},
 					Capabilities: []broker.AppCapabilityType{
 						{
-							Role:       "workQueue",
 							ProducerOf: []broker.AppAddressType{{Address: "STATUS.QUEUE"}},
 						},
 					},
@@ -434,7 +433,6 @@ var _ = Describe("broker-service status conditions", func() {
 					Acceptor: broker.AppAcceptorType{Port: appPort},
 					Capabilities: []broker.AppCapabilityType{
 						{
-							Role:       "workQueue",
 							ProducerOf: []broker.AppAddressType{{Address: "INITIAL.QUEUE"}},
 							ConsumerOf: []broker.AppAddressType{{Address: "INITIAL.QUEUE"}},
 						},
@@ -483,7 +481,6 @@ var _ = Describe("broker-service status conditions", func() {
 			Eventually(func(g Gomega) {
 				g.Expect(k8sClient.Get(ctx, appKey, createdApp)).Should(Succeed())
 				createdApp.Spec.Capabilities = append(createdApp.Spec.Capabilities, broker.AppCapabilityType{
-					Role: "additionalQueue",
 					ProducerOf: []broker.AppAddressType{
 						{Address: "UPDATED.QUEUE"},
 					},

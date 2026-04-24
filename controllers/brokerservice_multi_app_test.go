@@ -190,7 +190,6 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 					Acceptor: broker.AppAcceptorType{Port: app1Port},
 					Capabilities: []broker.AppCapabilityType{
 						{
-							Role:       "workQueue",
 							ProducerOf: []broker.AppAddressType{{Address: "APP1.QUEUE"}},
 							ConsumerOf: []broker.AppAddressType{{Address: "APP1.QUEUE"}},
 						},
@@ -231,7 +230,6 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 					Acceptor: broker.AppAcceptorType{Port: app2Port},
 					Capabilities: []broker.AppCapabilityType{
 						{
-							Role:       "pubSub",
 							ProducerOf: []broker.AppAddressType{{Address: "APP2.TOPIC"}},
 							SubscriberOf: []broker.AppAddressType{
 								{Address: "APP2.TOPIC::client-a.sub-a"},
@@ -449,7 +447,6 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 					Acceptor: broker.AppAcceptorType{Port: appPort},
 					Capabilities: []broker.AppCapabilityType{
 						{
-							Role:       "workQueue",
 							ProducerOf: []broker.AppAddressType{{Address: "MOBILE.TASKS"}},
 							ConsumerOf: []broker.AppAddressType{{Address: "MOBILE.TASKS"}},
 						},
@@ -654,7 +651,6 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 					},
 					Capabilities: []broker.AppCapabilityType{
 						{
-							Role: "app1-role",
 							SubscriberOf: []broker.AppAddressType{
 								{Address: "app1.address::queue1"},
 								{Address: "shared.address::app1-client.app1-shared-queue"},
@@ -713,7 +709,6 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 					},
 					Capabilities: []broker.AppCapabilityType{
 						{
-							Role: "app2-role",
 							SubscriberOf: []broker.AppAddressType{
 								{Address: "app2.address::queue2"},
 								{Address: "shared.address::app2-client.app2-shared-queue"},
@@ -794,7 +789,6 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 					},
 					Capabilities: []broker.AppCapabilityType{
 						{
-							Role: "app3-role",
 							SubscriberOf: []broker.AppAddressType{
 								{Address: "app3.address::queue3"},
 							},
@@ -840,7 +834,6 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 				createdApp3.Spec.Resources.Requests[corev1.ResourceMemory] = resource.MustParse("256Mi")
 				createdApp3.Spec.Capabilities = []broker.AppCapabilityType{
 					{
-						Role:       "app3-role",
 						ProducerOf: []broker.AppAddressType{{Address: "shared.address"}},
 						SubscriberOf: []broker.AppAddressType{
 							{Address: "app3.address::queue3"},
@@ -1114,7 +1107,6 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 					Acceptor: broker.AppAcceptorType{Port: 61619},
 					Capabilities: []broker.AppCapabilityType{
 						{
-							Role:       "workQueue",
 							ProducerOf: []broker.AppAddressType{{Address: "TEST.QUEUE"}},
 						},
 					},
@@ -1244,7 +1236,6 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 					Acceptor: broker.AppAcceptorType{Port: conflictingPort},
 					Capabilities: []broker.AppCapabilityType{
 						{
-							Role:       "workQueue",
 							ProducerOf: []broker.AppAddressType{{Address: "APP1.QUEUE"}},
 						},
 					},
@@ -1294,7 +1285,6 @@ var _ = Describe("broker-service multi-app scenarios", func() {
 					Acceptor: broker.AppAcceptorType{Port: conflictingPort}, // Same port!
 					Capabilities: []broker.AppCapabilityType{
 						{
-							Role:       "workQueue",
 							ProducerOf: []broker.AppAddressType{{Address: "APP2.QUEUE"}},
 						},
 					},

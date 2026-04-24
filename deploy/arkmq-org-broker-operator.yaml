@@ -9052,8 +9052,6 @@ spec:
                         - address
                         type: object
                       type: array
-                    role:
-                      type: string
                     subscriberOf:
                       items:
                         properties:

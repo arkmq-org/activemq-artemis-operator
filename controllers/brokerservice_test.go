@@ -279,12 +279,10 @@ var _ = Describe("broker-service-poc", func() {
 
 					Capabilities: []broker.AppCapabilityType{
 						{
-							Role:       "workQueue",
 							ProducerOf: []broker.AppAddressType{{Address: "APP.JOBS"}},
 							ConsumerOf: []broker.AppAddressType{{Address: "APP.JOBS"}},
 						},
 						{
-							Role:       "pubSub",
 							ProducerOf: []broker.AppAddressType{{Address: "APP.COMMANDS"}},
 							SubscriberOf: []broker.AppAddressType{
 
@@ -710,7 +708,6 @@ var _ = Describe("broker-service-poc", func() {
 
 					Capabilities: []broker.AppCapabilityType{
 						{
-							Role: "metricsTest",
 							ConsumerOf: []broker.AppAddressType{
 								{Address: "METRICS.QUEUE.ONE"},
 								{Address: "METRICS.QUEUE.TWO"},

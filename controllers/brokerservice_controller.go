@@ -613,12 +613,10 @@ func (t *AddressTracker) track(address *broker.AppAddressType) *AddressConfig {
 func (reconciler *BrokerServiceInstanceReconciler) processCapabilities(secret *corev1.Secret, app *broker.BrokerApp) (err error) {
 	addressTracker := newAddressTracker()
 
+	role := AppIdentity(app)
+
 	for _, capability := range app.Spec.Capabilities {
 
-		var role = capability.Role
-		if role == "" {
-			role = AppIdentity(app)
-		}
 		var entry *AddressConfig
 
 		for _, address := range capability.ProducerOf {
@@ -729,16 +727,11 @@ func (reconciler *BrokerServiceInstanceReconciler) processAcceptor(serverConfigP
 	dedupMap := map[string]string{}
 	for _, capability := range app.Spec.Capabilities {
 
-		roleName := capability.Role
-		if roleName == "" {
-			roleName = namespacedName
-		}
-
 		if len(capability.ConsumerOf) > 0 || len(capability.SubscriberOf) > 0 {
-			dedupMap[fmt.Sprintf("%s=%s\n", consumerRole(roleName), namespacedName)] = ""
+			dedupMap[fmt.Sprintf("%s=%s\n", consumerRole(namespacedName), namespacedName)] = ""
 		}
 		if len(capability.ProducerOf) > 0 {
-			dedupMap[fmt.Sprintf("%s=%s\n", producerRole(roleName), namespacedName)] = ""
+			dedupMap[fmt.Sprintf("%s=%s\n", producerRole(namespacedName), namespacedName)] = ""
 		}
 	}
 

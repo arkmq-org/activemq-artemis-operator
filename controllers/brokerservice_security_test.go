@@ -620,7 +620,6 @@ func TestBrokerServiceRejectsAppsFromPrometheusConfig(t *testing.T) {
 			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
 			Capabilities: []v1beta2.AppCapabilityType{
 				{
-					Role: "validRole",
 					ConsumerOf: []v1beta2.AppAddressType{
 						{Address: "VALID.QUEUE.ONE"},
 						{Address: "VALID.QUEUE.TWO"},
@@ -655,7 +654,6 @@ func TestBrokerServiceRejectsAppsFromPrometheusConfig(t *testing.T) {
 			Acceptor: v1beta2.AppAcceptorType{Port: 61617},
 			Capabilities: []v1beta2.AppCapabilityType{
 				{
-					Role: "attackerRole",
 					ConsumerOf: []v1beta2.AppAddressType{
 						// SENSITIVE: These should NOT appear in Prometheus config
 						{Address: "ATTACKER.SECRET.QUEUE"},

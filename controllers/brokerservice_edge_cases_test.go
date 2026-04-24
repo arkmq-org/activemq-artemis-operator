@@ -189,7 +189,6 @@ var _ = Describe("broker-service edge cases and concurrent operations", func() {
 						Acceptor: broker.AppAcceptorType{Port: appPort},
 						Capabilities: []broker.AppCapabilityType{
 							{
-								Role:       "workQueue",
 								ProducerOf: []broker.AppAddressType{{Address: fmt.Sprintf("RAPID.Q%d", i)}},
 								ConsumerOf: []broker.AppAddressType{{Address: fmt.Sprintf("RAPID.Q%d", i)}},
 							},
@@ -339,7 +338,6 @@ var _ = Describe("broker-service edge cases and concurrent operations", func() {
 					Acceptor: broker.AppAcceptorType{Port: appPort},
 					Capabilities: []broker.AppCapabilityType{
 						{
-							Role:       "workQueue",
 							ProducerOf: []broker.AppAddressType{{Address: "SPECIAL.QUEUE"}},
 						},
 					},
@@ -481,7 +479,6 @@ var _ = Describe("broker-service edge cases and concurrent operations", func() {
 					Acceptor: broker.AppAcceptorType{Port: appPort},
 					Capabilities: []broker.AppCapabilityType{
 						{
-							Role:       "workQueue",
 							ProducerOf: []broker.AppAddressType{{Address: "ORPHAN.QUEUE"}},
 						},
 					},

@@ -52,8 +52,6 @@ type AppAddressType struct {
 }
 
 type AppCapabilityType struct {
-	Role string `json:"role,omitempty"`
-
 	ProducerOf []AppAddressType `json:"producerOf,omitempty"`
 
 	ConsumerOf []AppAddressType `json:"consumerOf,omitempty"`
