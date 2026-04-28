@@ -274,7 +274,6 @@ var _ = Describe("broker-service status conditions", func() {
 
 			By("creating an app")
 			appName := "status-test-app"
-			appPort := int32(61620)
 			app := broker.BrokerApp{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "BrokerApp",
@@ -288,7 +287,6 @@ var _ = Describe("broker-service status conditions", func() {
 					ServiceSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{"test": "status"},
 					},
-					Acceptor: broker.AppAcceptorType{Port: appPort},
 					Capabilities: []broker.AppCapabilityType{
 						{
 							ProducerOf: []broker.AppAddressType{{Address: "STATUS.QUEUE"}},
@@ -416,7 +414,6 @@ var _ = Describe("broker-service status conditions", func() {
 
 			By("creating app with initial capabilities")
 			appName := "config-app"
-			appPort := int32(61621)
 			app := broker.BrokerApp{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "BrokerApp",
@@ -430,7 +427,6 @@ var _ = Describe("broker-service status conditions", func() {
 					ServiceSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{"config": "test"},
 					},
-					Acceptor: broker.AppAcceptorType{Port: appPort},
 					Capabilities: []broker.AppCapabilityType{
 						{
 							ProducerOf: []broker.AppAddressType{{Address: "INITIAL.QUEUE"}},

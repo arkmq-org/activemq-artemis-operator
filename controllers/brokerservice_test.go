@@ -255,7 +255,6 @@ var _ = Describe("broker-service-poc", func() {
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
 			By("deploying a matching app")
-			appPort := int32(62616)
 			appName := "first-app" // a lowercase RFC 1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')",
 			app := broker.BrokerApp{
 				TypeMeta: metav1.TypeMeta{
@@ -272,10 +271,6 @@ var _ = Describe("broker-service-poc", func() {
 						MatchLabels: map[string]string{
 							"env": "production",
 						}},
-
-					Acceptor: broker.AppAcceptorType{
-						Port: appPort,
-					},
 
 					Capabilities: []broker.AppCapabilityType{
 						{
@@ -329,6 +324,9 @@ var _ = Describe("broker-service-poc", func() {
 				g.Expect(createdApp.Status.Service).ShouldNot(BeNil())
 				bindingSecretNameFromAppStatus = createdApp.Status.Service.Secret
 
+				// Verify a port was auto-assigned
+				g.Expect(createdApp.Status.Service.AssignedPort).ShouldNot(BeZero())
+
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
 			By("checking broker cr status insync after app add - should be in the service if important to user")
@@ -358,6 +356,7 @@ var _ = Describe("broker-service-poc", func() {
 			By("provisioning pemcfg secret for app client cert")
 
 			serviceHostEnvVar := "BROKER_SERVICE_HOST"
+			servicePortEnvVar := "BROKER_SERVICE_PORT"
 			appClientPemcfgSecretName := "cert-pemcfg"
 			appClientPemcfgKey := types.NamespacedName{Name: appClientPemcfgSecretName, Namespace: defaultNamespace}
 			appClientPemcfgSecret := secrets.NewSecret(appClientPemcfgKey, map[string][]byte{
@@ -397,6 +396,18 @@ var _ = Describe("broker-service-poc", func() {
 															Name: bindingSecretNameFromAppStatus,
 														},
 														Key:      "host",
+														Optional: &boolFalse,
+													},
+												},
+											},
+											{
+												Name: servicePortEnvVar,
+												ValueFrom: &corev1.EnvVarSource{
+													SecretKeyRef: &corev1.SecretKeySelector{
+														LocalObjectReference: corev1.LocalObjectReference{
+															Name: bindingSecretNameFromAppStatus,
+														},
+														Key:      "port",
 														Optional: &boolFalse,
 													},
 												},
@@ -452,7 +463,7 @@ var _ = Describe("broker-service-poc", func() {
 			}
 
 			buf := &bytes.Buffer{}
-			fmt.Fprintf(buf, "amqps://${%s}:%d", serviceHostEnvVar, appPort)
+			fmt.Fprintf(buf, "amqps://${%s}:${%s}", serviceHostEnvVar, servicePortEnvVar)
 			fmt.Fprintf(buf, "?transport.trustStoreType=PEMCA\\&transport.trustStoreLocation=/app/tls/ca/ca.pem")
 			fmt.Fprintf(buf, "\\&transport.keyStoreType=PEMCFG\\&transport.keyStoreLocation=/app/tls/pem/tls.pemcfg")
 
@@ -684,7 +695,6 @@ var _ = Describe("broker-service-poc", func() {
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
 			By("deploying an app with specific queues in ConsumerOf")
-			appPort := int32(62616)
 			appName := "metrics-test-app"
 			app := broker.BrokerApp{
 				TypeMeta: metav1.TypeMeta{
@@ -701,10 +711,6 @@ var _ = Describe("broker-service-poc", func() {
 						MatchLabels: map[string]string{
 							"env": "metrics-test",
 						}},
-
-					Acceptor: broker.AppAcceptorType{
-						Port: appPort,
-					},
 
 					Capabilities: []broker.AppCapabilityType{
 						{

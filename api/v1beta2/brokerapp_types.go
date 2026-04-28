@@ -31,18 +31,11 @@ type BrokerAppSpec struct {
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="ServiceSelector"
 	ServiceSelector *metav1.LabelSelector `json:"selector,omitempty"`
 
-	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Acceptor"
-	Acceptor AppAcceptorType `json:"acceptor"`
-
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Messaging Capabilities"
 	Capabilities []AppCapabilityType `json:"capabilities,omitempty"`
 
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Resources"
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-}
-
-type AppAcceptorType struct {
-	Port int32 `json:"port"`
 }
 
 type AppAddressType struct {
@@ -69,6 +62,9 @@ type BrokerServiceBindingStatus struct {
 
 	// Secret is the name of the binding secret containing connection details
 	Secret string `json:"secret"`
+
+	// AssignedPort is the port allocated from the service's pool for this app's acceptor
+	AssignedPort int32 `json:"assignedPort"`
 }
 
 // Key returns the field indexer key for this service binding (namespace:name format)

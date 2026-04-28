@@ -812,6 +812,8 @@ const (
 	DeployedConditionProvisionedReason            = "Provisioned"
 	DeployedConditionDoesNotMatchReason           = "AppSelectorNoMatch"
 	DeployedConditionSelectorEvaluationError      = "AppSelectorEvaluationError"
+	DeployedConditionPortPoolExhaustedReason      = "PortPoolExhausted"
+	DeployedConditionPortDiscoveryPendingReason   = "PortDiscoveryPending"
 
 	AppsProvisionedConditionType           = "AppsProvisioned"
 	AppsProvisionedConditionSyncedReason   = "Synced"
