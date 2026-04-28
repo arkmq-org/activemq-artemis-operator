@@ -66,6 +66,22 @@ func TestAppSelectorAllowedNamespace(t *testing.T) {
 		Spec: v1beta2.BrokerServiceSpec{
 			AppSelectorExpression: fmt.Sprintf(`app.metadata.namespace == "%s"`, allowedNs),
 		},
+		Status: v1beta2.BrokerServiceStatus{
+			AvailablePorts: &v1beta2.PortPoolInfo{
+				Source: "Default",
+				PortRange: &v1beta2.PortRange{
+					Start: 61616,
+					End:   62615,
+				},
+			},
+			Conditions: []v1.Condition{
+				{
+					Type:   v1beta2.DeployedConditionType,
+					Status: v1.ConditionTrue,
+					Reason: v1beta2.ReadyConditionReason,
+				},
+			},
+		},
 	}
 
 	// Create BrokerApp from allowed namespace
@@ -78,7 +94,6 @@ func TestAppSelectorAllowedNamespace(t *testing.T) {
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
-			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
 		},
 	}
 
@@ -160,6 +175,22 @@ func TestAppSelectorDeniedNamespace(t *testing.T) {
 		Spec: v1beta2.BrokerServiceSpec{
 			AppSelectorExpression: fmt.Sprintf(`app.metadata.namespace == "%s"`, allowedNs),
 		},
+		Status: v1beta2.BrokerServiceStatus{
+			AvailablePorts: &v1beta2.PortPoolInfo{
+				Source: "Default",
+				PortRange: &v1beta2.PortRange{
+					Start: 61616,
+					End:   62615,
+				},
+			},
+			Conditions: []v1.Condition{
+				{
+					Type:   v1beta2.DeployedConditionType,
+					Status: v1.ConditionTrue,
+					Reason: v1beta2.ReadyConditionReason,
+				},
+			},
+		},
 	}
 
 	// Create BrokerApp from denied namespace (team-b)
@@ -172,7 +203,6 @@ func TestAppSelectorDeniedNamespace(t *testing.T) {
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
-			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
 		},
 	}
 
@@ -245,6 +275,22 @@ func TestAppSelectorEmptyAllowlist(t *testing.T) {
 		Spec: v1beta2.BrokerServiceSpec{
 			// Empty expression = default: app.metadata.namespace == service.metadata.namespace
 		},
+		Status: v1beta2.BrokerServiceStatus{
+			AvailablePorts: &v1beta2.PortPoolInfo{
+				Source: "Default",
+				PortRange: &v1beta2.PortRange{
+					Start: 61616,
+					End:   62615,
+				},
+			},
+			Conditions: []v1.Condition{
+				{
+					Type:   v1beta2.DeployedConditionType,
+					Status: v1.ConditionTrue,
+					Reason: v1beta2.ReadyConditionReason,
+				},
+			},
+		},
 	}
 
 	// Create BrokerApp from SAME namespace
@@ -257,7 +303,6 @@ func TestAppSelectorEmptyAllowlist(t *testing.T) {
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
-			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
 		},
 	}
 
@@ -326,6 +371,22 @@ func TestAppSelectorEmptyAllowlistDifferentNamespace(t *testing.T) {
 		Spec: v1beta2.BrokerServiceSpec{
 			// Empty = default: same namespace only
 		},
+		Status: v1beta2.BrokerServiceStatus{
+			AvailablePorts: &v1beta2.PortPoolInfo{
+				Source: "Default",
+				PortRange: &v1beta2.PortRange{
+					Start: 61616,
+					End:   62615,
+				},
+			},
+			Conditions: []v1.Condition{
+				{
+					Type:   v1beta2.DeployedConditionType,
+					Status: v1.ConditionTrue,
+					Reason: v1beta2.ReadyConditionReason,
+				},
+			},
+		},
 	}
 
 	// Create BrokerApp from DIFFERENT namespace
@@ -338,7 +399,6 @@ func TestAppSelectorEmptyAllowlistDifferentNamespace(t *testing.T) {
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
-			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
 		},
 	}
 
@@ -406,6 +466,22 @@ func TestAppSelectorRevokedAccess(t *testing.T) {
 		Spec: v1beta2.BrokerServiceSpec{
 			AppSelectorExpression: fmt.Sprintf(`app.metadata.namespace == "%s"`, appNs),
 		},
+		Status: v1beta2.BrokerServiceStatus{
+			AvailablePorts: &v1beta2.PortPoolInfo{
+				Source: "Default",
+				PortRange: &v1beta2.PortRange{
+					Start: 61616,
+					End:   62615,
+				},
+			},
+			Conditions: []v1.Condition{
+				{
+					Type:   v1beta2.DeployedConditionType,
+					Status: v1.ConditionTrue,
+					Reason: v1beta2.ReadyConditionReason,
+				},
+			},
+		},
 	}
 
 	// Create BrokerApp that's already bound to the service
@@ -418,13 +494,13 @@ func TestAppSelectorRevokedAccess(t *testing.T) {
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
-			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
 		},
 		Status: v1beta2.BrokerAppStatus{
 			Service: &v1beta2.BrokerServiceBindingStatus{
-				Name:      svcName,
-				Namespace: svcNs,
-				Secret:    "binding-secret",
+				Name:         svcName,
+				Namespace:    svcNs,
+				Secret:       "binding-secret",
+				AssignedPort: 61616,
 			},
 		},
 	}
@@ -500,6 +576,22 @@ func TestAppSelectorMultipleNamespaces(t *testing.T) {
 		Spec: v1beta2.BrokerServiceSpec{
 			AppSelectorExpression: `app.metadata.namespace in ["team-a", "team-b", "team-c"]`,
 		},
+		Status: v1beta2.BrokerServiceStatus{
+			AvailablePorts: &v1beta2.PortPoolInfo{
+				Source: "Default",
+				PortRange: &v1beta2.PortRange{
+					Start: 61616,
+					End:   62615,
+				},
+			},
+			Conditions: []v1.Condition{
+				{
+					Type:   v1beta2.DeployedConditionType,
+					Status: v1.ConditionTrue,
+					Reason: v1beta2.ReadyConditionReason,
+				},
+			},
+		},
 	}
 
 	teamANsObj := &corev1.Namespace{
@@ -517,7 +609,6 @@ func TestAppSelectorMultipleNamespaces(t *testing.T) {
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
-			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
 		},
 	}
 
@@ -536,7 +627,6 @@ func TestAppSelectorMultipleNamespaces(t *testing.T) {
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
-			Acceptor: v1beta2.AppAcceptorType{Port: 61617},
 		},
 	}
 
@@ -555,7 +645,6 @@ func TestAppSelectorMultipleNamespaces(t *testing.T) {
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
-			Acceptor: v1beta2.AppAcceptorType{Port: 61618},
 		},
 	}
 
@@ -642,6 +731,22 @@ func TestAppSelectorAllowAll(t *testing.T) {
 		Spec: v1beta2.BrokerServiceSpec{
 			AppSelectorExpression: "true", // Allow all namespaces
 		},
+		Status: v1beta2.BrokerServiceStatus{
+			AvailablePorts: &v1beta2.PortPoolInfo{
+				Source: "Default",
+				PortRange: &v1beta2.PortRange{
+					Start: 61616,
+					End:   62615,
+				},
+			},
+			Conditions: []v1.Condition{
+				{
+					Type:   v1beta2.DeployedConditionType,
+					Status: v1.ConditionTrue,
+					Reason: v1beta2.ReadyConditionReason,
+				},
+			},
+		},
 	}
 
 	// Create BrokerApp from any namespace
@@ -654,7 +759,6 @@ func TestAppSelectorAllowAll(t *testing.T) {
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
-			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
 		},
 	}
 
@@ -710,6 +814,22 @@ func TestAppSelectorPrefix(t *testing.T) {
 		Spec: v1beta2.BrokerServiceSpec{
 			AppSelectorExpression: `app.metadata.namespace.startsWith("team-")`, // Matches team-a-prod, team-b, etc.
 		},
+		Status: v1beta2.BrokerServiceStatus{
+			AvailablePorts: &v1beta2.PortPoolInfo{
+				Source: "Default",
+				PortRange: &v1beta2.PortRange{
+					Start: 61616,
+					End:   62615,
+				},
+			},
+			Conditions: []v1.Condition{
+				{
+					Type:   v1beta2.DeployedConditionType,
+					Status: v1.ConditionTrue,
+					Reason: v1beta2.ReadyConditionReason,
+				},
+			},
+		},
 	}
 
 	teamAProdNsObj := &corev1.Namespace{
@@ -727,7 +847,6 @@ func TestAppSelectorPrefix(t *testing.T) {
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
-			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
 		},
 	}
 
@@ -745,7 +864,6 @@ func TestAppSelectorPrefix(t *testing.T) {
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
-			Acceptor: v1beta2.AppAcceptorType{Port: 61617},
 		},
 	}
 
@@ -809,6 +927,22 @@ func TestAppSelectorSuffix(t *testing.T) {
 		Spec: v1beta2.BrokerServiceSpec{
 			AppSelectorExpression: `app.metadata.namespace.endsWith("-prod")`, // Matches team-a-prod, api-prod, etc.
 		},
+		Status: v1beta2.BrokerServiceStatus{
+			AvailablePorts: &v1beta2.PortPoolInfo{
+				Source: "Default",
+				PortRange: &v1beta2.PortRange{
+					Start: 61616,
+					End:   62615,
+				},
+			},
+			Conditions: []v1.Condition{
+				{
+					Type:   v1beta2.DeployedConditionType,
+					Status: v1.ConditionTrue,
+					Reason: v1beta2.ReadyConditionReason,
+				},
+			},
+		},
 	}
 
 	teamAProdNsObj := &corev1.Namespace{
@@ -826,7 +960,6 @@ func TestAppSelectorSuffix(t *testing.T) {
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
-			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
 		},
 	}
 
@@ -844,7 +977,6 @@ func TestAppSelectorSuffix(t *testing.T) {
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
-			Acceptor: v1beta2.AppAcceptorType{Port: 61617},
 		},
 	}
 
@@ -907,6 +1039,22 @@ func TestAppSelectorPrefixAndSuffix(t *testing.T) {
 		Spec: v1beta2.BrokerServiceSpec{
 			AppSelectorExpression: `app.metadata.namespace.startsWith("team-") && app.metadata.namespace.endsWith("-prod")`,
 		},
+		Status: v1beta2.BrokerServiceStatus{
+			AvailablePorts: &v1beta2.PortPoolInfo{
+				Source: "Default",
+				PortRange: &v1beta2.PortRange{
+					Start: 61616,
+					End:   62615,
+				},
+			},
+			Conditions: []v1.Condition{
+				{
+					Type:   v1beta2.DeployedConditionType,
+					Status: v1.ConditionTrue,
+					Reason: v1beta2.ReadyConditionReason,
+				},
+			},
+		},
 	}
 
 	teamAProdNsObj := &corev1.Namespace{
@@ -924,7 +1072,6 @@ func TestAppSelectorPrefixAndSuffix(t *testing.T) {
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
-			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
 		},
 	}
 
@@ -942,7 +1089,6 @@ func TestAppSelectorPrefixAndSuffix(t *testing.T) {
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
-			Acceptor: v1beta2.AppAcceptorType{Port: 61617},
 		},
 	}
 
@@ -961,7 +1107,6 @@ func TestAppSelectorPrefixAndSuffix(t *testing.T) {
 			ServiceSelector: &v1.LabelSelector{
 				MatchLabels: map[string]string{"type": "broker"},
 			},
-			Acceptor: v1beta2.AppAcceptorType{Port: 61618},
 		},
 	}
 
