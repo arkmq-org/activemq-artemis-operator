@@ -45,11 +45,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const (
-	DefaultServicePort int32 = 61616
-	EmptyBrokerXml           = "empty-broker-xml"
-)
-
 type BrokerServiceReconciler struct {
 	*ReconcilerLoop
 }
@@ -164,10 +159,12 @@ func (reconciler *BrokerServiceInstanceReconciler) validateSpec() error {
 }
 
 func (reconciler *BrokerServiceInstanceReconciler) processSpec() (err error) {
-	if err = reconciler.processBroker(); err == nil {
-		err = reconciler.processService()
+	if err = reconciler.processBroker(); err != nil {
+		return err
 	}
-	return err
+
+	// Process service
+	return reconciler.processService()
 }
 
 func (reconciler *BrokerServiceInstanceReconciler) processBroker() (err error) {
@@ -183,8 +180,13 @@ func (reconciler *BrokerServiceInstanceReconciler) processBroker() (err error) {
 	desired.Spec.DeploymentPlan.PersistenceEnabled = false
 	desired.Spec.DeploymentPlan.Clustered = common.NewFalse()
 	desired.Spec.DeploymentPlan.Labels = map[string]string{
-		fmt.Sprintf("%s-peer-index", reconciler.instance.Name): fmt.Sprintf("%v", 0),
-		getPeerLabelKey(reconciler.instance):                   reconciler.instance.Name,
+		// Standard Kubernetes labels
+		common.LabelAppKubernetesInstance:  reconciler.instance.Name,
+		common.LabelAppKubernetesComponent: "broker-service",
+		common.LabelAppKubernetesManagedBy: "arkmq-org-broker-operator",
+		// Domain-specific labels
+		common.LabelBrokerService:   reconciler.instance.Name,
+		common.LabelBrokerPeerIndex: "0",
 	}
 	desired.Spec.Env = reconciler.instance.Spec.Env
 	desired.Spec.DeploymentPlan.Resources = reconciler.instance.Spec.Resources
@@ -333,6 +335,7 @@ func (reconciler *BrokerServiceInstanceReconciler) processStatus(reconcilerError
 
 			if brokerDeployed != nil {
 				if brokerDeployed.Status == metav1.ConditionTrue {
+					// Broker is deployed
 					deployedCondition.Status = metav1.ConditionTrue
 					deployedCondition.Reason = broker.ReadyConditionReason
 				} else {
@@ -386,10 +389,6 @@ func (reconciler *BrokerServiceInstanceReconciler) processStatus(reconcilerError
 	)
 
 	return err, retry
-}
-
-func getPeerLabelKey(cr *broker.BrokerService) string {
-	return fmt.Sprintf("%s-peers", cr.Name)
 }
 
 // appName returns the formatted name of an app for logging (namespace/name).
@@ -485,7 +484,7 @@ func (reconciler *BrokerServiceInstanceReconciler) processService() error {
 	}
 
 	desired.Spec.Selector = map[string]string{
-		getPeerLabelKey(reconciler.instance): reconciler.instance.Name,
+		common.LabelBrokerService: reconciler.instance.Name,
 	}
 	reconciler.TrackDesired(desired)
 	return nil
@@ -747,7 +746,15 @@ func (reconciler *BrokerServiceInstanceReconciler) processAcceptor(serverConfigP
 
 	buf := NewPropsWithHeader()
 
-	name := fmt.Sprintf("%d", app.Spec.Acceptor.Port)
+	if app.Status.Service == nil {
+		return fmt.Errorf("app %s has no service binding", AppIdentity(app))
+	}
+	port := app.Status.Service.AssignedPort
+	if port == UnassignedPort {
+		return fmt.Errorf("app %s has no assigned port", AppIdentity(app))
+	}
+
+	name := fmt.Sprintf("%d", port)
 	fmt.Fprintln(buf, "# tls acceptor")
 
 	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".factoryClassName=org.apache.activemq.artemis.core.remoting.impl.netty.NettyAcceptorFactory\n", name)
@@ -755,7 +762,7 @@ func (reconciler *BrokerServiceInstanceReconciler) processAcceptor(serverConfigP
 	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.securityDomain=%s\n", name, realmName)
 
 	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.host=${HOSTNAME}\n", name)
-	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.port=%d\n", name, app.Spec.Acceptor.Port)
+	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.port=%d\n", name, port)
 
 	fmt.Fprintf(buf, "acceptorConfigurations.\"%s\".params.sslEnabled=true\n", name)
 
@@ -805,8 +812,11 @@ func (reconciler *BrokerServiceInstanceReconciler) makePemCfgProps(service *brok
 }
 
 func jaasConfigRealmName(app *broker.BrokerApp) string {
-	realmName := fmt.Sprintf("port-%d", app.Spec.Acceptor.Port)
-	return realmName
+	port := int32(DefaultStartPort)
+	if app.Status.Service != nil && app.Status.Service.AssignedPort != UnassignedPort {
+		port = app.Status.Service.AssignedPort
+	}
+	return fmt.Sprintf("port-%d", port)
 }
 
 func escapeForProperties(s string) string {

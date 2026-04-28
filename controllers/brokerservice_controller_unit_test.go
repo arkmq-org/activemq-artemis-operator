@@ -26,7 +26,9 @@ import (
 	"github.com/arkmq-org/arkmq-org-broker-operator/pkg/utils/common"
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -53,6 +55,7 @@ func TestBrokerServiceReconcileWithAppMove(t *testing.T) {
 	// Setup scheme
 	scheme := runtime.NewScheme()
 	_ = v1beta2.AddToScheme(scheme)
+	_ = networkingv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 
 	// Data
@@ -87,6 +90,7 @@ func TestBrokerServiceReconcileWithAppMove(t *testing.T) {
 			Namespace: ns,
 			UID:       types.UID("uid-s1"),
 		},
+		Status: v1beta2.BrokerServiceStatus{},
 	}
 	s2 := &v1beta2.BrokerService{
 		ObjectMeta: metav1.ObjectMeta{
@@ -94,6 +98,7 @@ func TestBrokerServiceReconcileWithAppMove(t *testing.T) {
 			Namespace: ns,
 			UID:       types.UID("uid-s2"),
 		},
+		Status: v1beta2.BrokerServiceStatus{},
 	}
 	app := &v1beta2.BrokerApp{
 		ObjectMeta: metav1.ObjectMeta{
@@ -101,14 +106,13 @@ func TestBrokerServiceReconcileWithAppMove(t *testing.T) {
 			Namespace: ns,
 			UID:       types.UID("uid-app"),
 		},
-		Spec: v1beta2.BrokerAppSpec{
-			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
-		},
+		Spec: v1beta2.BrokerAppSpec{},
 		Status: v1beta2.BrokerAppStatus{
 			Service: &v1beta2.BrokerServiceBindingStatus{
-				Name:      s1Name,
-				Namespace: ns,
-				Secret:    "binding-secret",
+				Name:         s1Name,
+				Namespace:    ns,
+				Secret:       "binding-secret",
+				AssignedPort: 61616,
 			},
 		},
 	}
@@ -144,9 +148,10 @@ func TestBrokerServiceReconcileWithAppMove(t *testing.T) {
 	err = cl.Get(context.TODO(), types.NamespacedName{Name: appName, Namespace: ns}, app)
 	assert.NoError(t, err)
 	app.Status.Service = &v1beta2.BrokerServiceBindingStatus{
-		Name:      s2Name,
-		Namespace: ns,
-		Secret:    "app-binding-secret",
+		Name:         s2Name,
+		Namespace:    ns,
+		Secret:       "app-binding-secret",
+		AssignedPort: 61617,
 	}
 	assert.NoError(t, cl.Status().Update(context.TODO(), app))
 
@@ -182,6 +187,7 @@ func TestBrokerServiceReconcileErrorPropagation(t *testing.T) {
 	// Setup scheme
 	scheme := runtime.NewScheme()
 	_ = v1beta2.AddToScheme(scheme)
+	_ = networkingv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 
 	s1Name := "service1"
@@ -244,6 +250,7 @@ func TestBrokerServiceReconcileStatusUpdateFailure(t *testing.T) {
 	// Setup scheme
 	scheme := runtime.NewScheme()
 	_ = v1beta2.AddToScheme(scheme)
+	_ = networkingv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 
 	s1Name := "service1"
@@ -306,16 +313,6 @@ func TestBrokerServiceReconcileRequiresIndex(t *testing.T) {
 			Namespace: ns,
 			UID:       types.UID("uid-app"),
 		},
-		Spec: v1beta2.BrokerAppSpec{
-			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
-		},
-		Status: v1beta2.BrokerAppStatus{
-			Service: &v1beta2.BrokerServiceBindingStatus{
-				Name:      s1Name,
-				Namespace: ns,
-				Secret:    "binding-secret",
-			},
-		},
 	}
 
 	// Setup fake client WITHOUT indexer
@@ -339,7 +336,9 @@ func TestReconcileDeployedConditionTransition(t *testing.T) {
 	// Setup scheme
 	scheme := runtime.NewScheme()
 	_ = v1beta2.AddToScheme(scheme)
+	_ = networkingv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
 
 	// Data
 	ns := "default"
@@ -351,6 +350,7 @@ func TestReconcileDeployedConditionTransition(t *testing.T) {
 			Name:      svcName,
 			Namespace: ns,
 		},
+		Status: v1beta2.BrokerServiceStatus{},
 	}
 
 	// Setup fake client with indexer required by controller
@@ -403,6 +403,26 @@ func TestReconcileDeployedConditionTransition(t *testing.T) {
 	err = cl.Status().Update(context.TODO(), brokerCR)
 	assert.NoError(t, err)
 
+	// Create StatefulSet (simulating Broker controller)
+	ss := &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      svcName + "-ss",
+			Namespace: ns,
+		},
+		Spec: appsv1.StatefulSetSpec{
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						common.LabelAppKubernetesInstance: svcName,
+						common.LabelBrokerService:         svcName,
+					},
+				},
+			},
+		},
+	}
+	err = cl.Create(context.TODO(), ss)
+	assert.NoError(t, err)
+
 	// Reconcile again
 	_, err = r.Reconcile(context.TODO(), req)
 	assert.NoError(t, err)
@@ -422,6 +442,7 @@ func TestBrokerServiceReconcileStatusAppliedApps(t *testing.T) {
 	// Setup scheme
 	scheme := runtime.NewScheme()
 	_ = v1beta2.AddToScheme(scheme)
+	_ = networkingv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 
 	// Data
@@ -467,14 +488,13 @@ func TestBrokerServiceReconcileStatusAppliedApps(t *testing.T) {
 			Name:      appName,
 			Namespace: ns,
 		},
-		Spec: v1beta2.BrokerAppSpec{
-			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
-		},
+		Spec: v1beta2.BrokerAppSpec{},
 		Status: v1beta2.BrokerAppStatus{
 			Service: &v1beta2.BrokerServiceBindingStatus{
-				Name:      svcName,
-				Namespace: ns,
-				Secret:    "binding-secret",
+				Name:         svcName,
+				Namespace:    ns,
+				Secret:       "binding-secret",
+				AssignedPort: 61616,
 			},
 		},
 	}
@@ -550,6 +570,7 @@ func TestBrokerServiceReconcileStatusAppliedAppsIncremental(t *testing.T) {
 	// Setup scheme
 	scheme := runtime.NewScheme()
 	_ = v1beta2.AddToScheme(scheme)
+	_ = networkingv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 
 	// Data
@@ -596,14 +617,13 @@ func TestBrokerServiceReconcileStatusAppliedAppsIncremental(t *testing.T) {
 			Name:      app1Name,
 			Namespace: ns,
 		},
-		Spec: v1beta2.BrokerAppSpec{
-			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
-		},
+		Spec: v1beta2.BrokerAppSpec{},
 		Status: v1beta2.BrokerAppStatus{
 			Service: &v1beta2.BrokerServiceBindingStatus{
-				Name:      svcName,
-				Namespace: ns,
-				Secret:    "binding-secret",
+				Name:         svcName,
+				Namespace:    ns,
+				Secret:       "binding-secret",
+				AssignedPort: 61616,
 			},
 		},
 	}
@@ -672,14 +692,13 @@ func TestBrokerServiceReconcileStatusAppliedAppsIncremental(t *testing.T) {
 			Name:      app2Name,
 			Namespace: ns,
 		},
-		Spec: v1beta2.BrokerAppSpec{
-			Acceptor: v1beta2.AppAcceptorType{Port: 61617},
-		},
+		Spec: v1beta2.BrokerAppSpec{},
 		Status: v1beta2.BrokerAppStatus{
 			Service: &v1beta2.BrokerServiceBindingStatus{
-				Name:      svcName,
-				Namespace: ns,
-				Secret:    "binding-secret",
+				Name:         svcName,
+				Namespace:    ns,
+				Secret:       "binding-secret",
+				AssignedPort: 61616,
 			},
 		},
 	}
@@ -731,6 +750,7 @@ func TestBrokerServiceReconcileAppsProvisionedCondition(t *testing.T) {
 	// Setup scheme
 	scheme := runtime.NewScheme()
 	_ = v1beta2.AddToScheme(scheme)
+	_ = networkingv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 
 	// Data
@@ -833,6 +853,7 @@ func TestBrokerServiceReconcilePrometheusOverrideSecret(t *testing.T) {
 	// Setup scheme
 	scheme := runtime.NewScheme()
 	_ = v1beta2.AddToScheme(scheme)
+	_ = networkingv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 
 	// Data
@@ -879,7 +900,6 @@ func TestBrokerServiceReconcilePrometheusOverrideSecret(t *testing.T) {
 			Namespace: ns,
 		},
 		Spec: v1beta2.BrokerAppSpec{
-			Acceptor: v1beta2.AppAcceptorType{Port: 61616},
 			Capabilities: []v1beta2.AppCapabilityType{
 				{
 					ConsumerOf: []v1beta2.AppAddressType{
@@ -894,9 +914,10 @@ func TestBrokerServiceReconcilePrometheusOverrideSecret(t *testing.T) {
 		},
 		Status: v1beta2.BrokerAppStatus{
 			Service: &v1beta2.BrokerServiceBindingStatus{
-				Name:      svcName,
-				Namespace: ns,
-				Secret:    "binding-secret",
+				Name:         svcName,
+				Namespace:    ns,
+				Secret:       "binding-secret",
+				AssignedPort: 61616,
 			},
 		},
 	}
@@ -952,6 +973,7 @@ func TestBrokerServiceReconcilePrometheusOverrideNoApps(t *testing.T) {
 	// Setup scheme
 	scheme := runtime.NewScheme()
 	_ = v1beta2.AddToScheme(scheme)
+	_ = networkingv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 
 	// Data
@@ -1032,6 +1054,7 @@ func TestBrokerServiceValidCondition(t *testing.T) {
 	// Setup scheme
 	scheme := runtime.NewScheme()
 	_ = v1beta2.AddToScheme(scheme)
+	_ = networkingv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 
 	ns := "default"
@@ -1044,6 +1067,7 @@ func TestBrokerServiceValidCondition(t *testing.T) {
 				Name:      svcName,
 				Namespace: ns,
 			},
+			Status: v1beta2.BrokerServiceStatus{},
 		}
 
 		// Setup fake client with field indexer using helper
@@ -1081,6 +1105,7 @@ func TestBrokerServiceValidCondition(t *testing.T) {
 				Name:      invalidName,
 				Namespace: ns,
 			},
+			Status: v1beta2.BrokerServiceStatus{},
 		}
 
 		// Setup fake client with field indexer using helper
@@ -1118,6 +1143,7 @@ func TestBrokerServiceValidCondition(t *testing.T) {
 				Name:      svcName + "-persist",
 				Namespace: ns,
 			},
+			Status: v1beta2.BrokerServiceStatus{},
 		}
 
 		// Setup fake client with field indexer using helper
@@ -1163,6 +1189,7 @@ func TestBrokerServiceIdempotentStatus(t *testing.T) {
 	// Setup scheme
 	scheme := runtime.NewScheme()
 	_ = v1beta2.AddToScheme(scheme)
+	_ = networkingv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 
 	ns := "default"
@@ -1174,6 +1201,7 @@ func TestBrokerServiceIdempotentStatus(t *testing.T) {
 			Name:      svcName,
 			Namespace: ns,
 		},
+		Status: v1beta2.BrokerServiceStatus{},
 	}
 
 	// Setup fake client with indexer
@@ -1220,6 +1248,7 @@ func TestBrokerServiceConditionIndependence(t *testing.T) {
 	// Setup scheme
 	scheme := runtime.NewScheme()
 	_ = v1beta2.AddToScheme(scheme)
+	_ = networkingv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 
 	ns := "default"
@@ -1231,6 +1260,7 @@ func TestBrokerServiceConditionIndependence(t *testing.T) {
 			Name:      svcName,
 			Namespace: ns,
 		},
+		Status: v1beta2.BrokerServiceStatus{},
 	}
 
 	// Setup fake client with indexer
@@ -1282,6 +1312,7 @@ func TestBrokerServiceValidPersistsThroughRuntimeErrors(t *testing.T) {
 	// Setup scheme
 	scheme := runtime.NewScheme()
 	_ = v1beta2.AddToScheme(scheme)
+	_ = networkingv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
 
 	ns := "default"
@@ -1293,6 +1324,7 @@ func TestBrokerServiceValidPersistsThroughRuntimeErrors(t *testing.T) {
 			Name:      svcName,
 			Namespace: ns,
 		},
+		Status: v1beta2.BrokerServiceStatus{},
 	}
 
 	// Setup fake client with interceptor to fail List operations
@@ -1342,7 +1374,9 @@ func TestBrokerServiceConditionTransitionsOnRecovery(t *testing.T) {
 	// Setup scheme
 	scheme := runtime.NewScheme()
 	_ = v1beta2.AddToScheme(scheme)
+	_ = networkingv1.AddToScheme(scheme)
 	_ = corev1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
 
 	ns := "default"
 	svcName := "test-service"
@@ -1353,6 +1387,7 @@ func TestBrokerServiceConditionTransitionsOnRecovery(t *testing.T) {
 			Name:      svcName,
 			Namespace: ns,
 		},
+		Status: v1beta2.BrokerServiceStatus{},
 	}
 
 	// Setup fake client
@@ -1384,7 +1419,7 @@ func TestBrokerServiceConditionTransitionsOnRecovery(t *testing.T) {
 	assert.Equal(t, metav1.ConditionFalse, deployedCond.Status)
 	assert.Equal(t, v1beta2.DeployedConditionNotReadyReason, deployedCond.Reason)
 
-	// 2. Update Broker to be ready
+	// 2. Update Broker to be ready and create StatefulSet
 	brokerCR := &v1beta2.Broker{}
 	err = cl.Get(context.TODO(), req.NamespacedName, brokerCR)
 	assert.NoError(t, err)
@@ -1400,6 +1435,26 @@ func TestBrokerServiceConditionTransitionsOnRecovery(t *testing.T) {
 		},
 	}
 	err = cl.Status().Update(context.TODO(), brokerCR)
+	assert.NoError(t, err)
+
+	// Create StatefulSet (simulating Broker controller)
+	ss := &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      svcName + "-ss",
+			Namespace: ns,
+		},
+		Spec: appsv1.StatefulSetSpec{
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						common.LabelAppKubernetesInstance: svcName,
+						common.LabelBrokerService:         svcName,
+					},
+				},
+			},
+		},
+	}
+	err = cl.Create(context.TODO(), ss)
 	assert.NoError(t, err)
 
 	// 3. Reconcile again

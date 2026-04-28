@@ -172,7 +172,6 @@ var _ = Describe("broker-service edge cases and concurrent operations", func() {
 
 			for i := 0; i < numApps; i++ {
 				appName := fmt.Sprintf("rapid-app-%d", i)
-				appPort := int32(61630 + i)
 				apps[i] = &broker.BrokerApp{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "BrokerApp",
@@ -186,7 +185,6 @@ var _ = Describe("broker-service edge cases and concurrent operations", func() {
 						ServiceSelector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{"rapid": "test"},
 						},
-						Acceptor: broker.AppAcceptorType{Port: appPort},
 						Capabilities: []broker.AppCapabilityType{
 							{
 								ProducerOf: []broker.AppAddressType{{Address: fmt.Sprintf("RAPID.Q%d", i)}},
@@ -321,7 +319,6 @@ var _ = Describe("broker-service edge cases and concurrent operations", func() {
 			By("creating app with dots and hyphens in name")
 			// Valid DNS subdomain name with dots and hyphens
 			appName := "my-app.v1-test"
-			appPort := int32(61640)
 			app := broker.BrokerApp{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "BrokerApp",
@@ -335,7 +332,6 @@ var _ = Describe("broker-service edge cases and concurrent operations", func() {
 					ServiceSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{"special": "chars"},
 					},
-					Acceptor: broker.AppAcceptorType{Port: appPort},
 					Capabilities: []broker.AppCapabilityType{
 						{
 							ProducerOf: []broker.AppAddressType{{Address: "SPECIAL.QUEUE"}},
@@ -462,7 +458,6 @@ var _ = Describe("broker-service edge cases and concurrent operations", func() {
 
 			By("creating app bound to service")
 			appName := "orphan-app"
-			appPort := int32(61650)
 			app := broker.BrokerApp{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "BrokerApp",
@@ -476,7 +471,6 @@ var _ = Describe("broker-service edge cases and concurrent operations", func() {
 					ServiceSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{"deletion": "test"},
 					},
-					Acceptor: broker.AppAcceptorType{Port: appPort},
 					Capabilities: []broker.AppCapabilityType{
 						{
 							ProducerOf: []broker.AppAddressType{{Address: "ORPHAN.QUEUE"}},

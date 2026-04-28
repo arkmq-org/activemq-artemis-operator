@@ -91,11 +91,16 @@ func (reconciler BrokerAppInstanceReconciler) processBindingSecret() error {
 		desired = secrets.NewSecret(bindingSecretNsName, nil, nil)
 	}
 
+	port := reconciler.status.Service.AssignedPort
+	if port == UnassignedPort {
+		return fmt.Errorf("no port assigned for app %s", reconciler.instance.Name)
+	}
+
 	desired.Data = map[string][]byte{
 		// host as FQQN to work everywhere in the cluster
 		"host": []byte(fmt.Sprintf("%s.%s.svc.%s", reconciler.status.Service.Name, reconciler.status.Service.Namespace, common.GetClusterDomain())),
-		"port": []byte(fmt.Sprintf("%d", reconciler.instance.Spec.Acceptor.Port)),
-		"uri":  []byte(fmt.Sprintf("amqps://%s.%s.svc.%s:%d", reconciler.status.Service.Name, reconciler.status.Service.Namespace, common.GetClusterDomain(), reconciler.instance.Spec.Acceptor.Port)),
+		"port": []byte(fmt.Sprintf("%d", port)),
+		"uri":  []byte(fmt.Sprintf("amqps://%s.%s.svc.%s:%d", reconciler.status.Service.Name, reconciler.status.Service.Namespace, common.GetClusterDomain(), port)),
 	}
 	reconciler.TrackDesired(desired)
 	return nil
@@ -216,20 +221,30 @@ func (reconciler *BrokerAppInstanceReconciler) resolveBrokerService() error {
 
 		// Check if we found the service and if it still matches
 		if service != nil {
-			matches, matchErr := reconciler.matchesServiceSelector(service)
-			if matchErr != nil {
-				// CEL evaluation error - surface to user via status
-				return NewConditionError(broker.DeployedConditionSelectorEvaluationError,
-					"error evaluating service selector: %v", matchErr)
-			}
-			if !matches {
-				reconciler.log.V(1).Info("App no longer matches service selector, removing binding",
+			// Check if app is in service's RejectedApps (orphaned port detection)
+			if reconciler.isAppRejectedByService(service) {
+				reconciler.log.V(1).Info("App rejected by service (orphaned port), reassigning",
 					"app", reconciler.instance.Name,
-					"service", deployedTo)
-				// Clear status binding - status update happens in processStatus()
+					"service", deployedTo,
+					"currentPort", reconciler.status.Service.AssignedPort)
 				reconciler.status.Service = nil
 				service = nil
 				needsServiceAssignment = true
+			} else {
+				matches, matchErr := reconciler.matchesServiceSelector(service)
+				if matchErr != nil {
+					// CEL evaluation error - surface to user via status
+					return NewConditionError(broker.DeployedConditionSelectorEvaluationError,
+						"error evaluating service selector: %v", matchErr)
+				}
+				if !matches {
+					reconciler.log.V(1).Info("App no longer matches service selector, removing binding",
+						"app", reconciler.instance.Name,
+						"service", deployedTo)
+					reconciler.status.Service = nil
+					service = nil
+					needsServiceAssignment = true
+				}
 			}
 		}
 
@@ -259,13 +274,21 @@ func (reconciler *BrokerAppInstanceReconciler) resolveBrokerService() error {
 				"no matching services available for selector %v", opts)
 		}
 
-		service, err = reconciler.findServiceWithCapacity(list)
+		var assignedPort int32
+		service, assignedPort, err = reconciler.findServiceWithCapacity(list)
 		if service != nil {
+			// findServiceWithCapacity already found a service and assigned a port
+			// Set service binding including assigned port
 			reconciler.status.Service = &broker.BrokerServiceBindingStatus{
-				Name:      service.Name,
-				Namespace: service.Namespace,
-				Secret:    BindingsSecretName(reconciler.instance.Name),
+				Name:         service.Name,
+				Namespace:    service.Namespace,
+				Secret:       BindingsSecretName(reconciler.instance.Name),
+				AssignedPort: assignedPort,
 			}
+			reconciler.log.V(1).Info("Assigned port to app",
+				"app", reconciler.instance.Name,
+				"service", service.Name,
+				"port", assignedPort)
 		} else {
 			// Check if error is already a ConditionError (e.g., AppSelectorNoMatch)
 			if _, isCondErr := AsConditionError(err); isCondErr {
@@ -302,7 +325,7 @@ func (reconciler *BrokerAppInstanceReconciler) matchesServiceSelector(service *b
 			"app", reconciler.instance.Namespace+"/"+reconciler.instance.Name,
 			"service", service.Namespace+"/"+service.Name,
 			"expression", service.Spec.AppSelectorExpression)
-		return false, fmt.Errorf("failed to evaluate appSelectorExpression on service %s/%s: %w",
+		return false, fmt.Errorf("failed to evaluate appSelectorExpression on service %s/%s: %v",
 			service.Namespace, service.Name, err)
 	}
 
@@ -322,25 +345,33 @@ func (reconciler *BrokerAppInstanceReconciler) matchesServiceSelector(service *b
 	return matches, nil
 }
 
-func (reconciler *BrokerAppInstanceReconciler) findServiceWithCapacity(list *broker.BrokerServiceList) (chosen *broker.BrokerService, err error) {
+func (reconciler *BrokerAppInstanceReconciler) findServiceWithCapacity(list *broker.BrokerServiceList) (chosen *broker.BrokerService, assignedPort int32, err error) {
 	if len(list.Items) == 0 {
-		return nil, fmt.Errorf("no services in list")
+		return nil, UnassignedPort, fmt.Errorf("no services in list")
 	}
 
 	// Get the app's resource requirements
 	appMemoryRequest := reconciler.instance.Spec.Resources.Requests.Memory()
-	appPort := reconciler.instance.Spec.Acceptor.Port
 
 	var bestService *broker.BrokerService
+	var bestServicePort int32 = UnassignedPort
 	var maxAvailable int64 = -1
 
 	// Track why services were rejected for better error messages
 	rejectionReasons := make(map[string]string)
 	selectorRejectionCount := 0
+	portExhaustedCount := 0
 	var celEvaluationError error // Track first CEL error encountered
 
 	for i := range list.Items {
 		service := &list.Items[i]
+
+		// Only consider deployed services (port discovery must be complete)
+		deployedCond := meta.FindStatusCondition(service.Status.Conditions, broker.DeployedConditionType)
+		if deployedCond == nil || deployedCond.Status != metav1.ConditionTrue {
+			rejectionReasons[service.Name] = "service not deployed yet (port discovery pending)"
+			continue
+		}
 
 		// Check selector match first
 		matches, matchErr := reconciler.matchesServiceSelector(service)
@@ -385,21 +416,24 @@ func (reconciler *BrokerAppInstanceReconciler) findServiceWithCapacity(list *bro
 			continue
 		}
 
-		// Check port availability
-		conflictingApp, hasConflict, portErr := reconciler.getPortConflict(service, appPort)
-		if portErr != nil {
-			// Error checking for conflicts - treat as service unavailable
-			reconciler.log.Error(portErr, "Failed to check port conflicts for service",
-				"service", service.Name)
-			rejectionReasons[service.Name] = fmt.Sprintf("error checking ports: %v", portErr)
+		// Check if we have an available port and assign it
+		apps, listErr := reconciler.listOtherAppsForService(service)
+		if listErr != nil {
+			reconciler.log.V(1).Info("Failed to list apps for port capacity check",
+				"service", service.Name,
+				"error", listErr)
+			rejectionReasons[service.Name] = fmt.Sprintf("error checking port capacity: %v", listErr)
 			continue
 		}
-		if hasConflict {
-			reconciler.log.V(1).Info("Service has port conflict",
+
+		usedPorts := collectUsedPorts(apps, reconciler.instance)
+		candidatePort, portErr := assignNextAvailablePort(usedPorts)
+		if portErr != nil {
+			reconciler.log.V(1).Info("Service has no available ports",
 				"service", service.Name,
-				"port", appPort,
-				"conflicting-app", conflictingApp)
-			rejectionReasons[service.Name] = fmt.Sprintf("port %d conflict with %s", appPort, conflictingApp)
+				"error", portErr)
+			rejectionReasons[service.Name] = fmt.Sprintf("port pool exhausted: %v", portErr)
+			portExhaustedCount++
 			continue
 		}
 
@@ -407,6 +441,7 @@ func (reconciler *BrokerAppInstanceReconciler) findServiceWithCapacity(list *bro
 		if available > maxAvailable {
 			maxAvailable = available
 			bestService = service
+			bestServicePort = candidatePort
 		}
 	}
 
@@ -419,28 +454,34 @@ func (reconciler *BrokerAppInstanceReconciler) findServiceWithCapacity(list *bro
 
 		// If we encountered CEL evaluation errors, surface them to user
 		if celEvaluationError != nil {
-			return nil, NewConditionError(broker.DeployedConditionSelectorEvaluationError,
+			return nil, UnassignedPort, NewConditionError(broker.DeployedConditionSelectorEvaluationError,
 				"failed to evaluate service selector: %v", celEvaluationError)
 		}
 
 		// If all services were rejected due to selector mismatch, return specific error
 		if selectorRejectionCount > 0 && selectorRejectionCount == len(rejectionReasons) {
-			return nil, NewConditionError(broker.DeployedConditionDoesNotMatchReason,
+			return nil, UnassignedPort, NewConditionError(broker.DeployedConditionDoesNotMatchReason,
 				"app in namespace %s does not match selector for any service", reconciler.instance.Namespace)
 		}
 
-		if len(reasons) > 0 {
-			return nil, fmt.Errorf("no service with capacity for port %d and memory %v: %s",
-				appPort, appMemoryRequest, strings.Join(reasons, "; "))
+		// If all services were rejected due to port exhaustion, return specific error
+		if portExhaustedCount > 0 && portExhaustedCount == len(rejectionReasons) {
+			return nil, UnassignedPort, NewConditionError(broker.DeployedConditionPortPoolExhaustedReason,
+				"all matching services have exhausted port pools: %s", strings.Join(reasons, "; "))
 		}
-		return nil, fmt.Errorf("no service with capacity for port %d and memory %v", appPort, appMemoryRequest)
+
+		if len(reasons) > 0 {
+			return nil, UnassignedPort, fmt.Errorf("no service with capacity for memory %v: %s",
+				appMemoryRequest, strings.Join(reasons, "; "))
+		}
+		return nil, UnassignedPort, fmt.Errorf("no service with capacity for memory %v", appMemoryRequest)
 	}
 
 	reconciler.log.V(1).Info("Selected service with capacity",
 		"service", bestService.Name,
 		"available-memory", maxAvailable,
-		"port", appPort)
-	return bestService, nil
+		"assigned-port", bestServicePort)
+	return bestService, bestServicePort, nil
 }
 
 func (reconciler *BrokerAppInstanceReconciler) listOtherAppsForService(service *broker.BrokerService) ([]broker.BrokerApp, error) {
@@ -514,21 +555,15 @@ func (reconciler *BrokerAppInstanceReconciler) verifyCapabilityAddressType() (er
 	return err
 }
 
-func (reconciler *BrokerAppInstanceReconciler) getPortConflict(service *broker.BrokerService, port int32) (conflictingApp string, hasConflict bool, err error) {
-	// Query all other apps assigned to this service
-	apps, err := reconciler.listOtherAppsForService(service)
-	if err != nil {
-		return "", false, fmt.Errorf("failed to list apps for service %s: %w", serviceKey(service), err)
-	}
-
-	// Check for port conflicts with other apps
-	for _, app := range apps {
-		if app.Spec.Acceptor.Port == port {
-			return fmt.Sprintf("%s/%s", app.Namespace, app.Name), true, nil
+// isAppRejectedByService checks if this app appears in the service's RejectedApps list
+func (reconciler *BrokerAppInstanceReconciler) isAppRejectedByService(service *broker.BrokerService) bool {
+	appKey := reconciler.instance.Namespace + "/" + reconciler.instance.Name
+	for _, rejected := range service.Status.RejectedApps {
+		if rejected.Namespace+"/"+rejected.Name == appKey {
+			return true
 		}
 	}
-
-	return "", false, nil
+	return false
 }
 
 func (reconciler *BrokerAppInstanceReconciler) processStatus(reconcilerError error) (err error, retry bool) {
