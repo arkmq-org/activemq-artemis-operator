@@ -815,29 +815,37 @@ func (r *BrokerServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 type AddressConfig struct {
 	senderRoles   map[string]string
 	consumerRoles map[string]string
+	// isOwned indicates this app should generate addressConfigurations for this address.
+	// True when appNamespace/appName are empty (local reference).
+	// False when appNamespace/appName are set (cross-app reference - owner generates config).
+	isOwned bool
 }
 
 type AddressTracker struct {
-	names map[string]AddressConfig
+	names map[string]*AddressConfig
 }
 
 func newAddressTracker() *AddressTracker {
-	return &AddressTracker{names: map[string]AddressConfig{}}
+	return &AddressTracker{names: map[string]*AddressConfig{}}
 }
 
-func (t *AddressTracker) newAddressConfig() AddressConfig {
-	return AddressConfig{senderRoles: map[string]string{}, consumerRoles: map[string]string{}}
+func (t *AddressTracker) newAddressConfig() *AddressConfig {
+	return &AddressConfig{senderRoles: map[string]string{}, consumerRoles: map[string]string{}, isOwned: false}
 }
 
-func (t *AddressTracker) track(address *broker.AppAddressType) *AddressConfig {
-
-	var present bool
-	var entry AddressConfig
-	if entry, present = t.names[address.Address]; !present {
+func (t *AddressTracker) track(address *broker.AddressRef) *AddressConfig {
+	entry, present := t.names[address.Address]
+	if !present {
 		entry = t.newAddressConfig()
 		t.names[address.Address] = entry
 	}
-	return &entry
+
+	// If AppNamespace and AppName are empty, this app owns the address
+	if address.AppNamespace == "" && address.AppName == "" {
+		entry.isOwned = true
+	}
+
+	return entry
 }
 
 func (reconciler *BrokerServiceInstanceReconciler) processCapabilities(secret *corev1.Secret, app *broker.BrokerApp) (err error) {
@@ -845,6 +853,18 @@ func (reconciler *BrokerServiceInstanceReconciler) processCapabilities(secret *c
 
 	role := AppIdentity(app)
 
+	// First, track addresses declared in spec.addresses (these are owned by this app)
+	// This ensures addressConfigurations are generated even if the app has no capabilities
+	for _, addrType := range app.Spec.Addresses {
+		localAddr := &broker.AddressRef{
+			Address: addrType.Address,
+			// AppNamespace and AppName empty = owned/local address
+		}
+		addressTracker.track(localAddr)
+		// Note: No RBAC roles added here - capabilities define the roles
+	}
+
+	// Then, process capabilities to add RBAC roles
 	for _, capability := range app.Spec.Capabilities {
 
 		var entry *AddressConfig
@@ -867,18 +887,23 @@ func (reconciler *BrokerServiceInstanceReconciler) processCapabilities(secret *c
 
 	props := map[string]string{} // need to dedup
 	for addressName, addr := range addressTracker.names {
-		fqqn := strings.SplitN(addressName, "::", 2)
-		if len(fqqn) > 1 {
-			address := escapeForProperties(fqqn[0])
-			queueName := escapeForProperties(fqqn[1])
-			props[fmt.Sprintf("addressConfigurations.\"%s\".routingTypes=ANYCAST,MULTICAST\n", address)] = ""
-			props[fmt.Sprintf("addressConfigurations.\"%s\".queueConfigs.\"%s\".routingType=MULTICAST\n", address, queueName)] = ""
-			props[fmt.Sprintf("addressConfigurations.\"%s\".queueConfigs.\"%s\".address=%s\n", address, queueName, address)] = ""
-		} else {
-			props[fmt.Sprintf("addressConfigurations.\"%s\".routingTypes=ANYCAST,MULTICAST\n", addressName)] = ""
-			props[fmt.Sprintf("addressConfigurations.\"%s\".queueConfigs.\"%s\".routingType=ANYCAST\n", addressName, addressName)] = ""
+		// Only generate addressConfigurations for addresses owned by this app
+		// (not cross-app references where AppNamespace/AppName are set)
+		if addr.isOwned {
+			fqqn := strings.SplitN(addressName, "::", 2)
+			if len(fqqn) > 1 {
+				address := escapeForProperties(fqqn[0])
+				queueName := escapeForProperties(fqqn[1])
+				props[fmt.Sprintf("addressConfigurations.\"%s\".routingTypes=ANYCAST,MULTICAST\n", address)] = ""
+				props[fmt.Sprintf("addressConfigurations.\"%s\".queueConfigs.\"%s\".routingType=MULTICAST\n", address, queueName)] = ""
+				props[fmt.Sprintf("addressConfigurations.\"%s\".queueConfigs.\"%s\".address=%s\n", address, queueName, address)] = ""
+			} else {
+				props[fmt.Sprintf("addressConfigurations.\"%s\".routingTypes=ANYCAST,MULTICAST\n", addressName)] = ""
+				props[fmt.Sprintf("addressConfigurations.\"%s\".queueConfigs.\"%s\".routingType=ANYCAST\n", addressName, addressName)] = ""
+			}
 		}
 
+		// Always generate RBAC roles (for both owned and referenced addresses)
 		// use fqqn as is for RBAC
 		addressName = escapeForProperties(addressName)
 

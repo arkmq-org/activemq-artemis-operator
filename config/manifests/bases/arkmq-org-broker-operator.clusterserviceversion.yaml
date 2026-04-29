@@ -6337,6 +6337,11 @@ spec:
         name: ""
         version: v1
       specDescriptors:
+      - description: |-
+          Addresses owned by this app (lifecycle tied to this app)
+          Other apps can reference these via appNamespace/appName in their capabilities
+        displayName: Addresses
+        path: addresses
       - displayName: Messaging Capabilities
         path: capabilities
       - displayName: Resources

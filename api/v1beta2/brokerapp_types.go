@@ -31,6 +31,11 @@ type BrokerAppSpec struct {
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="ServiceSelector"
 	ServiceSelector *metav1.LabelSelector `json:"selector,omitempty"`
 
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Addresses"
+	// Addresses owned by this app (lifecycle tied to this app)
+	// Other apps can reference these via appNamespace/appName in their capabilities
+	Addresses []AddressType `json:"addresses,omitempty"`
+
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Messaging Capabilities"
 	Capabilities []AppCapabilityType `json:"capabilities,omitempty"`
 
@@ -38,18 +43,31 @@ type BrokerAppSpec struct {
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
-type AppAddressType struct {
+// AddressType defines a messaging address
+type AddressType struct {
+	// Address is the address identifier (unique within a broker service)
 	Address string `json:"address"`
-	// Shared *bool `json:"shared,omitempty"`
-	// Filter string `json:"filter,omitempty"`
+}
+
+// AddressRef references an address for use in capabilities
+type AddressRef struct {
+	// Address is the address identifier (required)
+	// Can be simple name ("orders") or FQQN ("events::queue1" for SubscriberOf)
+	Address string `json:"address"`
+
+	// AppNamespace of owning app - for cross-app references  (optional)
+	AppNamespace string `json:"appNamespace,omitempty"`
+
+	// AppName of owning app - for cross-app references  (optional)
+	AppName string `json:"appName,omitempty"`
 }
 
 type AppCapabilityType struct {
-	ProducerOf []AppAddressType `json:"producerOf,omitempty"`
+	ProducerOf []AddressRef `json:"producerOf,omitempty"`
 
-	ConsumerOf []AppAddressType `json:"consumerOf,omitempty"`
+	ConsumerOf []AddressRef `json:"consumerOf,omitempty"`
 
-	SubscriberOf []AppAddressType `json:"subscriberOf,omitempty"`
+	SubscriberOf []AddressRef `json:"subscriberOf,omitempty"`
 }
 
 // BrokerServiceBindingStatus captures the binding details between a BrokerApp and its provisioned BrokerService

@@ -291,8 +291,9 @@ func TestBrokerAppPortAssignment_PoolExhausted(t *testing.T) {
 	r := NewBrokerAppReconciler(cl, scheme, nil, logr.New(log.NullLogSink{}))
 
 	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: "app3", Namespace: ns}}
-	_, err := r.Reconcile(context.TODO(), req)
-	assert.Error(t, err)
+	res, err := r.Reconcile(context.TODO(), req)
+	assert.NoError(t, err) // err is reflected in the status
+	assert.True(t, res.Requeue)
 
 	updatedApp3 := &v1beta2.BrokerApp{}
 	err = cl.Get(context.TODO(), req.NamespacedName, updatedApp3)
@@ -301,8 +302,8 @@ func TestBrokerAppPortAssignment_PoolExhausted(t *testing.T) {
 	deployedCondition := meta.FindStatusCondition(updatedApp3.Status.Conditions, v1beta2.DeployedConditionType)
 	assert.NotNil(t, deployedCondition)
 	assert.Equal(t, v1.ConditionFalse, deployedCondition.Status)
-	assert.Equal(t, v1beta2.DeployedConditionPortPoolExhaustedReason, deployedCondition.Reason)
-	assert.Contains(t, deployedCondition.Message, "port")
+	assert.Equal(t, v1beta2.DeployedConditionNoServiceCapacityReason, deployedCondition.Reason)
+	assert.Contains(t, deployedCondition.Message, "exhausted")
 }
 
 func TestBrokerAppPortAssignment_ExistingPortPreserved(t *testing.T) {
