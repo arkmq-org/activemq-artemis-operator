@@ -918,11 +918,11 @@ func TestBrokerServiceReconcilePrometheusOverrideSecret(t *testing.T) {
 		Spec: v1beta2.BrokerAppSpec{
 			Capabilities: []v1beta2.AppCapabilityType{
 				{
-					ConsumerOf: []v1beta2.AppAddressType{
+					ConsumerOf: []v1beta2.AddressRef{
 						{Address: "TEST.QUEUE.ONE"},
 						{Address: "TEST.QUEUE.TWO"},
 					},
-					ProducerOf: []v1beta2.AppAddressType{
+					ProducerOf: []v1beta2.AddressRef{
 						{Address: "TEST.QUEUE.ONE"},
 					},
 				},

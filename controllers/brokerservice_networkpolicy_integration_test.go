@@ -260,8 +260,8 @@ var _ = Describe("NetworkPolicy port discovery integration", func() {
 					},
 					Capabilities: []broker.AppCapabilityType{
 						{
-							ProducerOf: []broker.AppAddressType{{Address: "APP1.QUEUE"}},
-							ConsumerOf: []broker.AppAddressType{{Address: "APP1.QUEUE"}},
+							ProducerOf: []broker.AddressRef{{Address: "APP1.QUEUE"}},
+							ConsumerOf: []broker.AddressRef{{Address: "APP1.QUEUE"}},
 						},
 					},
 				},
@@ -315,7 +315,7 @@ var _ = Describe("NetworkPolicy port discovery integration", func() {
 					},
 					Capabilities: []broker.AppCapabilityType{
 						{
-							ProducerOf: []broker.AppAddressType{{Address: "APP2.TOPIC"}},
+							ProducerOf: []broker.AddressRef{{Address: "APP2.TOPIC"}},
 						},
 					},
 				},
@@ -381,7 +381,7 @@ var _ = Describe("NetworkPolicy port discovery integration", func() {
 					},
 					Capabilities: []broker.AppCapabilityType{
 						{
-							ConsumerOf: []broker.AppAddressType{{Address: "APP3.QUEUE"}},
+							ConsumerOf: []broker.AddressRef{{Address: "APP3.QUEUE"}},
 						},
 					},
 				},
@@ -436,7 +436,7 @@ var _ = Describe("NetworkPolicy port discovery integration", func() {
 					},
 					Capabilities: []broker.AppCapabilityType{
 						{
-							ProducerOf: []broker.AppAddressType{{Address: "APP4.QUEUE"}},
+							ProducerOf: []broker.AddressRef{{Address: "APP4.QUEUE"}},
 						},
 					},
 				},
@@ -465,7 +465,7 @@ var _ = Describe("NetworkPolicy port discovery integration", func() {
 				deployedCondition := meta.FindStatusCondition(createdApp4.Status.Conditions, broker.DeployedConditionType)
 				g.Expect(deployedCondition).NotTo(BeNil())
 				g.Expect(deployedCondition.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(deployedCondition.Reason).To(Equal(broker.DeployedConditionPortPoolExhaustedReason))
+				g.Expect(deployedCondition.Reason).To(Equal(broker.DeployedConditionNoServiceCapacityReason))
 				g.Expect(deployedCondition.Message).To(ContainSubstring("port"))
 			}, existingClusterTimeout, existingClusterInterval).Should(Succeed())
 
