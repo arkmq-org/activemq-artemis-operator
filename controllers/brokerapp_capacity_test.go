@@ -248,6 +248,14 @@ func TestFindServiceWithCapacity(t *testing.T) {
 			objs = append(objs, namespace, tt.app)
 
 			for i := range tt.services {
+				// Add Deployed condition to all services
+				tt.services[i].Status.Conditions = []metav1.Condition{
+					{
+						Type:   brokerv1beta1.DeployedConditionType,
+						Status: metav1.ConditionTrue,
+						Reason: brokerv1beta1.ReadyConditionReason,
+					},
+				}
 				objs = append(objs, &tt.services[i])
 			}
 			for i := range tt.existingApps {
@@ -285,7 +293,7 @@ func TestFindServiceWithCapacity(t *testing.T) {
 			}
 
 			// Call findServiceWithCapacity
-			chosen, err := reconciler.findServiceWithCapacity(serviceList)
+			chosen, assignedPort, err := reconciler.findServiceWithCapacity(serviceList)
 
 			// Check error expectation
 			if (err != nil) != tt.expectError {
@@ -299,6 +307,10 @@ func TestFindServiceWithCapacity(t *testing.T) {
 					t.Errorf("expected service %s, got nil", tt.expectedServiceName)
 				} else if chosen.Name != tt.expectedServiceName {
 					t.Errorf("expected service %s, got %s", tt.expectedServiceName, chosen.Name)
+				}
+				// If a service was chosen, port should be assigned
+				if assignedPort == UnassignedPort {
+					t.Errorf("expected assigned port for service %s, got UnassignedPort", tt.expectedServiceName)
 				}
 			} else {
 				if chosen != nil {

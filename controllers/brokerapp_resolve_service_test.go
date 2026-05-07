@@ -210,6 +210,14 @@ func TestResolveBrokerService(t *testing.T) {
 			objs := make([]runtime.Object, 0, len(tt.services)+1)
 			objs = append(objs, tt.app)
 			for i := range tt.services {
+				// Add Deployed condition to all services
+				tt.services[i].Status.Conditions = []metav1.Condition{
+					{
+						Type:   broker.DeployedConditionType,
+						Status: metav1.ConditionTrue,
+						Reason: broker.ReadyConditionReason,
+					},
+				}
 				objs = append(objs, &tt.services[i])
 			}
 			objs = append(objs, &corev1.Namespace{

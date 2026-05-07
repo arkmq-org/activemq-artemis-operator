@@ -806,12 +806,12 @@ const (
 	DeployedConditionCrudKindErrorReason          = "ResourceError"
 	DeployedConditionNoMatchingServiceReason      = "NoMatchingService"
 	DeployedConditionNoServiceCapacityReason      = "NoServiceCapacity"
-	DeployedConditionPortConflictReason           = "PortConflict"
 	DeployedConditionMatchedServiceNotFoundReason = "MatchedServiceNotFound"
 	DeployedConditionProvisioningPendingReason    = "ProvisioningPending"
 	DeployedConditionProvisionedReason            = "Provisioned"
 	DeployedConditionDoesNotMatchReason           = "AppSelectorNoMatch"
 	DeployedConditionSelectorEvaluationError      = "AppSelectorEvaluationError"
+	DeployedConditionPortPoolExhaustedReason      = "PortPoolExhausted"
 
 	AppsProvisionedConditionType           = "AppsProvisioned"
 	AppsProvisionedConditionSyncedReason   = "Synced"

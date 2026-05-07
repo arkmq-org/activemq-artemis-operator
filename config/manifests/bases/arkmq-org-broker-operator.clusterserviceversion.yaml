@@ -6337,8 +6337,6 @@ spec:
         name: ""
         version: v1
       specDescriptors:
-      - displayName: Acceptor
-        path: acceptor
       - displayName: Messaging Capabilities
         path: capabilities
       - displayName: Resources

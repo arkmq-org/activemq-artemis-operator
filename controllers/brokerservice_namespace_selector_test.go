@@ -250,7 +250,6 @@ var _ = Describe("broker-service namespace-based CEL selection", func() {
 					ServiceSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{}, // Match any service
 					},
-					Acceptor: broker.AppAcceptorType{Port: 62100},
 					Capabilities: []broker.AppCapabilityType{
 						{
 							ProducerOf: []broker.AppAddressType{{Address: "PROD.QUEUE"}},
@@ -305,7 +304,6 @@ var _ = Describe("broker-service namespace-based CEL selection", func() {
 					ServiceSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{}, // Match any service
 					},
-					Acceptor: broker.AppAcceptorType{Port: 62200},
 					Capabilities: []broker.AppCapabilityType{
 						{
 							ProducerOf: []broker.AppAddressType{{Address: "DEV.QUEUE"}},
@@ -361,7 +359,6 @@ var _ = Describe("broker-service namespace-based CEL selection", func() {
 					ServiceSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{}, // Match any service
 					},
-					Acceptor: broker.AppAcceptorType{Port: 62300},
 					Capabilities: []broker.AppCapabilityType{
 						{
 							ProducerOf: []broker.AppAddressType{{Address: "QA.QUEUE"}},
@@ -529,7 +526,6 @@ var _ = Describe("broker-service namespace-based CEL selection", func() {
 					ServiceSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{},
 					},
-					Acceptor: broker.AppAcceptorType{Port: 62400},
 					Capabilities: []broker.AppCapabilityType{
 						{
 							ProducerOf: []broker.AppAddressType{{Address: "PAYMENTS.QUEUE"}},
@@ -569,7 +565,6 @@ var _ = Describe("broker-service namespace-based CEL selection", func() {
 					ServiceSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{},
 					},
-					Acceptor: broker.AppAcceptorType{Port: 62500},
 					Capabilities: []broker.AppCapabilityType{
 						{
 							ProducerOf: []broker.AppAddressType{{Address: "ORDERS.QUEUE"}},

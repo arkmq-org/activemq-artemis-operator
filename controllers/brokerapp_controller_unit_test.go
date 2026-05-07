@@ -55,12 +55,21 @@ func TestSimpleReconcile(t *testing.T) {
 		},
 	}
 
-	// Create BrokerService
+	// Create BrokerService (with Deployed=True)
 	svc := &v1beta2.BrokerService{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      svcName,
 			Namespace: ns,
 			Labels:    map[string]string{"type": "broker"},
+		},
+		Status: v1beta2.BrokerServiceStatus{
+			Conditions: []v1.Condition{
+				{
+					Type:   v1beta2.DeployedConditionType,
+					Status: v1.ConditionTrue,
+					Reason: v1beta2.ReadyConditionReason,
+				},
+			},
 		},
 	}
 
@@ -112,8 +121,8 @@ func TestSimpleReconcile(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, fmt.Sprintf("%s.%s.svc.%s", svcName, ns, common.GetClusterDomain()), string(bindingSecret.Data["host"]))
-	assert.Equal(t, fmt.Sprintf("%d", app.Spec.Acceptor.Port), string(bindingSecret.Data["port"]))
-	assert.Equal(t, fmt.Sprintf("amqps://%s.%s.svc.%s:%d", svcName, ns, common.GetClusterDomain(), app.Spec.Acceptor.Port), string(bindingSecret.Data["uri"]))
+	assert.Equal(t, fmt.Sprintf("%d", updatedApp.Status.Service.AssignedPort), string(bindingSecret.Data["port"]))
+	assert.Equal(t, fmt.Sprintf("amqps://%s.%s.svc.%s:%d", svcName, ns, common.GetClusterDomain(), updatedApp.Status.Service.AssignedPort), string(bindingSecret.Data["uri"]))
 
 	// update broker service status to reflect ready with deployed app
 	svc.Status.ProvisionedApps = []string{AppIdentity(app)}
@@ -206,12 +215,21 @@ func TestReconcileValidConditionTransition(t *testing.T) {
 	}
 	appName := "my-app"
 
-	// Create BrokerService
+	// Create BrokerService (with Deployed=True)
 	svc := &v1beta2.BrokerService{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      svcName,
 			Namespace: ns,
 			Labels:    map[string]string{"type": "broker"},
+		},
+		Status: v1beta2.BrokerServiceStatus{
+			Conditions: []v1.Condition{
+				{
+					Type:   v1beta2.DeployedConditionType,
+					Status: v1.ConditionTrue,
+					Reason: v1beta2.ReadyConditionReason,
+				},
+			},
 		},
 	}
 
@@ -311,12 +329,21 @@ func TestReconcileStatusUpdateFailure(t *testing.T) {
 		},
 	}
 
-	// Create BrokerService
+	// Create BrokerService (with Deployed=True)
 	svc := &v1beta2.BrokerService{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      svcName,
 			Namespace: ns,
 			Labels:    map[string]string{"type": "broker"},
+		},
+		Status: v1beta2.BrokerServiceStatus{
+			Conditions: []v1.Condition{
+				{
+					Type:   v1beta2.DeployedConditionType,
+					Status: v1.ConditionTrue,
+					Reason: v1beta2.ReadyConditionReason,
+				},
+			},
 		},
 	}
 
@@ -436,12 +463,21 @@ func TestReconcileDeployedConditionFromBrokerServiceStatus(t *testing.T) {
 	}
 	appName := "my-app"
 
-	// Create BrokerService
+	// Create BrokerService (with Deployed=True)
 	svc := &v1beta2.BrokerService{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      svcName,
 			Namespace: ns,
 			Labels:    map[string]string{"type": "broker"},
+		},
+		Status: v1beta2.BrokerServiceStatus{
+			Conditions: []v1.Condition{
+				{
+					Type:   v1beta2.DeployedConditionType,
+					Status: v1.ConditionTrue,
+					Reason: v1beta2.ReadyConditionReason,
+				},
+			},
 		},
 	}
 
@@ -526,12 +562,21 @@ func TestReconcileIdempotentStatus(t *testing.T) {
 	}
 	appName := "my-app"
 
-	// Create BrokerService
+	// Create BrokerService (with Deployed=True)
 	svc := &v1beta2.BrokerService{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      svcName,
 			Namespace: ns,
 			Labels:    map[string]string{"type": "broker"},
+		},
+		Status: v1beta2.BrokerServiceStatus{
+			Conditions: []v1.Condition{
+				{
+					Type:   v1beta2.DeployedConditionType,
+					Status: v1.ConditionTrue,
+					Reason: v1beta2.ReadyConditionReason,
+				},
+			},
 		},
 	}
 
@@ -708,12 +753,21 @@ func TestReconcileMatchedServiceNotFound(t *testing.T) {
 	}
 	appName := "my-app"
 
-	// Create BrokerService
+	// Create BrokerService (with Deployed=True)
 	svc := &v1beta2.BrokerService{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      svcName,
 			Namespace: ns,
 			Labels:    map[string]string{"type": "broker"},
+		},
+		Status: v1beta2.BrokerServiceStatus{
+			Conditions: []v1.Condition{
+				{
+					Type:   v1beta2.DeployedConditionType,
+					Status: v1.ConditionTrue,
+					Reason: v1beta2.ReadyConditionReason,
+				},
+			},
 		},
 	}
 
@@ -730,9 +784,10 @@ func TestReconcileMatchedServiceNotFound(t *testing.T) {
 		},
 		Status: v1beta2.BrokerAppStatus{
 			Service: &v1beta2.BrokerServiceBindingStatus{
-				Name:      svcName,
-				Namespace: ns,
-				Secret:    "binding-secret",
+				Name:         svcName,
+				Namespace:    ns,
+				Secret:       "binding-secret",
+				AssignedPort: 61616,
 			},
 		},
 	}
