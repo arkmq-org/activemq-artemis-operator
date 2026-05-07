@@ -171,6 +171,9 @@ validatingwebhookconfiguration.admissionregistration.k8s.io/cert-manager-webhook
 
 ```{"stage":"cert-manager"}
 kubectl wait pod --all --for=condition=Ready --namespace=cert-manager --timeout=240s
+TEST_ISSUER='{"apiVersion":"cert-manager.io/v1","kind":"ClusterIssuer","metadata":{"name":"test-issuer"},"spec":{"selfSigned":{}}}'
+for i in {1..30}; do echo ${TEST_ISSUER} | kubectl create -f - && break || test $i -lt 30 && sleep 1 || exit 1; done
+kubectl delete ClusterIssuer test-issuer
 ```
 ```shell markdown_runner
 pod/cert-manager-564487bfff-vmmck condition met
